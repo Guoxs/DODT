@@ -1,0 +1,37 @@
+avod/data
+avod/data_detection
+avod/checkpoints
+avod/logs
+
+# Python
+*.pyc
+__pycache__
+
+# Coverage
+*.coverage
+htmlcov
+
+# Misc
+run.sh
+tags
+
+# PyCharm
+.idea
+*.yml
+
+# Rope
+.ropeproject
+
+# Distribution / packaging
+build/
+dist/
+avod.egg-info/
+
+# Protobuf files
+*_pb2.py
+
+# line_profiler
+*.lprof
+
+# tf_profiler
+*.json
