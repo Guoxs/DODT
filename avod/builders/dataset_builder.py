@@ -16,13 +16,15 @@ class DatasetBuilder(object):
 
     KITTI_UNITTEST = KittiDatasetConfig(
         name="unittest-kitti",
-        dataset_dir=avod.root_dir() + "/tests/datasets/Kitti/object",
+        dataset_dir=avod.root_dir() + "/tests/datasets/Kitti/tracking",
         data_split="train",
         data_split_dir="training",
         has_labels=True,
+        video_train_id = [0],
         cluster_split="train",
         classes=["Car", "Pedestrian", "Cyclist"],
         num_clusters=[2, 1, 1],
+        data_stride = 1,
     )
 
     KITTI_TRAIN = KittiDatasetConfig(
@@ -152,6 +154,16 @@ class DatasetBuilder(object):
             text_format.Merge(f.read(), dataset_config)
 
         return DatasetBuilder.build_kitti_dataset(dataset_config,
+                                                  use_defaults=False)
+
+    @staticmethod
+    def load_tracking_dataset_from_config(dataset_config_path):
+
+        dataset_config = kitti_dataset_pb2.KittiDatasetConfig()
+        with open(dataset_config_path, 'r') as f:
+            text_format.Merge(f.read(), dataset_config)
+
+        return DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
                                                   use_defaults=False)
 
     @staticmethod

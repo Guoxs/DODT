@@ -1,7 +1,7 @@
 import numpy as np
-import os
 
 from wavedata.tools.obj_detection import tracking_utils
+from wavedata.tools.core import calib_utils
 from wavedata.tools.core.voxel_grid_2d import VoxelGrid2D
 
 from avod.datasets.kitti.kitti_utils import KittiUtils
@@ -11,6 +11,33 @@ class KittiTrackingUtils(KittiUtils):
 
     def __init__(self, dataset):
         super(KittiTrackingUtils, self).__init__(dataset)
+
+        # Label Clusters
+        self.clusters, self.std_devs = self.get_label_clasters()
+
+    def get_label_clasters(self):
+        return self.label_cluster_utils.get_clusters(datasets='tracking')
+
+
+    def get_raw_point_cloud(self, source, name):
+        if source == 'lidar':
+            point_cloud = tracking_utils.get_raw_lidar_point_cloud(
+                name, self.dataset.velo_dir)
+        else:
+            raise ValueError("Invalid source {}".format(source))
+
+        return point_cloud
+
+    def transfer_lidar_to_camera_view(self, source, name, lidar, image_shape=None):
+        if source == 'lidar':
+            # wavedata wants im_size in (w, h) order
+            im_size = [image_shape[1], image_shape[0]]
+            point_cloud = tracking_utils.get_lidar_in_camera_view(
+                lidar, name, self.dataset.calib_dir,im_size=im_size)
+        else:
+            raise ValueError("Invalid source {}".format(source))
+
+        return point_cloud
 
 
     def get_point_cloud(self, source, name, image_shape=None):
@@ -41,6 +68,19 @@ class KittiTrackingUtils(KittiUtils):
             raise ValueError("Invalid source {}".format(source))
 
         return point_cloud
+
+    def get_calib(self, source, name):
+        if source == 'lidar':
+            assert len(name) == 6, print('Sample name incorrect!')
+            video_id = int(name[:2])
+            # Read calibration info
+            frame_calib = calib_utils.read_tracking_calibration(
+                self.dataset.calib_dir, video_id)
+
+        else:
+            raise ValueError("Invalid source {}".format(source))
+
+        return frame_calib
 
     def get_ground_plane(self, sample_name):
         """Reads the ground plane for the sample
@@ -83,6 +123,8 @@ class KittiTrackingUtils(KittiUtils):
                                   ground_plane=ground_plane,
                                   create_leaf_layout=True)
 
+        return voxel_grid_2d
+
 
 class Oxts(object):
     '''
@@ -100,23 +142,23 @@ class Oxts(object):
 
 
     def rotx(self, t):
-        ''' 3D Rotation about the x-axis. '''
+        ''' 3D Rotation about the x-axis. lidar coordinate'''
         c = np.cos(t)
         s = np.sin(t)
         return np.array([[1, 0, 0],
                          [0, c, -s],
                          [0, s, c]])
 
-    def roty(self, t):
-        ''' Rotation about the y-axis. '''
+    def rotz(self, t):
+        ''' Rotation about the z-axis. lidar coordinate'''
         c = np.cos(t)
         s = np.sin(t)
         return np.array([[c, 0, s],
                          [0, 1, 0],
                          [-s, 0, c]])
 
-    def rotz(self, t):
-        ''' Rotation about the z-axis. '''
+    def roty(self, t):
+        ''' Rotation about the y-axis. lidar coordinate'''
         c = np.cos(t)
         s = np.sin(t)
         return np.array([[c, -s, 0],
@@ -136,30 +178,30 @@ class Oxts(object):
         lat1, lon1 = rad(self.latitude), rad(self.longitude)
         lat2, lon2 = rad(object.latitude), rad(object.longitude)
         R = 6378137.0   # radius of earth (m)
-        a = lat1 - lat2
-        b = lon1 - lon2
+        a = lat2 - lat1
+        b = lon2 - lon1
         dis = 2 * R * np.arcsin(
                             np.sqrt(np.power(np.sin(a/2), 2) +
                             np.cos(lat1) * np.cos(lat2) * np.power(np.sin(b/2),2))
                     )
-        return dis
+        return abs(dis)
 
     def displacement(self, object):
         d = self.distance(object)
         delta_yaw = self.yaw - object.yaw
         delta_pitch = self.pitch - object.pitch
-        delta_z = d * np.cos(delta_yaw)
-        delta_x = d * np.sin(delta_yaw)
-        delta_y = d * np.sin(delta_pitch)
+        delta_x = d * np.cos(delta_yaw)
+        delta_y = d * np.sin(delta_yaw)
+        delta_z = d * np.sin(delta_pitch)
         return np.array([delta_x, delta_y, delta_z])
 
     def get_rotate_matrix(self, object, axis='y'):
-        if axis == 'x':
-            delta_pitch = self.pitch - object.pitch
-            return self.rotx(delta_pitch)
         if axis == 'z':
+            delta_pitch = self.pitch - object.pitch
+            return self.rotz(delta_pitch)
+        if axis == 'x':
             delta_roll = self.roll - object.roll
-            return self.rotz(delta_roll)
+            return self.rotx(delta_roll)
         elif axis == 'y':
             delta_yaw = self.yaw - object.yaw
             return self.roty(delta_yaw)

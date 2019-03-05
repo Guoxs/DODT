@@ -55,6 +55,9 @@ class KittiTrackingDataset:
         self.bev_source = self.config.bev_source
         self.aug_list = self.config.aug_list
 
+        # 2 image a samples
+        self.sample_num = 2
+
         # stride for couple data, default is 2
         self.data_stride = self.config.data_stride
 
@@ -214,6 +217,7 @@ class KittiTrackingDataset:
         oxts_file = open(self.oxts_dir + '/%04d.txt' % video_id)
         lines = [line.rstrip() for line in oxts_file.readlines()]
         oxts_line = lines[frame_id]
+        oxts_file.close()
         return Oxts(oxts_line)
 
     # Cluster info
@@ -269,7 +273,9 @@ class KittiTrackingDataset:
                 video_id = int(item[0].split('/')[0])
                 frame_num = int(item[-1].split('/')[1])
                 assert len(item) == frame_num+1, print('Frame number match failed!')
-                if video_id in self.video_train_id:
+                if self.data_split == 'test':
+                    data_list = split_video_ids(item, self.data_stride, data_list)
+                elif video_id in self.video_train_id:
                     if self.data_split in ['train', 'trainval']:
                         data_list = split_video_ids(item, self.data_stride, data_list)
                 else:
@@ -278,7 +284,7 @@ class KittiTrackingDataset:
         return data_list
 
 
-    def coordinate_transform(self, sample_names, source='lidar'):
+    def coordinate_transform(self, sample_names):
         '''get translation vector and rotation matrix, in order to represent previous frame
             in current frame's coordinate.
 
@@ -292,15 +298,12 @@ class KittiTrackingDataset:
         oxts_cur = self.get_oxts(sample_names[0])
         oxts_next = self.get_oxts(sample_names[1])
         distance = oxts_cur.displacement(oxts_next)
-        if source == 'label':
-            delta = oxts_cur.get_delta(oxts_next, theta='yaw')
-            return distance, delta
-        else:
-            Rz = oxts_cur.get_rotate_matrix(oxts_next, 'z')
-            Rx = oxts_cur.get_rotate_matrix(oxts_next, 'x')
-            Ry = oxts_cur.get_rotate_matrix(oxts_next, 'y')
-            matrix = Ry @ Rx @ Rz
-            return distance, matrix
+        delta = oxts_cur.get_delta(oxts_next, theta='yaw')
+        Rz = oxts_cur.get_rotate_matrix(oxts_next, 'z')
+        Rx = oxts_cur.get_rotate_matrix(oxts_next, 'x')
+        Ry = oxts_cur.get_rotate_matrix(oxts_next, 'y')
+        matrix = Rz @ Rx @ Ry
+        return distance, matrix, delta
 
     def point_cloud_transform(self, point_cloud, sample_names):
         '''
@@ -309,9 +312,9 @@ class KittiTrackingDataset:
         :param sample_names:    ['010001', '010002']
         :return:                [array(3, N), array(3, N)]
         '''
-        trans, matrix = self.coordinate_transform(sample_names, source='lidar')
+        trans, matrix, _ = self.coordinate_transform(sample_names)
         pc_next = point_cloud[-1].T
-        pc_next = (pc_next + trans) @ matrix
+        pc_next[:,:3] = (pc_next[:, :3] + trans) @ matrix
         point_cloud[-1] = pc_next.T
         return point_cloud
 
@@ -323,14 +326,29 @@ class KittiTrackingDataset:
         :param sample_names:    ['010001', '010002']
         :return:                [array(TrackingLabel object), array(TrackingLabel object)]
         '''
-        trans, delta = self.coordinate_transform(sample_names, source='label')
+        def cal_new_t(label_obj, calib, trans, matrix):
+            from wavedata.tools.obj_detection import obj_utils
+            box3d = obj_utils.compute_box_corners_3d(label_obj).T  #[8,3]
+            # transfer to velo coord
+            box3d = calib.project_rect_to_velo(box3d)
+            # do rotate
+            box3d = (box3d + trans) @ matrix
+            # back to cam coord
+            box3d = calib.project_velo_to_rect(box3d)
+            # cal box center
+            new_t = np.mean(box3d, axis=0)
+            # cal center bottom
+            new_t[1] += label_obj.h / 2.0
+            return new_t
+
+        trans, matrix, delta = self.coordinate_transform(sample_names)
+        # transfer trans to camera coord
+        calib = self.kitti_utils.get_calib(self.bev_source, sample_names[-1])
         label_next = labels[-1]
-        if label_next.shape[0] != 0:
+        if len(label_next) != 0:
             for i in range(len(label_next)):
-                label = label_next[i]
-                label.t += trans
-                label.ry += delta
-                label_next[i] = label
+                label_next[i].t = cal_new_t(label_next[i],calib, trans, matrix)
+                label_next[i].ry += delta
             labels[-1] = label_next
         return labels
 
@@ -386,6 +404,9 @@ class KittiTrackingDataset:
             cv_bgr_image = [cv2.imread(self.get_rgb_image_path(name)) for name in sample_names]
             rgb_image = [image[..., :: -1] for image in cv_bgr_image]
             image_shape = [img.shape[0:2] for img in rgb_image]
+            # resize to the same shape
+            if image_shape[0] != image_shape[1]:
+                rgb_image[-1] = cv2.resize(rgb_image[-1], image_shape[0])
             image_input = rgb_image
 
             # Get ground plane
@@ -397,12 +418,17 @@ class KittiTrackingDataset:
             stereo_calib_p2 = calib_utils.read_tracking_calibration(self.calib_dir,
                                                            int(sample_names[0][:2])).p2
 
-            point_cloud = [self.kitti_utils.get_point_cloud(self.bev_source,
-                                                            sample_names[i],
-                                                           image_shape[i]) for i in range(len(sample_names))]
+            # load raw lidar data
+            raw_point_cloud = [self.kitti_utils.get_raw_point_cloud(
+                self.bev_source, sample_names[i]) for i in range(len(sample_names))]
 
             # transform second point_cloud frame to first point_cloud frame coordinate system
-            point_cloud = self.point_cloud_transform(point_cloud, sample_names)
+            point_cloud = self.point_cloud_transform(raw_point_cloud, sample_names)
+
+            # convert transfered lidar to camera view
+            point_cloud = [self.kitti_utils.transfer_lidar_to_camera_view(
+                self.bev_source, sample_names[i], point_cloud[i], image_shape[i]
+            ) for i in range(len(sample_names))]
 
             # transform second frame label to first frame label coordinate system
             if obj_labels is not None:
@@ -485,19 +511,30 @@ class KittiTrackingDataset:
             bev_input = [np.dstack((*height_maps[i], density_map[i]))
                          for i in range(len(bev_images))]
 
+            # align anchors_info
+            # aligned_anchors_info = []
+            # if len(anchors_info[0]) > 0 and len(anchors_info[1]) > 0:
+            #     for (item1, item2) in zip(anchors_info[0], anchors_info[1]):
+            #         aligned_anchors_info.append(
+            #             self.list_align([item1, item2])
+            #         )
+
+            # transpose point_cloud for data align
+            point_cloud = [point_cloud[0].T, point_cloud[1].T]
+
             sample_dict = {
                 constants.KEY_LABEL_BOXES_3D: label_boxes_3d,
                 constants.KEY_LABEL_ANCHORS: label_anchors,
                 constants.KEY_LABEL_CLASSES: label_classes,
                 constants.KEY_OBJECT_IDS: object_ids,
 
-                constants.KEY_IMAGE_INPUT: image_input,
-                constants.KEY_BEV_INPUT: bev_input,
+                constants.KEY_IMAGE_INPUT: np.asarray(image_input),
+                constants.KEY_BEV_INPUT: np.asarray(bev_input),
 
                 constants.KEY_ANCHORS_INFO: anchors_info,
 
                 constants.KEY_POINT_CLOUD: point_cloud,
-                constants.KEY_GROUND_PLANE: ground_plane,
+                constants.KEY_GROUND_PLANE: np.asarray(ground_plane),
                 constants.KEY_STEREO_CALIB_P2: stereo_calib_p2,
 
                 constants.KEY_SAMPLE_NAME: sample_names,
@@ -506,6 +543,23 @@ class KittiTrackingDataset:
             sample_dicts.append(sample_dict)
 
         return sample_dicts
+
+    def list_align(self, list):
+        len1 = list[0].shape[0]
+        len2 = list[1].shape[0]
+        mask = np.zeros((len1+len2,1), dtype = np.int32)
+        mask[len1:] = 1
+        out = np.concatenate(list, axis=0)
+        if len(out.shape) == 1:
+            out = np.expand_dims(out, axis=1)
+        list_out = np.concatenate([mask, out], axis=1)
+        return list_out
+
+    def get_from_idx(self, data, idx):
+        assert len(data.shape) == 2, print('shape unmatch!')
+        mask = data[:, 0]
+        n_idx = (mask == idx)
+        return data[n_idx]
 
     def _shuffle_samples(self):
         perm = np.arange(self.num_samples)

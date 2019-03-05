@@ -25,6 +25,8 @@ def train(model_config, train_config, dataset_config):
     train_val_test = 'train'
     model_name = model_config.model_name
 
+    batch = dataset.load_samples([5,10,100,500])
+
     with tf.Graph().as_default():
         if model_name == 'dt_rpn_model':
             model = DtRpnModel(model_config,

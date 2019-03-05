@@ -55,8 +55,10 @@ class KittiUtils(object):
         self._mini_batch_dir = self.mini_batch_utils.mini_batch_dir
 
         # Label Clusters
-        self.clusters, self.std_devs = \
-            self.label_cluster_utils.get_clusters()
+        self.clusters, self.std_devs = self.get_label_clasters()
+
+    def get_label_clasters(self):
+        return self.label_cluster_utils.get_clusters()
 
     def class_str_to_index(self, class_str):
         """

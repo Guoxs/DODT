@@ -21,19 +21,34 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
-    PL_ANCHORS = 'anchors_pl'
 
-    PL_BEV_ANCHORS = 'bev_anchors_pl'
-    PL_BEV_ANCHORS_NORM = 'bev_anchors_norm_pl'
-    PL_IMG_ANCHORS = 'img_anchors_pl'
-    PL_IMG_ANCHORS_NORM = 'img_anchors_norm_pl'
-    PL_LABEL_ANCHORS = 'label_anchors_pl'
-    PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
-    PL_LABEL_CLASSES = 'label_classes_pl'
+    PL_ANCHORS_A = 'anchors_pl_0'
 
-    PL_ANCHOR_IOUS = 'anchor_ious_pl'
-    PL_ANCHOR_OFFSETS = 'anchor_offsets_pl'
-    PL_ANCHOR_CLASSES = 'anchor_classes_pl'
+    PL_BEV_ANCHORS_A = 'bev_anchors_pl_0'
+    PL_BEV_ANCHORS_NORM_A = 'bev_anchors_norm_pl_0'
+    PL_IMG_ANCHORS_A = 'img_anchors_pl_0'
+    PL_IMG_ANCHORS_NORM_A = 'img_anchors_norm_pl_0'
+    PL_LABEL_ANCHORS_A = 'label_anchors_pl_0'
+    PL_LABEL_BOXES_3D_A = 'label_boxes_3d_pl_0'
+    PL_LABEL_CLASSES_A = 'label_classes_pl_0'
+
+    PL_ANCHOR_IOUS_A = 'anchor_ious_pl_0'
+    PL_ANCHOR_OFFSETS_A = 'anchor_offsets_pl_0'
+    PL_ANCHOR_CLASSES_A = 'anchor_classes_pl_0'
+
+    PL_ANCHORS_B = 'anchors_pl_1'
+
+    PL_BEV_ANCHORS_B = 'bev_anchors_pl_1'
+    PL_BEV_ANCHORS_NORM_B = 'bev_anchors_norm_pl_1'
+    PL_IMG_ANCHORS_B = 'img_anchors_pl_1'
+    PL_IMG_ANCHORS_NORM_B = 'img_anchors_norm_pl_1'
+    PL_LABEL_ANCHORS_B = 'label_anchors_pl_1'
+    PL_LABEL_BOXES_3D_B = 'label_boxes_3d_pl_1'
+    PL_LABEL_CLASSES_B = 'label_classes_pl_1'
+
+    PL_ANCHOR_IOUS_B = 'anchor_ious_pl_1'
+    PL_ANCHOR_OFFSETS_B = 'anchor_offsets_pl_1'
+    PL_ANCHOR_CLASSES_B = 'anchor_classes_pl_1'
 
     # Sample info, including keys for projection to image space
     # (e.g. camera matrix, image index, etc.)
@@ -148,27 +163,23 @@ class DtRpnModel(model.DetectionModel):
         self.placeholders[name] = placeholder
         return placeholder
 
-    def _add_placeholder_couple(self, dtype, shape, name):
-        placeholder = [tf.placeholder(dtype, shape, name),
-                       tf.placeholder(dtype, shape, name)]
-        self.placeholders[name] = placeholder
-        return placeholder
-
     def _set_up_input_pls(self):
         """Sets up input placeholders by adding them to self._placeholders.
         Keys are defined as self.PL_*.
         """
         # Combine config data
+        N = self.dataset.sample_num
         bev_dims = np.append(self._bev_pixel_size, self._bev_depth)
+        bev_dims = np.append(N, bev_dims)
 
         with tf.variable_scope('bev_input'):
             # Placeholder for BEV image input, to be filled in with feed_dict
-            bev_input_placeholder_couple = self._add_placeholder_couple(tf.float32, bev_dims,
+            bev_input_placeholder_couple = self._add_placeholder(tf.float32, bev_dims,
                                                           self.PL_BEV_INPUT)
             self._bev_input_batches = []
             self._bev_preprocessed = []
-            for bev_input_placeholder in bev_input_placeholder_couple:
-                temp_bev_input_batch = tf.expand_dims(bev_input_placeholder, axis=0)
+            for i in range(N):
+                temp_bev_input_batch = tf.expand_dims(bev_input_placeholder_couple[i], axis=0)
                 temp_bev_preprocessed = self._bev_feature_extractor.preprocess_input(
                                              temp_bev_input_batch, self._bev_pixel_size)
 
@@ -187,14 +198,14 @@ class DtRpnModel(model.DetectionModel):
 
         with tf.variable_scope('img_input'):
             # Take variable size input images
-            img_input_placeholder_couple = self._add_placeholder_couple(
+            img_input_placeholder_couple = self._add_placeholder(
                                                 tf.float32,
-                                                [None, None, self._img_depth],
+                                                [N, None, None, self._img_depth],
                                                 self.PL_IMG_INPUT)
             self._img_input_batches = []
             self._img_preprocessed = []
-            for img_input_placeholder in img_input_placeholder_couple:
-                temp_img_input_batches = tf.expand_dims(img_input_placeholder, axis=0)
+            for i in range(N):
+                temp_img_input_batches = tf.expand_dims(img_input_placeholder_couple[i], axis=0)
                 temp_img_preprocessed = self._img_feature_extractor.preprocess_input(
                                             temp_img_input_batches, self._img_pixel_size)
 
@@ -206,32 +217,49 @@ class DtRpnModel(model.DetectionModel):
             tf.summary.image("rgb_image_1", self._img_preprocessed[1], max_outputs=2)
 
         with tf.variable_scope('pl_labels'):
-            self._add_placeholder_couple(tf.float32, [None, 6], self.PL_LABEL_ANCHORS)
-            self._add_placeholder_couple(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D)
-            self._add_placeholder_couple(tf.float32, [None], self.PL_LABEL_CLASSES)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_A)
+            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_B)
+            self._add_placeholder(tf.float32, [None, ], self.PL_LABEL_CLASSES_B)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
-            self._add_placeholder_couple(tf.float32, [None, 6], self.PL_ANCHORS)
-            self._add_placeholder_couple(tf.float32, [None], self.PL_ANCHOR_IOUS)
-            self._add_placeholder_couple(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS)
-            self._add_placeholder_couple(tf.float32, [None], self.PL_ANCHOR_CLASSES)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_B)
 
             with tf.variable_scope('bev_anchor_projections'):
-                self._add_placeholder_couple(tf.float32, [None, 4], self.PL_BEV_ANCHORS)
-                self._bev_anchors_norm_pl = self._add_placeholder_couple(tf.float32, [None, 4],
-                                                                  self.PL_BEV_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_A)
+                self._bev_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                  self.PL_BEV_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_B)
+                self._bev_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                    self.PL_BEV_ANCHORS_NORM_B)
+
+                self._bev_anchors_norm_pl = [self._bev_anchors_norm_pl_0, self._bev_anchors_norm_pl_1]
 
             with tf.variable_scope('img_anchor_projections'):
-                self._add_placeholder_couple(tf.float32, [None, 4], self.PL_IMG_ANCHORS)
-                self._img_anchors_norm_pl = self._add_placeholder_couple(tf.float32, [None, 4],
-                                                                         self.PL_IMG_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_A)
+                self._img_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                         self.PL_IMG_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_B)
+                self._img_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                           self.PL_IMG_ANCHORS_NORM_B)
+
+                self._img_anchors_norm_pl = [self._img_anchors_norm_pl_0, self._img_anchors_norm_pl_1]
 
             with tf.variable_scope('sample_info'):
                 # the calib matrix shape is (3 x 4)
                 self._add_placeholder(tf.float32, [3, 4], self.PL_CALIB_P2)
-                self._add_placeholder_couple(tf.int32, shape=[1], name=self.PL_IMG_IDX)
-                self._add_placeholder_couple(tf.float32, [4], self.PL_GROUND_PLANE)
+                self._add_placeholder(tf.int32, shape=[2], name=self.PL_IMG_IDX)
+                self._add_placeholder(tf.float32, [2,4], self.PL_GROUND_PLANE)
 
     def _set_up_feature_extractors(self):
         """Sets up feature extractors and stores feature maps and
@@ -243,20 +271,23 @@ class DtRpnModel(model.DetectionModel):
         self.img_feature_maps = [None]*length
         self.img_end_points = [None]*length
 
-        for i in range(length):
-            self.bev_feature_maps[i], self.bev_end_points[i] = \
-                self._bev_feature_extractor.build(
-                    self._bev_preprocessed[i],
-                    self._bev_pixel_size,
-                    self._is_training)
+        with tf.variable_scope('feature_extractor') as scope:
+            for i in range(length):
+                self.bev_feature_maps[i], self.bev_end_points[i] = \
+                    self._bev_feature_extractor.build(
+                        self._bev_preprocessed[i],
+                        self._bev_pixel_size,
+                        self._is_training)
 
-            self.img_feature_maps[i], self.img_end_points[i] = \
-                self._img_feature_extractor.build(
-                    self._img_preprocessed[i],
-                    self._img_pixel_size,
-                    self._is_training)
+                self.img_feature_maps[i], self.img_end_points[i] = \
+                    self._img_feature_extractor.build(
+                        self._img_preprocessed[i],
+                        self._img_pixel_size,
+                        self._is_training)
 
-        with tf.variable_scope('bev_bottleneck'):
+                scope.reuse_variables()
+
+        with tf.variable_scope('bev_bottleneck') as scope:
             self.bev_bottleneck = []
             for bev_feature_map in self.bev_feature_maps:
                 temp_bev_bottleneck = slim.conv2d(
@@ -266,9 +297,10 @@ class DtRpnModel(model.DetectionModel):
                                         normalizer_fn=slim.batch_norm,
                                         normalizer_params={'is_training': self._is_training})
 
-                self.bev_feature_maps.append(temp_bev_bottleneck)
+                self.bev_bottleneck.append(temp_bev_bottleneck)
+                scope.reuse_variables()
 
-        with tf.variable_scope('img_bottleneck'):
+        with tf.variable_scope('img_bottleneck') as scope:
             self.img_bottleneck = []
             for img_feature_map in self.img_feature_maps:
                 temp_img_bottleneck = slim.conv2d(
@@ -278,7 +310,8 @@ class DtRpnModel(model.DetectionModel):
                                         normalizer_fn=slim.batch_norm,
                                         normalizer_params={'is_training': self._is_training})
 
-                self.img_feature_maps.append(temp_img_bottleneck)
+                self.img_bottleneck.append(temp_img_bottleneck)
+                scope.reuse_variables()
 
         # # Visualize the end point feature maps being used
         # for feature_map in list(self.bev_end_points.items()):
@@ -292,7 +325,7 @@ class DtRpnModel(model.DetectionModel):
         #                                                  feature_map[0])
 
     def build(self):
-        SAMPLE_SIZE = 2
+        SAMPLE_SIZE = self.dataset.sample_num
         # Setup input placeholders
         self._set_up_input_pls()
 
@@ -378,7 +411,7 @@ class DtRpnModel(model.DetectionModel):
                 raise ValueError('Invalid fusion method', self._fusion_method)
 
         # TODO: move this section into an separate AnchorPredictor class
-        with tf.variable_scope('anchor_predictor', 'ap', [rpn_fusion_out]):
+        with tf.variable_scope('anchor_predictor', 'ap', [rpn_fusion_out]) as scope:
             tensor_in = rpn_fusion_out
 
             # Parse rpn layers config
@@ -390,83 +423,87 @@ class DtRpnModel(model.DetectionModel):
             else:
                 weights_regularizer = None
 
+            cls_fc6 = [None] * 2
+            cls_fc6_drop = [None] * 2
+            cls_fc7 = [None] * 2
+            cls_fc7_drop = [None] * 2
+            cls_fc8 = [None] * 2
+            objectness = [None] * 2
+            reg_fc6 = [None] * 2
+            reg_fc6_drop = [None] * 2
+            reg_fc7 = [None] * 2
+            reg_fc7_drop = [None] * 2
+            reg_fc8 = [None] * 2
+            offsets = [None] * 2
             with slim.arg_scope([slim.conv2d],
                                 weights_regularizer=weights_regularizer):
-                # Use conv2d instead of fully_connected layers.
-                cls_fc6 = [slim.conv2d(tensor_in[i],
-                                      layers_config.cls_fc6,
-                                      self._proposal_roi_crop_size,
-                                      padding='VALID',
-                                      scope='cls_fc6')
-                           for i in range(SAMPLE_SIZE)]
 
-                cls_fc6_drop = [slim.dropout(cls_fc6[i],
-                                            layers_config.keep_prob,
-                                            is_training=self._is_training,
-                                            scope='cls_fc6_drop')
-                                for i in range(SAMPLE_SIZE)]
+                for i in range(SAMPLE_SIZE):
+                    # Use conv2d instead of fully_connected layers.
+                    cls_fc6[i] = slim.conv2d(tensor_in[i],
+                                          layers_config.cls_fc6,
+                                          self._proposal_roi_crop_size,
+                                          padding='VALID',
+                                          scope='cls_fc6')
 
-                cls_fc7 = [slim.conv2d(cls_fc6_drop[i],
-                                      layers_config.cls_fc7,
-                                      [1, 1],
-                                      scope='cls_fc7')
-                           for i in range(SAMPLE_SIZE)]
+                    cls_fc6_drop[i] = slim.dropout(cls_fc6[i],
+                                                layers_config.keep_prob,
+                                                is_training=self._is_training,
+                                                scope='cls_fc6_drop')
 
-                cls_fc7_drop = [slim.dropout(cls_fc7[i],
-                                            layers_config.keep_prob,
-                                            is_training=self._is_training,
-                                            scope='cls_fc7_drop')
-                                for i in range(SAMPLE_SIZE)]
+                    cls_fc7[i] = slim.conv2d(cls_fc6_drop[i],
+                                          layers_config.cls_fc7,
+                                          [1, 1],
+                                          scope='cls_fc7')
 
-                cls_fc8 = [slim.conv2d(cls_fc7_drop[i],
-                                      2,
-                                      [1, 1],
-                                      activation_fn=None,
-                                      scope='cls_fc8')
-                           for i in range(SAMPLE_SIZE)]
+                    cls_fc7_drop[i] = slim.dropout(cls_fc7[i],
+                                                layers_config.keep_prob,
+                                                is_training=self._is_training,
+                                                scope='cls_fc7_drop')
 
-                objectness = [tf.squeeze(
-                                        cls_fc8[i], [1, 2],
-                                        name='cls_fc8/squeezed')
-                            for i in range(SAMPLE_SIZE)]
+                    cls_fc8[i] = slim.conv2d(cls_fc7_drop[i],
+                                          2,
+                                          [1, 1],
+                                          activation_fn=None,
+                                          scope='cls_fc8')
 
-                # Use conv2d instead of fully_connected layers.
-                reg_fc6 = [slim.conv2d(tensor_in[i],
-                                      layers_config.reg_fc6,
-                                      self._proposal_roi_crop_size,
-                                      padding='VALID',
-                                      scope='reg_fc6')
-                           for i in range(SAMPLE_SIZE)]
+                    objectness[i] = tf.squeeze(
+                                            cls_fc8[i], [1, 2],
+                                            name='cls_fc8/squeezed')
 
-                reg_fc6_drop = [slim.dropout(reg_fc6[i],
-                                            layers_config.keep_prob,
-                                            is_training=self._is_training,
-                                            scope='reg_fc6_drop')
-                                for i in range(SAMPLE_SIZE)]
+                    # Use conv2d instead of fully_connected layers.
+                    reg_fc6[i] = slim.conv2d(tensor_in[i],
+                                          layers_config.reg_fc6,
+                                          self._proposal_roi_crop_size,
+                                          padding='VALID',
+                                          scope='reg_fc6')
 
-                reg_fc7 = [slim.conv2d(reg_fc6_drop[i],
-                                      layers_config.reg_fc7,
-                                      [1, 1],
-                                      scope='reg_fc7')
-                           for i in range(SAMPLE_SIZE)]
+                    reg_fc6_drop[i] = slim.dropout(reg_fc6[i],
+                                                layers_config.keep_prob,
+                                                is_training=self._is_training,
+                                                scope='reg_fc6_drop')
 
-                reg_fc7_drop = [slim.dropout(reg_fc7[i],
-                                            layers_config.keep_prob,
-                                            is_training=self._is_training,
-                                            scope='reg_fc7_drop')
-                                for i in range(SAMPLE_SIZE)]
+                    reg_fc7[i] = slim.conv2d(reg_fc6_drop[i],
+                                          layers_config.reg_fc7,
+                                          [1, 1],
+                                          scope='reg_fc7')
 
-                reg_fc8 = [slim.conv2d(reg_fc7_drop[i],
-                                      6,
-                                      [1, 1],
-                                      activation_fn=None,
-                                      scope='reg_fc8')
-                           for i in range(SAMPLE_SIZE)]
+                    reg_fc7_drop[i] = slim.dropout(reg_fc7[i],
+                                                layers_config.keep_prob,
+                                                is_training=self._is_training,
+                                                scope='reg_fc7_drop')
 
-                offsets = [tf.squeeze(
-                                    reg_fc8[i], [1, 2],
-                                    name='reg_fc8/squeezed')
-                            for i in range(SAMPLE_SIZE)]
+                    reg_fc8[i] = slim.conv2d(reg_fc7_drop[i],
+                                          6,
+                                          [1, 1],
+                                          activation_fn=None,
+                                          scope='reg_fc8')
+
+                    offsets[i] = tf.squeeze(
+                                        reg_fc8[i], [1, 2],
+                                        name='reg_fc8/squeezed')
+
+                    scope.reuse_variables()
 
         # Histogram summaries
         with tf.variable_scope('histograms_feature_extractor'):
@@ -494,7 +531,8 @@ class DtRpnModel(model.DetectionModel):
 
         # Return the proposals
         with tf.variable_scope('proposals'):
-            anchors = self.placeholders[self.PL_ANCHORS]
+            anchors = [self.placeholders[self.PL_ANCHORS_A],
+                       self.placeholders[self.PL_ANCHORS_B]]
 
             # Decode anchor regression offsets
             with tf.variable_scope('decoding'):
@@ -530,9 +568,12 @@ class DtRpnModel(model.DetectionModel):
                 # top_objectness = tf.gather(objectness, top_indices)
 
         # Get mini batch
-        all_ious_gt = self.placeholders[self.PL_ANCHOR_IOUS]
-        all_offsets_gt = self.placeholders[self.PL_ANCHOR_OFFSETS]
-        all_classes_gt = self.placeholders[self.PL_ANCHOR_CLASSES]
+        all_ious_gt = [self.placeholders[self.PL_ANCHOR_IOUS_A],
+                       self.placeholders[self.PL_ANCHOR_IOUS_B]]
+        all_offsets_gt = [self.placeholders[self.PL_ANCHOR_OFFSETS_A],
+                          self.placeholders[self.PL_ANCHOR_OFFSETS_B]]
+        all_classes_gt = [self.placeholders[self.PL_ANCHOR_CLASSES_A],
+                          self.placeholders[self.PL_ANCHOR_CLASSES_B]]
 
         with tf.variable_scope('mini_batch'):
             mini_batch_utils = self.dataset.kitti_utils.mini_batch_utils
@@ -748,19 +789,21 @@ class DtRpnModel(model.DetectionModel):
                                     sample_augs=sample_augs)
 
         # this is a list to match the explicit shape for the placeholder
-        self._placeholder_inputs[self.PL_IMG_IDX] = [int(sample_name[0]),int(sample_name[2])]
-
         # Fill in the rest
         self._placeholder_inputs[self.PL_BEV_INPUT] = bev_input
         self._placeholder_inputs[self.PL_IMG_INPUT] = image_input
 
-        self._placeholder_inputs[self.PL_LABEL_ANCHORS] = label_anchors
-        self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d
-        self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_A] = label_anchors[0]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_A] = label_boxes_3d[0]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_A] = label_classes[0]
+
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[0]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[0]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[0]
 
         # Sample Info
         # img_idx is a list to match the placeholder shape
-        self._placeholder_inputs[self.PL_IMG_IDX] = [int(sample_name[0]),int(sample_name[2])]
+        self._placeholder_inputs[self.PL_IMG_IDX] = [int(sample_name[0]), int(sample_name[1])]
         self._placeholder_inputs[self.PL_CALIB_P2] = stereo_calib_p2
         self._placeholder_inputs[self.PL_GROUND_PLANE] = ground_plane
 
@@ -795,13 +838,14 @@ class DtRpnModel(model.DetectionModel):
         """
         self._bev_anchors_norm = []
         self._img_anchors_norm = []
-        self._placeholder_inputs[self.PL_ANCHORS] = []
-        self._placeholder_inputs[self.PL_ANCHOR_IOUS] = []
-        self._placeholder_inputs[self.PL_ANCHOR_OFFSETS] = []
-        self._placeholder_inputs[self.PL_ANCHOR_CLASSES] = []
-        self._placeholder_inputs[self.PL_BEV_ANCHORS] = []
-        self._placeholder_inputs[self.PL_IMG_ANCHORS] = []
+        self._placeholder_inputs["PL_ANCHORS"] = []
+        self._placeholder_inputs["PL_ANCHOR_IOUS"] = []
+        self._placeholder_inputs["PL_ANCHOR_OFFSETS"] = []
+        self._placeholder_inputs["PL_ANCHOR_CLASSES"] = []
+        self._placeholder_inputs["PL_BEV_ANCHORS"] = []
+        self._placeholder_inputs["PL_IMG_ANCHORS"] = []
 
+        # unpack anchors_info
         for i in range(len(sample_name)):
             # Lists for merging anchors info
             all_anchor_boxes_3d = []
@@ -899,34 +943,61 @@ class DtRpnModel(model.DetectionModel):
             self._img_anchors_norm.append(img_anchors_norm[:, [1, 0, 3, 2]])
 
             # Fill in placeholder inputs
-            self._placeholder_inputs[self.PL_ANCHORS].append(anchors_to_use)
+            if i == 0:
+                self._placeholder_inputs[self.PL_ANCHORS_A] = anchors_to_use
 
-            # If we are in train/validation mode, and the anchor infos
-            # are not empty, store them. Checking for just anchors_ious
-            # to be non-empty should be enough.
-            if self._train_val_test in ['train', 'val'] and \
-                    len(anchors_ious) > 0:
-                self._placeholder_inputs[self.PL_ANCHOR_IOUS].append(anchors_ious)
-                self._placeholder_inputs[self.PL_ANCHOR_OFFSETS].append(anchor_offsets)
-                self._placeholder_inputs[self.PL_ANCHOR_CLASSES].append(anchor_classes)
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = anchor_classes
 
-            # During test, or val when there is no anchor info
-            elif self._train_val_test in ['test'] or \
-                    len(anchors_ious) == 0:
-                # During testing, or validation with no gt, fill these in with 0s
-                self._placeholder_inputs[self.PL_ANCHOR_IOUS].append(np.zeros(num_anchors))
-                self._placeholder_inputs[self.PL_ANCHOR_OFFSETS].append(np.zeros([num_anchors, 6]))
-                self._placeholder_inputs[self.PL_ANCHOR_CLASSES].append(np.zeros(num_anchors))
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                        format(self._train_val_test))
+
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_A] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_A] = img_anchors
             else:
-                raise ValueError('Got run mode {}, and non-empty anchor info'.
-                                    format(self._train_val_test))
+                self._placeholder_inputs[self.PL_ANCHORS_B] = anchors_to_use
 
-            self._placeholder_inputs[self.PL_BEV_ANCHORS].append(bev_anchors)
-            self._placeholder_inputs[self.PL_IMG_ANCHORS].append(img_anchors)
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = anchor_classes
 
-        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM] = self._bev_anchors_norm
-        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM] = self._img_anchors_norm
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                     format(self._train_val_test))
 
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_B] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_B] = img_anchors
+
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_A] = self._bev_anchors_norm[0]
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_B] = self._bev_anchors_norm[1]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_A] = self._img_anchors_norm[0]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_B] = self._img_anchors_norm[1]
 
     def loss(self, prediction_dict):
         SAMPLE_SIZE = 2

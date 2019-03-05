@@ -5,10 +5,10 @@ from avod.core.correlation import correlation
 
 tf.set_random_seed(0)
 
-BATCH_SIZE = 4
+BATCH_SIZE = 1
 HEIGHT = 10
 WIDTH = 10
-CHANNELS = 3
+CHANNELS = 1
 
 NEIGHBORHOOD_SIZE = 5
 MAX_DISPLACEMENT = int(math.ceil(NEIGHBORHOOD_SIZE / 2.0))
@@ -18,7 +18,7 @@ assert(STRIDE_2 <= NEIGHBORHOOD_SIZE)
 
 # Define two feature maps
 fmA = tf.ones((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS), dtype=tf.float32)
-fmB = tf.convert_to_tensor(np.random.randint(5, size=(BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
+fmB = tf.convert_to_tensor(np.random.randint(10, size=(BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
 
 depth = int(math.floor((2.0 * MAX_DISPLACEMENT + 1) / STRIDE_2) ** 2)
 
@@ -51,7 +51,8 @@ def main():
     corr = tf.stack(out, 3)
     print('Output size: ', corr.shape)
     print(sess.run(corr[0,:,:,0]))
-    out_2 = correlation(fmA, fmB, 1, MAX_DISPLACEMENT, STRIDE_2, STRIDE_2, 0)
+    out_2 = correlation(fmA, fmA, 1, MAX_DISPLACEMENT, STRIDE_2, STRIDE_2, 3)
     print('Output2 size: ', out_2.shape)
-    print(sess.run(out_2[2,:,:,:]))
+    print(sess.run(out_2[:,:,:,:]))
+    # print(sess.run(fmB))
 main()

@@ -74,61 +74,80 @@ def read_labels(label_dir, name, results=False):
 
     frame_idx = (p[:,0] == str(frame_id))
     p = p[frame_idx]
-    # Check if the output is single dimensional or multi dimensional
-    if len(p.shape) > 1:
-        label_num = p.shape[0]
-    else:
-        label_num = 1
+
+    label_num = p.shape[0]
 
     for idx in np.arange(label_num):
         obj = TrackingLabel()
-
-        if label_num > 1:
-            # Fill in the object list
-            obj.frame_id = int(p[idx, 0])
-            obj.object_id = int(p[idx, 1])
-            obj.type = p[idx, 2]
-            obj.truncation = float(p[idx, 3])
-            obj.occlusion = float(p[idx, 4])
-            obj.alpha = float(p[idx, 5])
-            obj.x1 = float(p[idx, 6])
-            obj.y1 = float(p[idx, 7])
-            obj.x2 = float(p[idx, 8])
-            obj.y2 = float(p[idx, 9])
-            obj.h = float(p[idx, 10])
-            obj.w = float(p[idx, 11])
-            obj.l = float(p[idx, 12])
-            obj.t = (float(p[idx, 13]), float(p[idx, 14]), float(p[idx, 15]))
-            obj.ry = float(p[idx, 16])
-            if results:
-                obj.score = float(p[idx, 17])
-            else:
-                obj.score = 0.0
+        # Fill in the object list
+        obj.frame_id = int(p[idx, 0])
+        obj.object_id = int(p[idx, 1])
+        obj.type = p[idx, 2]
+        obj.truncation = float(p[idx, 3])
+        obj.occlusion = float(p[idx, 4])
+        obj.alpha = float(p[idx, 5])
+        obj.x1 = float(p[idx, 6])
+        obj.y1 = float(p[idx, 7])
+        obj.x2 = float(p[idx, 8])
+        obj.y2 = float(p[idx, 9])
+        obj.h = float(p[idx, 10])
+        obj.w = float(p[idx, 11])
+        obj.l = float(p[idx, 12])
+        obj.t = (float(p[idx, 13]), float(p[idx, 14]), float(p[idx, 15]))
+        obj.ry = float(p[idx, 16])
+        if results:
+            obj.score = float(p[idx, 17])
         else:
-            # Fill in the object list
-            obj.frame_id = int(p[0])
-            obj.object_id = int(p[1])
-            obj.type = p[2]
-            obj.truncation = float(p[3])
-            obj.occlusion = float(p[4])
-            obj.alpha = float(p[5])
-            obj.x1 = float(p[6])
-            obj.y1 = float(p[7])
-            obj.x2 = float(p[8])
-            obj.y2 = float(p[9])
-            obj.h = float(p[10])
-            obj.w = float(p[11])
-            obj.l = float(p[12])
-            obj.t = (float(p[13]), float(p[14]), float(p[15]))
-            obj.ry = float(p[16])
-            if results:
-                obj.score = float(p[17])
-            else:
-                obj.score = 0.0
+            obj.score = 0.0
 
         obj_list.append(obj)
 
     return obj_list
+
+
+def get_raw_lidar_point_cloud(name, velo_dir):
+    assert len(name) == 6, print('Sample name incorrect!')
+    video_id = int(name[:2])
+    frame_id = int(name[2:])
+    velo_dir = velo_dir + '/' + str(video_id).zfill(4)
+    x, y, z, i = calib_utils.read_lidar(velo_dir=velo_dir, img_idx=frame_id)
+    pts = np.vstack((x,y,z,i))
+    return pts
+
+def get_lidar_in_camera_view(pts, name, calib_dir, im_size=None, min_intensity=None):
+    assert len(name) == 6, print('Sample name incorrect!')
+    video_id = int(name[:2])
+    # Read calibration info
+    frame_calib = calib_utils.read_tracking_calibration(calib_dir, video_id)
+    i = pts[3]
+    pts = pts[:3]
+    pts = calib_utils.lidar_to_cam_frame(pts.T, frame_calib)
+    # The given image is assumed to be a 2D image
+    if not im_size:
+        point_cloud = pts.T
+        return point_cloud
+
+    else:
+        # Only keep points in front of camera (positive z)
+        pts = pts[pts[:, 2] > 0]
+        point_cloud = pts.T
+
+        # Project to image frame
+        point_in_im = calib_utils.project_to_image(point_cloud, p=frame_calib.p2).T
+
+        # Filter based on the given image size
+        image_filter = (point_in_im[:, 0] > 0) & \
+                       (point_in_im[:, 0] < im_size[0]) & \
+                       (point_in_im[:, 1] > 0) & \
+                       (point_in_im[:, 1] < im_size[1])
+
+    if not min_intensity:
+        return pts[image_filter].T
+
+    else:
+        intensity_filter = i > min_intensity
+        point_filter = np.logical_and(image_filter, intensity_filter)
+        return pts[point_filter].T
 
 
 def get_lidar_point_cloud(name, calib_dir, velo_dir,

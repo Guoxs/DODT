@@ -22,15 +22,17 @@ class KittiDatasetTest(unittest.TestCase):
         dataset_config.data_split = data_split
         dataset_config.dataset_dir = directory
 
-        dataset = DatasetBuilder.build_kitti_dataset(dataset_config)
+        dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
 
         return dataset
 
     def test_data_loading(self):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
-        indices_to_load = [1, 2, 3]
-        expected_samples = ["000003", "000007", "000009"]
+        indices_to_load = [1, 5, 9]
+        expected_samples = [['000001', '000002'],
+                            ['000005', '000006'],
+                            ['000009', '000009']]
 
         # Load samples before shuffling
         samples = dataset.load_samples(indices_to_load)
@@ -55,7 +57,7 @@ class KittiDatasetTest(unittest.TestCase):
             class_labels = samples[i].get(constants.KEY_LABEL_CLASSES)
             self.assertIsNotNone(class_labels)
             self.assertIsInstance(class_labels, np.ndarray)
-            self.assertIsInstance(class_labels[0], np.int32)
+            self.assertIsInstance(class_labels[0][0], np.int32)
 
     def test_data_splits(self):
         bad_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_UNITTEST)
@@ -78,16 +80,16 @@ class KittiDatasetTest(unittest.TestCase):
 
         # Train split
         train_dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
-        self.assertEqual(train_dataset.num_samples, 7)
+        self.assertEqual(train_dataset.num_samples, 10)
 
         # Validation split
         validation_dataset = self.get_fake_dataset('val', self.fake_kitti_dir)
-        self.assertEqual(validation_dataset.num_samples, 6)
+        self.assertEqual(validation_dataset.num_samples, 10)
 
         # Train + validation split
         trainval_dataset = self.get_fake_dataset('trainval',
                                                  self.fake_kitti_dir)
-        self.assertEqual(trainval_dataset.num_samples, 13)
+        self.assertEqual(trainval_dataset.num_samples, 20)
 
         # Test split
         test_dataset = self.get_fake_dataset('test', self.fake_kitti_dir)
@@ -118,8 +120,8 @@ class KittiDatasetTest(unittest.TestCase):
     def test_batch_wrapping(self):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
-        batch = dataset.next_batch(7)
-        self.assertEqual(len(batch), 7)
+        batch = dataset.next_batch(10)
+        self.assertEqual(len(batch), 10)
         self.assertEqual(dataset.epochs_completed, 1)
 
         # Should not wrap
@@ -128,11 +130,10 @@ class KittiDatasetTest(unittest.TestCase):
         self.assertEqual(dataset.epochs_completed, 1)
 
         # Should wrap, and provide a full batch
-        batch = dataset.next_batch(5)
-        self.assertEqual(len(batch), 5)
+        batch = dataset.next_batch(8)
+        self.assertEqual(len(batch), 8)
         self.assertEqual(dataset.epochs_completed, 2)
         self.assertEqual(dataset._index_in_epoch, 1)
-
 
 if __name__ == '__main__':
     unittest.main()

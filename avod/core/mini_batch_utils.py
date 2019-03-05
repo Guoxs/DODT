@@ -6,6 +6,7 @@ import tensorflow as tf
 import avod
 
 from avod.core.mini_batch_preprocessor import MiniBatchPreprocessor
+from avod.core.mini_tracking_batch_preprocessor import MiniTrackingBatchPreprocessor
 from avod.core.minibatch_samplers import balanced_positive_negative_sampler
 
 
@@ -96,7 +97,28 @@ class MiniBatchUtils:
 
         mini_batch_preprocessor.preprocess(indices)
 
-    def get_file_path(self, classes_name, anchor_strides, sample_name):
+
+    def preprocess_rpn_mini_tracking_batches(self, indices):
+        """Generates rpn mini tracking batch info for the kitti dataset
+
+            Preprocesses data and saves data to files.
+            Each file contains information that is used to feed
+            to the network for RPN training.
+        """
+
+        clusters, _ = self._dataset.get_cluster_info()
+
+        mini_tracking_batch_preprocessor = \
+            MiniTrackingBatchPreprocessor(self._dataset,
+                                          self.mini_batch_dir,
+                                          self._anchor_strides,
+                                          self._density_threshold,
+                                          self.rpn_neg_iou_range,
+                                          self.rpn_pos_iou_range)
+
+        mini_tracking_batch_preprocessor.preprocess(indices)
+
+    def  get_file_path(self, classes_name, anchor_strides, sample_name):
         """Gets the full file path to the anchors info
 
         Args:

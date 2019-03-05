@@ -107,6 +107,6 @@ def get_configs_from_pipeline_file(pipeline_config_path,
         experiment_config_path += '.config'
         # Copy this even if the config exists, in case some parameters
         # were modified
-        shutil.copy(pipeline_config_path, experiment_config_path)
+        #shutil.copy(pipeline_config_path, experiment_config_path)
 
     return model_config, train_config, eval_config, dataset_config

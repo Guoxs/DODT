@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from sklearn.cluster import KMeans
 
-from wavedata.tools.obj_detection import obj_utils
+from wavedata.tools.obj_detection import obj_utils, tracking_utils
 
 import avod
 
@@ -143,7 +143,7 @@ class LabelClusterUtils:
 
         return np.asarray(all_data)
 
-    def get_clusters(self):
+    def get_clusters(self, datasets='detection'):
         """
         Calculates clusters for each class
 
@@ -177,7 +177,10 @@ class LabelClusterUtils:
 
         # Calculate the remaining clusters
         # Load labels corresponding to the sample list for clustering
-        sample_list = self._dataset.load_sample_names(self.cluster_split)
+        if datasets == 'tracking':
+            sample_list = self._dataset.generate_sample_couple()
+        else:
+            sample_list = self._dataset.load_sample_names(self.cluster_split)
         all_labels = [[] for _ in range(len(classes))]
 
         num_samples = len(sample_list)
@@ -187,11 +190,16 @@ class LabelClusterUtils:
                 sample_idx + 1, num_samples))
             sys.stdout.flush()
 
-            sample_name = sample_list[sample_idx]
-            img_idx = int(sample_name)
+            if datasets == 'tracking':
+                sample_name = sample_list[sample_idx][0]
+                obj_labels = tracking_utils.read_labels(self._dataset.label_dir,
+                                                   sample_name)
+            else:
+                sample_name = sample_list[sample_idx]
+                img_idx = int(sample_name)
+                obj_labels = obj_utils.read_labels(self._dataset.label_dir,
+                                                img_idx)
 
-            obj_labels = obj_utils.read_labels(self._dataset.label_dir,
-                                               img_idx)
             filtered_labels = LabelClusterUtils._filter_labels_by_class(
                 obj_labels, self._dataset.classes)
 
