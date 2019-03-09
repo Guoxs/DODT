@@ -39,7 +39,7 @@ class TrackingLabel(obj_utils.ObjectLabel):
     def __init__(self):
         super(TrackingLabel, self).__init__()
         self.frame_id = ""
-        self.object_id = ""
+        self.object_id = -1
 
 
 def read_labels(label_dir, name, results=False):

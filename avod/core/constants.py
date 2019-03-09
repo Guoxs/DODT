@@ -1,7 +1,7 @@
 KEY_LABEL_BOXES_3D = 'label_boxes_3d'
 KEY_LABEL_ANCHORS = 'label_anchors'
 KEY_LABEL_CLASSES = 'label_classes'
-KEY_OBJECT_IDS = 'object_ids'
+KEY_LABEL_MASK = 'label_mask'
 
 KEY_IMAGE_INPUT = 'image_input'
 KEY_BEV_INPUT = 'bev_input'
@@ -11,7 +11,9 @@ KEY_SAMPLE_NAME = 'sample_name'
 KEY_SAMPLE_AUGS = 'sample_augs'
 
 KEY_ANCHORS_INFO = 'anchors_info'
+KEY_ANCHORS_INFO_MASK = 'anchors_info_mask'
 
 KEY_POINT_CLOUD = 'point_cloud'
+KEY_POINT_CLOUD_MASK = 'point_cloud_mask'
 KEY_GROUND_PLANE = 'ground_plane'
 KEY_STEREO_CALIB_P2 = 'stereo_calib_p2'

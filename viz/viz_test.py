@@ -1,11 +1,16 @@
 import cv2
 import numpy as np
+
+import sys
+sys.path.append('/home/mooyu/Project/avod/')
+sys.path.append('/home/mooyu/Project/avod/wavedata')
+
 import avod.tests as tests
 import mayavi.mlab as mlab
 from avod.builders.dataset_builder import DatasetBuilder
 from viz.viz_utils import draw_lidar_simple
 from wavedata.tools.obj_detection import tracking_utils
-from viz.viz_func import draw_lidar_and_boxes
+from viz.viz_func import draw_lidar_and_boxes,draw_lidar_and_boxes_in_camera_view
 
 def test_oxts_coordinate_transform():
     kitti_dir = tests.test_path() + "/datasets/Kitti/tracking"
@@ -41,10 +46,16 @@ def test_oxts_coordinate_transform():
     ct_obj_label = dataset.label_transform(raw_label, sample_names)
     ct_point_cloud = dataset.point_cloud_transform(raw_point_cloud, sample_names)
     for i in range(2):
-        # ct_point_cloud[i] = dataset.kitti_utils.transfer_lidar_to_camera_view(
-        #                 dataset.bev_source, sample_names[i],ct_point_cloud[i],image_shape[i])
         ct_fig = draw_lidar_and_boxes(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig)
 
+    mlab.show()
+    input()
+
+    ct_fig2 = mlab.figure(figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1600, 1000))
+    for i in range(2):
+        ct_point_cloud[i] = dataset.kitti_utils.transfer_lidar_to_camera_view(
+            dataset.bev_source, sample_names[i], ct_point_cloud[i], image_shape[i])
+        ct_fig2 = draw_lidar_and_boxes_in_camera_view(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig2)
     mlab.show()
     input()
 

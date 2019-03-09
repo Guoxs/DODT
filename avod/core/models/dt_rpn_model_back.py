@@ -26,25 +26,33 @@ class DtRpnModel(model.DetectionModel):
     PL_CORR_ANCHORS_IDX = 'corr_anchors_idx_pl'
     PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
-    PL_ANCHORS = 'anchors_pl'
-    PL_ANCHORS_MASK_A = 'anchors_mask_a_pl'
-    PL_ANCHORS_MASK_B = 'anchors_mask_b_pl'
+    PL_ANCHORS_A = 'anchors_pl_0'
 
-    PL_BEV_ANCHORS = 'bev_anchors_pl'
-    PL_BEV_ANCHORS_NORM = 'bev_anchors_norm_pl'
-    PL_IMG_ANCHORS = 'img_anchors_pl'
-    PL_IMG_ANCHORS_NORM = 'img_anchors_norm_pl'
+    PL_BEV_ANCHORS_A = 'bev_anchors_pl_0'
+    PL_BEV_ANCHORS_NORM_A = 'bev_anchors_norm_pl_0'
+    PL_IMG_ANCHORS_A = 'img_anchors_pl_0'
+    PL_IMG_ANCHORS_NORM_A = 'img_anchors_norm_pl_0'
+    PL_LABEL_ANCHORS_A = 'label_anchors_pl_0'
+    PL_LABEL_BOXES_3D_A = 'label_boxes_3d_pl_0'
+    PL_LABEL_CLASSES_A = 'label_classes_pl_0'
 
-    PL_LABEL_ANCHORS = 'label_anchors_pl'
-    PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
-    PL_LABEL_CLASSES = 'label_classes_pl'
-    PL_LABEL_MASK_A = 'label_mask_a_pl'
-    PL_LABEL_MASK_B = 'label_mask_b_pl'
+    PL_ANCHOR_IOUS_A = 'anchor_ious_pl_0'
+    PL_ANCHOR_OFFSETS_A = 'anchor_offsets_pl_0'
+    PL_ANCHOR_CLASSES_A = 'anchor_classes_pl_0'
 
-    PL_ANCHOR_IOUS = 'anchor_ious_pl'
-    PL_ANCHOR_OFFSETS = 'anchor_offsets_pl'
-    PL_ANCHOR_CLASSES = 'anchor_classes_pl'
+    PL_ANCHORS_B = 'anchors_pl_1'
 
+    PL_BEV_ANCHORS_B = 'bev_anchors_pl_1'
+    PL_BEV_ANCHORS_NORM_B = 'bev_anchors_norm_pl_1'
+    PL_IMG_ANCHORS_B = 'img_anchors_pl_1'
+    PL_IMG_ANCHORS_NORM_B = 'img_anchors_norm_pl_1'
+    PL_LABEL_ANCHORS_B = 'label_anchors_pl_1'
+    PL_LABEL_BOXES_3D_B = 'label_boxes_3d_pl_1'
+    PL_LABEL_CLASSES_B = 'label_classes_pl_1'
+
+    PL_ANCHOR_IOUS_B = 'anchor_ious_pl_1'
+    PL_ANCHOR_OFFSETS_B = 'anchor_offsets_pl_1'
+    PL_ANCHOR_CLASSES_B = 'anchor_classes_pl_1'
 
     # Sample info, including keys for projection to image space
     # (e.g. camera matrix, image index, etc.)
@@ -217,30 +225,43 @@ class DtRpnModel(model.DetectionModel):
             tf.summary.image("rgb_image_1", self._img_preprocessed[1], max_outputs=2)
 
         with tf.variable_scope('pl_labels'):
-            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_ANCHORS)
-            self._add_placeholder(tf.float32, [None, 8], self.PL_LABEL_BOXES_3D)
-            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES)
-            self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_A)
-            self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_B)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None, 8], self.PL_LABEL_BOXES_3D_A)
+            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None, 8], self.PL_LABEL_BOXES_3D_B)
+            self._add_placeholder(tf.float32, [None, ], self.PL_LABEL_CLASSES_B)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
-            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS)
-            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS)
-            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS)
-            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES)
-            self._add_placeholder(tf.int32, [None], self.PL_ANCHORS_MASK_A)
-            self._add_placeholder(tf.int32, [None], self.PL_ANCHORS_MASK_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_B)
 
             with tf.variable_scope('bev_anchor_projections'):
-                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS)
-                self._bev_anchors_norm_pl = self._add_placeholder(tf.float32, [None, 4],
-                                                                  self.PL_BEV_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_A)
+                self._bev_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                  self.PL_BEV_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_B)
+                self._bev_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                    self.PL_BEV_ANCHORS_NORM_B)
+
+                self._bev_anchors_norm_pl = [self._bev_anchors_norm_pl_0, self._bev_anchors_norm_pl_1]
 
             with tf.variable_scope('img_anchor_projections'):
-                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS)
-                self._img_anchors_norm_pl = self._add_placeholder(tf.float32, [None, 4],
-                                                                         self.PL_IMG_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_A)
+                self._img_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                         self.PL_IMG_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_B)
+                self._img_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                           self.PL_IMG_ANCHORS_NORM_B)
+
+                self._img_anchors_norm_pl = [self._img_anchors_norm_pl_0, self._img_anchors_norm_pl_1]
 
             with tf.variable_scope('correlation_anchors'):
                 self._add_placeholder(tf.int32, [None], self.PL_CORR_ANCHORS_IDX)
@@ -348,14 +369,6 @@ class DtRpnModel(model.DetectionModel):
         bev_proposal_input = self.bev_bottleneck
         img_proposal_input = self.img_bottleneck
 
-        self.anchors_mask = [self.placeholders[self.PL_ANCHORS_MASK_A],
-                             self.placeholders[self.PL_ANCHORS_MASK_B]]
-
-        self.bev_anchors_norm_pl = [tf.gather(self._bev_anchors_norm_pl, self.anchors_mask[i])
-                               for i in range(SAMPLE_SIZE)]
-        self.img_anchors_norm_pl = [tf.gather(self._img_anchors_norm_pl, self.anchors_mask[i])
-                               for i in range(SAMPLE_SIZE)]
-
         # get correlation feature
         self._correlation_layer(self.bev_bottleneck, self.img_bottleneck)
 
@@ -389,6 +402,7 @@ class DtRpnModel(model.DetectionModel):
                 fusion_mean_div_factor = img_mask + bev_mask
 
         with tf.variable_scope('proposal_roi_pooling'):
+
             with tf.variable_scope('box_indices'):
                 def get_box_indices(boxes):
                     proposals_shape = boxes.get_shape().as_list()
@@ -400,8 +414,7 @@ class DtRpnModel(model.DetectionModel):
                     return tf.reshape(ones_mat * multiplier, [-1])
 
                 bev_boxes_norm_batches = [tf.expand_dims(
-                    self.bev_anchors_norm_pl[i], axis=0)
-                    for i in range(SAMPLE_SIZE)]
+                    self._bev_anchors_norm_pl[i], axis=0) for i in range(SAMPLE_SIZE)]
 
                 # These should be all 0's since there is only 1 image
                 tf_box_indices = [get_box_indices(bev_boxes_norm_batches[i])
@@ -410,20 +423,20 @@ class DtRpnModel(model.DetectionModel):
             # Do ROI Pooling on BEV
             bev_proposal_rois = [tf.image.crop_and_resize(
                 bev_proposal_input[i],
-                self.bev_anchors_norm_pl[i],
+                self._bev_anchors_norm_pl[i],
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
             # Do ROI Pooling on image
             img_proposal_rois = [tf.image.crop_and_resize(
                 img_proposal_input[i],
-                self.img_anchors_norm_pl[i],
+                self._img_anchors_norm_pl[i],
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
 
             # Do ROI Pooling in BEV correlation feature
             bev_corr_proposal_rois = tf.image.crop_and_resize(
                 self.bev_corr_feature,
-                self.bev_anchors_norm_pl[0],
+                self._bev_anchors_norm_pl[0],
                 tf_box_indices[0],
                 self._proposal_roi_crop_size
             )
@@ -431,7 +444,7 @@ class DtRpnModel(model.DetectionModel):
             # Do ROI Pooling in img correlation feature
             img_corr_proposal_rois = tf.image.crop_and_resize(
                 self.img_corr_feature,
-                self.bev_anchors_norm_pl[0],
+                self._img_anchors_norm_pl[0],
                 tf_box_indices[0],
                 self._proposal_roi_crop_size
             )
@@ -579,8 +592,8 @@ class DtRpnModel(model.DetectionModel):
 
         # Return the proposals
         with tf.variable_scope('proposals'):
-            anchors = [tf.gather(self.placeholders[self.PL_ANCHORS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
+            anchors = [self.placeholders[self.PL_ANCHORS_A],
+                       self.placeholders[self.PL_ANCHORS_B]]
 
             # Decode anchor regression offsets
             with tf.variable_scope('decoding'):
@@ -618,13 +631,12 @@ class DtRpnModel(model.DetectionModel):
                 # top_objectness = tf.gather(objectness, top_indices)
 
         # Get mini batch
-        all_ious_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_IOUS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
-        all_offsets_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_OFFSETS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
-        all_classes_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_CLASSES], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
-
+        all_ious_gt = [self.placeholders[self.PL_ANCHOR_IOUS_A],
+                       self.placeholders[self.PL_ANCHOR_IOUS_B]]
+        all_offsets_gt = [self.placeholders[self.PL_ANCHOR_OFFSETS_A],
+                          self.placeholders[self.PL_ANCHOR_OFFSETS_B]]
+        all_classes_gt = [self.placeholders[self.PL_ANCHOR_CLASSES_A],
+                          self.placeholders[self.PL_ANCHOR_CLASSES_B]]
         all_corr_offset_gt = self.placeholders[self.PL_CORR_ANCHORS_OFFSETS]
 
         with tf.variable_scope('mini_batch'):
@@ -636,7 +648,7 @@ class DtRpnModel(model.DetectionModel):
         rpn_mini_batch_size = \
             self.dataset.kitti_utils.mini_batch_utils.rpn_mini_batch_size
         with tf.variable_scope('bev_rpn_rois'):
-            mb_bev_anchors_norm = [tf.boolean_mask(self.bev_anchors_norm_pl[i],
+            mb_bev_anchors_norm = [tf.boolean_mask(self._bev_anchors_norm_pl[i],
                                                   mini_batch_mask[i])
                                    for i in range(SAMPLE_SIZE)]
             mb_bev_box_indices = [tf.zeros_like(
@@ -664,7 +676,7 @@ class DtRpnModel(model.DetectionModel):
 
         with tf.variable_scope('img_rpn_rois'):
             # ROIs on image input
-            mb_img_anchors_norm = [tf.boolean_mask(self.img_anchors_norm_pl[i],
+            mb_img_anchors_norm = [tf.boolean_mask(self._img_anchors_norm_pl[i],
                                                   mini_batch_mask[i])
                                    for i in range(SAMPLE_SIZE)]
             mb_img_box_indices = [tf.zeros_like(
@@ -820,12 +832,10 @@ class DtRpnModel(model.DetectionModel):
             couple_sample = couple_samples[0]
             anchors_info = couple_sample.get(constants.KEY_ANCHORS_INFO)
 
-        anchors_info_mask = couple_sample.get(constants.KEY_ANCHORS_INFO_MASK)
         sample_name = couple_sample.get(constants.KEY_SAMPLE_NAME)
         sample_augs = couple_sample.get(constants.KEY_SAMPLE_AUGS)
 
         # Get ground truth data
-        label_mask = couple_sample.get(constants.KEY_LABEL_MASK)
         label_anchors = couple_sample.get(constants.KEY_LABEL_ANCHORS)
         label_classes = couple_sample.get(constants.KEY_LABEL_CLASSES)
         # We only need orientation from box_3d
@@ -845,7 +855,6 @@ class DtRpnModel(model.DetectionModel):
 
         # Fill the placeholders for anchor information
         self._fill_anchor_pl_inputs(anchors_info=anchors_info,
-                                    anchors_info_mask=anchors_info_mask,
                                     ground_plane=ground_plane,
                                     image_shape=image_shape,
                                     stereo_calib_p2=stereo_calib_p2,
@@ -857,12 +866,13 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_BEV_INPUT] = bev_input
         self._placeholder_inputs[self.PL_IMG_INPUT] = image_input
 
-        self._placeholder_inputs[self.PL_LABEL_ANCHORS] = label_anchors
-        self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d
-        self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_A] = label_anchors[0]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_A] = label_boxes_3d[0]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_A] = label_classes[0]
 
-        self._placeholder_inputs[self.PL_LABEL_MASK_A] = np.where(label_mask == 0)[0]
-        self._placeholder_inputs[self.PL_LABEL_MASK_B] = np.where(label_mask == 1)[0]
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[1]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[1]
 
         # Sample Info
         # img_idx is a list to match the placeholder shape
@@ -884,7 +894,6 @@ class DtRpnModel(model.DetectionModel):
 
     def _fill_anchor_pl_inputs(self,
                                anchors_info,
-                               anchors_info_mask,
                                ground_plane,
                                image_shape,
                                stereo_calib_p2,
@@ -895,7 +904,6 @@ class DtRpnModel(model.DetectionModel):
 
         Args:
             anchors_info: anchor info from mini_batch_utils
-            anchors_info_mask: anchor mask for two frames
             ground_plane: ground plane coefficients
             image_shape: image shape (h, w), used for projecting anchors
             sample_name: name of the sample, e.g. "000001"
@@ -904,14 +912,14 @@ class DtRpnModel(model.DetectionModel):
         self._bev_anchors_norm = []
         self._img_anchors_norm = []
 
-        all_anchor_boxes_3ds = []
-        anchors_ious = []
-        anchor_offsets = []
-        anchor_classes = []
-
         # unpack anchors_info
-        for i in range(2):
+        for i in range(len(sample_name)):
+            # Lists for merging anchors info
             all_anchor_boxes_3d = []
+            anchors_ious = []
+            anchor_offsets = []
+            anchor_classes = []
+
             # Create anchors for each class
             if len(self.dataset.classes) > 1:
                 for class_idx in range(len(self.dataset.classes)):
@@ -932,82 +940,61 @@ class DtRpnModel(model.DetectionModel):
                     anchor_stride=self._anchor_strides[class_idx],
                     ground_plane=ground_plane[i])
                 all_anchor_boxes_3d = grid_anchor_boxes_3d
-            all_anchor_boxes_3ds.append(all_anchor_boxes_3d)
 
-        # Filter empty anchors
-        # Skip if anchors_info is []
-        sample_has_labels = True
-        anchor_boxes_3d_to_use = []
-        if self._train_val_test in ['train', 'val']:
-            # Read in anchor info during training / validation
-            if anchors_info:
-                anchors_mask = [None] * 2
-                anchors_mask[0] = np.where(anchors_info_mask == 0)[0]
-                anchors_mask[1] = np.where(anchors_info_mask == 1)[0]
+            # Filter empty anchors
+            # Skip if anchors_info is []
+            sample_has_labels = True
+            if self._train_val_test in ['train', 'val']:
+                # Read in anchor info during training / validation
+                if anchors_info[i]:
+                    anchor_indices, anchors_ious, anchor_offsets, \
+                        anchor_classes, anchor_box_id = anchors_info[i]
 
-                anchor_indices, anchors_ious, anchor_offsets, \
-                anchor_classes, anchor_box_id = anchors_info
-                for i in range(2):
-                    idx = anchor_indices[anchors_mask[i]]
-                    anchor_boxes_3d_to_use.append(all_anchor_boxes_3ds[i][idx])
+                    anchor_boxes_3d_to_use = all_anchor_boxes_3d[anchor_indices]
+                else:
+                    train_cond = (self._train_val_test == "train" and
+                                  self._train_on_all_samples)
+                    eval_cond = (self._train_val_test == "val" and
+                                 self._eval_all_samples)
+                    if train_cond or eval_cond:
+                        sample_has_labels = False
             else:
-                train_cond = (self._train_val_test == "train" and
-                              self._train_on_all_samples)
-                eval_cond = (self._train_val_test == "val" and
-                             self._eval_all_samples)
-                if train_cond or eval_cond:
-                    sample_has_labels = False
-        else:
-            sample_has_labels = False
+                sample_has_labels = False
 
-        if not sample_has_labels:
-            # During testing, or validation with no anchor info, manually
-            # filter empty anchors
-            # TODO: share voxel_grid_2d with BEV generation if possible
-            anchors_mask = [None] * 2
-            temp_mask = []
-            for i in range(2):
-                voxel_grid_2d = self.dataset.kitti_utils.create_sliced_voxel_grid_2d(
+            if not sample_has_labels:
+                # During testing, or validation with no anchor info, manually
+                # filter empty anchors
+                # TODO: share voxel_grid_2d with BEV generation if possible
+                voxel_grid_2d = \
+                    self.dataset.kitti_utils.create_sliced_voxel_grid_2d(
                         sample_name[i], self.dataset.bev_source,
                         image_shape=image_shape[i])
+
                 # Convert to anchors and filter
                 anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                    all_anchor_boxes_3ds[i])
+                    all_anchor_boxes_3d)
                 empty_filter = anchor_filter.get_empty_anchor_filter_2d(
-                    anchors_to_use[i], voxel_grid_2d[i], density_threshold=1)
+                    anchors_to_use, voxel_grid_2d, density_threshold=1)
 
-                temp = all_anchor_boxes_3ds[i][empty_filter]
-                anchor_boxes_3d_to_use.append(temp)
+                anchor_boxes_3d_to_use = all_anchor_boxes_3d[empty_filter]
 
-                temp_mask.append([i] * len(temp))
+            # Convert lists to ndarrays
+            anchor_boxes_3d_to_use = np.asarray(anchor_boxes_3d_to_use)
+            anchors_ious = np.asarray(anchors_ious)
+            anchor_offsets = np.asarray(anchor_offsets)
+            anchor_classes = np.asarray(anchor_classes)
 
-            temp_mask = np.concatenate(temp_mask, axis=0)
-            anchors_mask[0] = np.where(temp_mask == 0)[0]
-            anchors_mask[1] = np.where(temp_mask == 1)[0]
+            # Flip anchors and centroid x offsets for augmented samples
+            if kitti_aug.AUG_FLIPPING in sample_augs:
+                anchor_boxes_3d_to_use = kitti_aug.flip_boxes_3d(
+                    anchor_boxes_3d_to_use, flip_ry=False)
+                if anchors_info[i]:
+                    anchor_offsets[:, 0] = -anchor_offsets[:, 0]
 
-        # Convert lists to ndarrays
-        anchor_boxes_3d_to_use = [np.asarray(anchor_boxes_3d_to_use[i]) for i in range(2)]
-        anchors_ious = np.asarray(anchors_ious)
-        anchor_offsets = np.asarray(anchor_offsets)
-        anchor_classes = np.asarray(anchor_classes)
-
-        # Flip anchors and centroid x offsets for augmented samples
-        if kitti_aug.AUG_FLIPPING in sample_augs:
-            anchor_boxes_3d_to_use = [kitti_aug.flip_boxes_3d(
-                anchor_boxes_3d_to_use[i], flip_ry=False) for i in range(2)]
-            if anchors_info:
-                anchor_offsets[:, 0] = -anchor_offsets[:, 0]
-
-        anchors_to_use_all = []
-        bev_anchors_all = []
-        img_anchors_all = []
-        num_anchors_all = 0
-        for i in range(2):
             # Convert to anchors
             anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                anchor_boxes_3d_to_use[i])
+                anchor_boxes_3d_to_use)
             num_anchors = len(anchors_to_use)
-            num_anchors_all += num_anchors
 
             # Project anchors into bev
             bev_anchors, bev_anchors_norm = anchor_projector.project_to_bev(
@@ -1022,70 +1009,89 @@ class DtRpnModel(model.DetectionModel):
             self._bev_anchors_norm.append(bev_anchors_norm[:, [1, 0, 3, 2]])
             self._img_anchors_norm.append(img_anchors_norm[:, [1, 0, 3, 2]])
 
-            anchors_to_use_all.append(anchors_to_use)
-            bev_anchors_all.append(bev_anchors)
-            img_anchors_all.append(img_anchors)
+            # Fill in placeholder inputs
+            if i == 0:
+                self._placeholder_inputs[self.PL_ANCHORS_A] = anchors_to_use
 
-        # Fill in placeholder inputs
-        self._placeholder_inputs[self.PL_ANCHORS] = np.concatenate(anchors_to_use_all, axis=0)
-        self._placeholder_inputs[self.PL_BEV_ANCHORS] = np.concatenate(bev_anchors_all, axis=0)
-        self._placeholder_inputs[self.PL_IMG_ANCHORS] = np.concatenate(img_anchors_all, axis=0)
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = anchor_classes
 
-        self._bev_anchors_norm = np.concatenate(self._bev_anchors_norm, axis=0)
-        self._img_anchors_norm = np.concatenate(self._img_anchors_norm, axis=0)
-        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM] = self._bev_anchors_norm
-        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM] = self._img_anchors_norm
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                        format(self._train_val_test))
 
-        # If we are in train/validation mode, and the anchor infos
-        # are not empty, store them. Checking for just anchors_ious
-        # to be non-empty should be enough.
-        if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
-            self._placeholder_inputs[self.PL_ANCHOR_IOUS] = anchors_ious
-            self._placeholder_inputs[self.PL_ANCHOR_OFFSETS] = anchor_offsets
-            self._placeholder_inputs[self.PL_ANCHOR_CLASSES] = anchor_classes
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_A] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_A] = img_anchors
 
-        # During test, or val when there is no anchor info
-        elif self._train_val_test in ['test'] or len(anchors_ious) == 0:
-            # During testing, or validation with no gt, fill these in with 0s
-            self._placeholder_inputs[self.PL_ANCHOR_IOUS] = np.zeros(num_anchors_all)
-            self._placeholder_inputs[self.PL_ANCHOR_OFFSETS] = np.zeros([num_anchors_all, 6])
-            self._placeholder_inputs[self.PL_ANCHOR_CLASSES] = np.zeros(num_anchors_all)
-        else:
-            raise ValueError('Got run mode {}, and non-empty anchor info'.
-                                    format(self._train_val_test))
+            else:
+                self._placeholder_inputs[self.PL_ANCHORS_B] = anchors_to_use
 
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = anchor_classes
+
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                     format(self._train_val_test))
+
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_B] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_B] = img_anchors
+
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_A] = self._bev_anchors_norm[0]
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_B] = self._bev_anchors_norm[1]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_A] = self._img_anchors_norm[0]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_B] = self._img_anchors_norm[1]
 
         # select the anchors that its box_id exist in both frames
         self._placeholder_inputs[self.PL_CORR_ANCHORS_IDX] = []
-        self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = np.zeros([len(bev_anchors_all[0]), 6])
+        self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
+                    np.zeros_like(self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A], dtype=np.float32)
 
-        if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
-            anchor_idx_a = anchors_info[0][anchors_mask[0]]
-            anchor_idx_b = anchors_info[0][anchors_mask[1]]
+        if self._train_val_test in ['train', 'val']:
+            if anchors_info[0] and anchors_info[1]:
+                common_rois_idx = np.zeros_like(anchors_info[0][0])
+                common_rois_ids = list(set(anchors_info[0][0]).intersection(set(anchors_info[1][0])))
+                common_rois_ids = np.searchsorted(anchors_info[0][0], common_rois_ids)
+                common_rois_idx[common_rois_ids] = 1
 
-            common_rois_idx = np.zeros_like(anchor_idx_a)
-            common_rois_ids = list(set(anchor_idx_a).intersection(set(anchor_idx_b)))
-            common_rois_ids = np.searchsorted(anchor_idx_a, common_rois_ids)
-            common_rois_idx[common_rois_ids] = 1
+                common_box_ids = list(set(anchors_info[0][-1]).intersection(set(anchors_info[1][-1])))
+                common_box_ids.remove(-1)
+                corr_anchors_idx = np.sum([anchors_info[0][-1] == i for i in common_box_ids], axis = 0)
+                corr_anchors_idx = np.logical_and(common_rois_idx, corr_anchors_idx)
 
-            common_box_ids = list(set(anchors_info[-1][anchors_mask[0]]).intersection(
-                                    set(anchors_info[-1][anchors_mask[1]])))
-            common_box_ids.remove(-1)
-            corr_anchors_idx = np.sum([anchors_info[-1][anchors_mask[0]] == i
-                                       for i in common_box_ids], axis = 0)
+                corr_anchors_idx = np.where(corr_anchors_idx > 0)[0]
 
-            corr_anchors_idx = np.logical_and(common_rois_idx, corr_anchors_idx)
+                self._placeholder_inputs[self.PL_CORR_ANCHORS_IDX] = corr_anchors_idx
 
-            corr_anchors_idx = np.where(corr_anchors_idx > 0)[0]
+                self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx] = \
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A][corr_anchors_idx] - \
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B][corr_anchors_idx]
 
-            self._placeholder_inputs[self.PL_CORR_ANCHORS_IDX] = corr_anchors_idx
-
-            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx] = \
-                anchor_offsets[anchors_mask[0]][corr_anchors_idx] - \
-                anchor_offsets[anchors_mask[1]][corr_anchors_idx]
-
-        self._placeholder_inputs[self.PL_ANCHORS_MASK_A] = anchors_mask[0]
-        self._placeholder_inputs[self.PL_ANCHORS_MASK_B] = anchors_mask[1]
 
     def loss(self, prediction_dict):
         SAMPLE_SIZE = 2

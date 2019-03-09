@@ -1,3 +1,0 @@
-[submodule "wavedata"]
-	path = wavedata
-	url = git@github.com:kujason/wavedata.git

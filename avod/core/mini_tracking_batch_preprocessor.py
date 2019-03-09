@@ -43,6 +43,129 @@ class MiniTrackingBatchPreprocessor(MiniBatchPreprocessor):
             pos_iou_3d_range
         )
 
+    def _calculate_anchors_info(self,
+                                all_anchor_boxes_3d,
+                                empty_anchor_filter,
+                                gt_labels):
+        """Calculates the list of anchor information in the format:
+            N x 10 [max_gt_2d_iou, max_gt_3d_iou, (6 x offsets), class_index, box_id]
+                max_gt_out - highest 3D iou with any ground truth box
+                offsets - encoded offsets [dx, dy, dz, d_dimx, d_dimy, d_dimz]
+                class_index - the anchor's class as an index
+                    (e.g. 0 or 1, for "Background" or "Car")
+                box_id - box id for tracking
+
+        Args:
+            all_anchor_boxes_3d: list of anchors in box_3d format
+                N x [x, y, z, l, w, h, ry]
+            empty_anchor_filter: boolean mask of which anchors are non empty
+            gt_labels: list of Object Label data format containing ground truth
+                labels to generate positives/negatives from.
+
+        Returns:
+            list of anchor info
+        """
+        # Check for ground truth objects
+        if len(gt_labels) == 0:
+            raise Warning("No valid ground truth label to generate anchors.")
+
+        kitti_utils = self._dataset.kitti_utils
+
+        # Filter empty anchors
+        anchor_indices = np.where(empty_anchor_filter)[0]
+        anchor_boxes_3d = all_anchor_boxes_3d[empty_anchor_filter]
+
+        # Convert anchor_boxes_3d to anchor format
+        anchors = box_3d_encoder.box_3d_to_anchor(anchor_boxes_3d)
+
+        # Convert gt to boxes_3d -> anchors -> iou format
+        # [x, y, z, l, w, h, ry]
+        gt_boxes_3d = np.asarray(
+            [box_3d_encoder.object_label_to_box_3d(gt_obj)
+             for gt_obj in gt_labels])
+        # [x, y, z, dim_x, dim_y, dim_z]
+        gt_anchors = box_3d_encoder.box_3d_to_anchor(gt_boxes_3d,
+                                                     ortho_rotate=True)
+
+        rpn_iou_type = self.mini_batch_utils.rpn_iou_type
+        if rpn_iou_type == '2d':
+            # Convert anchors to 2d iou format
+            anchors_for_2d_iou, _ = np.asarray(anchor_projector.project_to_bev(
+                anchors, kitti_utils.bev_extents))
+
+            gt_boxes_for_2d_iou, _ = anchor_projector.project_to_bev(
+                gt_anchors, kitti_utils.bev_extents)
+
+        elif rpn_iou_type == '3d':
+            # Convert anchors to 3d iou format for calculation
+            anchors_for_3d_iou = box_3d_encoder.box_3d_to_3d_iou_format(
+                anchor_boxes_3d)
+
+            gt_boxes_for_3d_iou = \
+                box_3d_encoder.box_3d_to_3d_iou_format(gt_boxes_3d)
+        else:
+            raise ValueError('Invalid rpn_iou_type {}', rpn_iou_type)
+
+        # Initialize sample and offset lists
+        num_anchors = len(anchor_boxes_3d)
+        # add one col for box_id
+        all_info = np.zeros((num_anchors,
+                             self.mini_batch_utils.col_length+1))
+
+        # init box_id to -1 first
+        all_info[:, -1] = -1
+
+        # Update anchor indices
+        all_info[:, self.mini_batch_utils.col_anchor_indices] = anchor_indices
+
+
+        # For each of the labels, generate samples
+        for gt_idx in range(len(gt_labels)):
+
+            gt_obj = gt_labels[gt_idx]
+            gt_box_3d = gt_boxes_3d[gt_idx]
+
+            # Get 2D or 3D IoU for every anchor
+            if self.mini_batch_utils.rpn_iou_type == '2d':
+                gt_box_for_2d_iou = gt_boxes_for_2d_iou[gt_idx]
+                ious = evaluation.two_d_iou(gt_box_for_2d_iou,
+                                            anchors_for_2d_iou)
+            elif self.mini_batch_utils.rpn_iou_type == '3d':
+                gt_box_for_3d_iou = gt_boxes_for_3d_iou[gt_idx]
+                ious = evaluation.three_d_iou(gt_box_for_3d_iou,
+                                              anchors_for_3d_iou)
+
+            # Only update indices with a higher iou than before
+            update_indices = np.greater(
+                ious, all_info[:, self.mini_batch_utils.col_ious])
+
+            # Get ious to update
+            ious_to_update = ious[update_indices]
+
+            # Calculate offsets, use 3D iou to get highest iou
+            anchors_to_update = anchors[update_indices]
+            gt_anchor = box_3d_encoder.box_3d_to_anchor(gt_box_3d,
+                                                        ortho_rotate=True)
+            offsets = anchor_encoder.anchor_to_offset(anchors_to_update,
+                                                      gt_anchor)
+
+            # Convert gt type to index
+            class_idx = kitti_utils.class_str_to_index(gt_obj.type)
+
+            # Update anchors info (indices already updated)
+            # [index, iou, (offsets), class_index, box_id]
+            all_info[update_indices,
+                     self.mini_batch_utils.col_ious] = ious_to_update
+
+            all_info[update_indices,
+                     self.mini_batch_utils.col_offsets_lo:
+                     self.mini_batch_utils.col_offsets_hi] = offsets
+            all_info[update_indices,
+                     self.mini_batch_utils.col_class_idx] = class_idx
+            all_info[update_indices, -1] = gt_obj.object_id
+
+        return all_info
+
     def preprocess(self, indices):
         """Preprocesses anchor info and saves info to files
 

@@ -69,12 +69,16 @@ message RPNLayersConfig {
     required int32 reg_fc6 = 3;
     required int32 reg_fc7 = 4;
 
+    // Correlation fc layer size
+    required int32 corr_fc6 = 5;
+    required int32 corr_fc7 = 6;
+
     // L2 weight decay
-    required float l2_weight_decay = 6;
+    required float l2_weight_decay = 8;
 
     // Dropout probability - the probabilit that a neuron's
     // output is kept during dropout
-    optional float keep_prob = 5 [default = 0.5];
+    optional float keep_prob = 7 [default = 0.5];
 }
 
 message AVODLayersConfig{

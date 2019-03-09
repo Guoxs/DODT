@@ -131,8 +131,11 @@ class DtAvodModel(model.DetectionModel):
         top_anchors = prediction_dict[DtRpnModel.PRED_TOP_ANCHORS]
         ground_plane = rpn_model.placeholders[DtRpnModel.PL_GROUND_PLANE]
 
-        class_labels = [rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES_A],
-                        rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES_B]]
+        label_mask = [rpn_model.placeholders[DtRpnModel.PL_LABEL_MASK_A],
+                      rpn_model.placeholders[DtRpnModel.PL_LABEL_MASK_B]]
+
+        class_labels = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES],
+                                  label_mask[i]) for i in range(SAMPLE_SIZE)]
 
         with tf.variable_scope('avod_projection'):
 
@@ -211,14 +214,14 @@ class DtAvodModel(model.DetectionModel):
                 img_mask = rpn_model.img_path_drop_mask
                 bev_mask = rpn_model.bev_path_drop_mask
 
-                img_feature_maps = [tf.multiply(img_feature_maps[i],img_mask[i])
+                img_feature_maps = [tf.multiply(img_feature_maps[i],img_mask)
                                     for i in range(SAMPLE_SIZE)]
 
-                bev_feature_maps = [tf.multiply(bev_feature_maps[i],bev_mask[i])
+                bev_feature_maps = [tf.multiply(bev_feature_maps[i],bev_mask)
                                     for i in range(SAMPLE_SIZE)]
         else:
-            bev_mask = [tf.constant(1.0) for _ in range(SAMPLE_SIZE)]
-            img_mask = [tf.constant(1.0) for _ in range(SAMPLE_SIZE)]
+            bev_mask = tf.constant(1.0)
+            img_mask = tf.constant(1.0)
 
         # ROI Pooling
         with tf.variable_scope('avod_roi_pooling'):
@@ -263,7 +266,7 @@ class DtAvodModel(model.DetectionModel):
                     avod_fc_layers_builder.build(
                         layers_config=avod_layers_config,
                         input_rois=[bev_rois[i], img_rois[i]],
-                        input_weights=[bev_mask[i], img_mask[i]],
+                        input_weights=[bev_mask, img_mask],
                         num_final_classes=self._num_final_classes,
                         box_rep=self._box_rep,
                         top_anchors=top_anchors[i],
@@ -290,15 +293,15 @@ class DtAvodModel(model.DetectionModel):
         # Subsample mini_batch for the loss function
         ######################################################
         # Get the ground truth tensors
-        anchors_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_A],
-                      rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_B]]
+        anchors_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS],
+                                label_mask[i]) for i in range(SAMPLE_SIZE)]
         if self._box_rep in ['box_3d', 'box_4ca']:
-            boxes_3d_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_A],
-                           rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_B]]
+            boxes_3d_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D],
+                           label_mask[i]) for i in range(SAMPLE_SIZE)]
             orientations_gt = [boxes_3d_gt[i][:, 6] for i in range(SAMPLE_SIZE)]
         elif self._box_rep in ['box_8c', 'box_8co', 'box_4c']:
-            boxes_3d_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_A],
-                           rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_B]]
+            boxes_3d_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D],
+                                     label_mask[i]) for i in range(SAMPLE_SIZE)]
         else:
             raise NotImplementedError('Ground truth tensors not implemented')
 
@@ -494,6 +497,9 @@ class DtAvodModel(model.DetectionModel):
         top_prediction_boxes_8c = [None]*SAMPLE_SIZE
         top_prediction_boxes_4c = [None]*SAMPLE_SIZE
 
+        ground_plane = self._rpn_model.placeholders[
+                        self._rpn_model.PL_GROUND_PLANE]
+
         for i in range(SAMPLE_SIZE):
             if all_angle_vectors[i] is not None:
                 with tf.variable_scope('avod_orientation'):
@@ -531,7 +537,7 @@ class DtAvodModel(model.DetectionModel):
                                                             all_offsets[i])
 
                     prediction_boxes_3d = \
-                        box_4c_encoder.tf_box_4c_to_box_3d(prediction_boxes_4c[i],
+                        box_4c_encoder.tf_box_4c_to_box_3d(prediction_boxes_4c,
                                                            ground_plane[i])
 
                     # Convert to anchor format for nms

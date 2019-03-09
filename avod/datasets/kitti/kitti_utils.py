@@ -134,6 +134,12 @@ class KittiUtils(object):
                                                               sample_name)
         return anchors_info
 
+    def get_tracking_anchors_info(self, classes_name, anchor_strides, sample_name):
+        anchors_info = self.mini_batch_utils.get_tracking_anchors_info(classes_name,
+                                                                        anchor_strides,
+                                                                        sample_name)
+        return anchors_info
+
 
     def get_point_cloud(self, source, img_idx, image_shape=None):
         """ Gets the points from the point cloud for a particular image,

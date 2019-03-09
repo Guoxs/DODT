@@ -178,6 +178,40 @@ class MiniBatchUtils:
             return self._parse_anchors_info(anchors_info)
         return []
 
+    def get_tracking_anchors_info(self, classes_name, anchor_strides, sample_name):
+        """Reads in the file containing the information matrix
+
+        Args:
+            classes_name: object type, one of ('Car', 'Pedestrian',
+                'Cyclist', 'People')
+            anchor_strides: anchor strides
+            sample_name: image name to read the corresponding file
+
+        Returns:
+            anchor_ious: max iou of the anchor with any ground truth
+            anchor_offsets: encoded anchor offsets to the matching ground truth
+            anchor_classes: class index of the anchor
+                (e.g. 0 or 1, for "Background" or "Car")
+            anchor_box_id: the ground truth box id for anchors
+
+            [] if the file contains an empty array
+        """
+        file_name = self.get_file_path(classes_name, anchor_strides,
+                                       sample_name)
+
+        if not os.path.exists(file_name):
+            raise FileNotFoundError(
+                "{} not found for sample {} in {}, "
+                "run the preprocessing script first".format(
+                    file_name,
+                    sample_name,
+                    self.mini_batch_dir))
+
+        anchors_info = np.load(file_name)
+        if anchors_info.any():
+            return self._parse_tracking_anchors_info(anchors_info)
+        return []
+
     def sample_mini_batch(self,
                           max_ious,
                           mini_batch_size,
@@ -289,6 +323,39 @@ class MiniBatchUtils:
 
         return anchor_indices, anchor_ious, \
             anchor_offsets, anchor_classes
+
+    def _parse_tracking_anchors_info(self, anchors_info):
+        """
+        Parses anchor indices, offsets, and classes from a matrix
+
+        Args:
+            anchors_info: an np.ndarray in the form
+                N x [indices, anchor_ious, (offsets), class_index, box_id]
+
+        Returns:
+            anchor_indices: indices of anchors to use after generation
+            anchor_ious: max iou of the anchor with any ground truth
+            anchor_offsets: encoded anchor offsets to the matching ground truth
+            anchor_classes: class index of the anchor
+                (e.g. 0 or 1, for "Background" or "Car")
+            anchor_box_id: the ground truth box id for anchors
+        """
+        anchor_indices = np.asarray(
+            anchors_info[:, self.col_anchor_indices], dtype=np.int32)
+
+        anchor_ious = np.asarray(
+            anchors_info[:, self.col_ious], dtype=np.float32)
+
+        anchor_offsets = np.asarray(
+            anchors_info[:, self.col_offsets_lo:self.col_offsets_hi],
+            dtype=np.float32)
+        anchor_classes = np.asarray(
+            anchors_info[:, self.col_class_idx], dtype=np.float32)
+        anchor_box_id = np.asarray(
+            anchors_info[:, -1], dtype=np.int32)
+
+        return anchor_indices, anchor_ious, \
+            anchor_offsets, anchor_classes, anchor_box_id
 
     def mask_class_label_indices(self,
                                  mb_pos_mask,

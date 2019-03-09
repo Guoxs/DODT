@@ -109,5 +109,8 @@ message LossConfig {
 
     // RPN/AVOD Classification loss weight
     required float cls_loss_weight = 3;
+
+    //RPN/AVOD correlation loss weight
+    required float corr_loss_weight = 4;
 }
 

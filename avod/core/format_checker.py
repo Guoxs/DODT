@@ -137,6 +137,36 @@ def check_box_3d_format(input_data):
                         '(i.e. np.ndarray or tf.Tensor)')
 
 
+def check_tracking_box_3d_format(input_data):
+    """Checks for correct box_3d format. If not proper type, raises error.
+
+    Args:
+        input_data: input numpy array or tensor to check for valid box_3d format
+    """
+
+    # Check type
+    if isinstance(input_data, np.ndarray):
+        # Check for size for numpy array form (N x 8)
+        if input_data.ndim == 2:
+            if input_data.shape[1] != 8:
+                raise TypeError('Given input does not have valid number of '
+                                'attributes. Should be N x 8 for box_3d.')
+        elif input_data.ndim == 1:
+            if input_data.shape[0] != 8:
+                raise TypeError('Given input does not have valid number of '
+                                'attributes. Should be 8 for box_3d.')
+
+    elif isinstance(input_data, tf.Tensor):
+        # if tensor, check the shape
+        if isinstance(input_data, tf.Tensor):
+            if input_data.shape[1] != 8:
+                raise TypeError('Given input does not have valid number of '
+                                'attributes. Should be N x 8 for box_3d.')
+    else:
+        raise TypeError('Given input is not of valid types.'
+                        '(i.e. np.ndarray or tf.Tensor)')
+
+
 def check_box_8c_format(input_data):
     """Checks for correct box_8c format. If not proper type, raises error.
 
