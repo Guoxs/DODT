@@ -14,7 +14,6 @@ from avod.core import summary_utils
 from avod.core.anchor_generators import grid_anchor_3d_generator
 from avod.datasets.kitti import kitti_aug
 
-from avod.core.corr_layers.correlation import correlation
 
 class DtRpnModel(model.DetectionModel):
     ##############################
@@ -22,8 +21,6 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
-
-    PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
     PL_ANCHORS = 'anchors_pl'
     PL_ANCHORS_MASK_A = 'anchors_mask_a_pl'
@@ -58,24 +55,20 @@ class DtRpnModel(model.DetectionModel):
 
     PRED_MB_OBJECTNESS_GT = 'rpn_mb_objectness_gt'
     PRED_MB_OFFSETS_GT = 'rpn_mb_offsets_gt'
-    PRED_MB_CORR_OFFSETS_GT = 'rpn_mb_corr_offsets_gt'
 
     PRED_MB_MASK = 'rpn_mb_mask'
     PRED_MB_OBJECTNESS = 'rpn_mb_objectness'
     PRED_MB_OFFSETS = 'rpn_mb_offsets'
-    PRED_MB_CORR_OFFSETS = 'rpn_mb_corr_offsets'
 
     PRED_TOP_INDICES = 'rpn_top_indices'
     PRED_TOP_ANCHORS = 'rpn_top_anchors'
     PRED_TOP_OBJECTNESS_SOFTMAX = 'rpn_top_objectness_softmax'
-    PRED_TOP_CORR_OFFSETS = 'rpn_top_corr_offsets'
 
     ##############################
     # Keys for Loss
     ##############################
     LOSS_RPN_OBJECTNESS = 'rpn_objectness_loss'
     LOSS_RPN_REGRESSION = 'rpn_regression_loss'
-    LOSS_RPN_CORRELATION = 'rpn_correlation_loss'
 
     def __init__(self, model_config, train_val_test, dataset):
         """
@@ -142,7 +135,8 @@ class DtRpnModel(model.DetectionModel):
         self._bev_extents = self.dataset.kitti_utils.bev_extents
         self._cluster_sizes, _ = self.dataset.get_cluster_info()
         self._anchor_strides = self.dataset.kitti_utils.anchor_strides
-        self._anchor_generator = grid_anchor_3d_generator.GridAnchor3dGenerator()
+        self._anchor_generator = \
+            grid_anchor_3d_generator.GridAnchor3dGenerator()
 
         self._path_drop_probabilities = self._config.path_drop_probabilities
         self._train_on_all_samples = self._config.train_on_all_samples
@@ -173,7 +167,7 @@ class DtRpnModel(model.DetectionModel):
         with tf.variable_scope('bev_input'):
             # Placeholder for BEV image input, to be filled in with feed_dict
             bev_input_placeholder_couple = self._add_placeholder(tf.float32, bev_dims,
-                                                                self.PL_BEV_INPUT)
+                                                          self.PL_BEV_INPUT)
             self._bev_input_batches = []
             self._bev_preprocessed = []
             for i in range(N):
@@ -188,16 +182,16 @@ class DtRpnModel(model.DetectionModel):
             bev_summary_images_0 = tf.split(
                 bev_input_placeholder_couple[0], self._bev_depth, axis=2)
             tf.summary.image("bev_maps_0", bev_summary_images_0,
-                                            max_outputs=self._bev_depth)
-
+                                max_outputs=self._bev_depth)
             bev_summary_images_1 = tf.split(
                 bev_input_placeholder_couple[1], self._bev_depth, axis=2)
             tf.summary.image("bev_maps_1", bev_summary_images_1,
-                                            max_outputs=self._bev_depth)
+                             max_outputs=self._bev_depth)
 
         with tf.variable_scope('img_input'):
             # Take variable size input images
-            img_input_placeholder_couple = self._add_placeholder(tf.float32,
+            img_input_placeholder_couple = self._add_placeholder(
+                                                tf.float32,
                                                 [N, None, None, self._img_depth],
                                                 self.PL_IMG_INPUT)
             self._img_input_batches = []
@@ -239,9 +233,6 @@ class DtRpnModel(model.DetectionModel):
                 self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS)
                 self._img_anchors_norm_pl = self._add_placeholder(tf.float32, [None, 4],
                                                                          self.PL_IMG_ANCHORS_NORM)
-
-            with tf.variable_scope('correlation_anchors'):
-                self._add_placeholder(tf.float32, [None, 3], self.PL_CORR_ANCHORS_OFFSETS)
 
             with tf.variable_scope('sample_info'):
                 # the calib matrix shape is (3 x 4)
@@ -312,28 +303,6 @@ class DtRpnModel(model.DetectionModel):
         #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
         #                                                  feature_map[0])
 
-    def _correlation_layer(self, bev_feature_maps, img_feature_maps):
-        with tf.variable_scope('bev_correlation'):
-            self.bev_corr_feature_maps = correlation(bev_feature_maps[0],
-                                                     bev_feature_maps[1])
-
-            self.bev_corr_bottleneck = slim.conv2d(self.bev_corr_feature_maps,
-                                                1, [1,1],
-                                                scope='bev_corr_bottleneck',
-                                                normalizer_fn=slim.batch_norm,
-                                                normalizer_params={'is_training': self._is_training})
-
-        with tf.variable_scope('img_correlation'):
-            self.img_corr_feature_maps = correlation(img_feature_maps[0],
-                                                     img_feature_maps[1])
-
-            self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
-                                                1, [1, 1],
-                                                scope='img_corr_bottleneck',
-                                                normalizer_fn=slim.batch_norm,
-                                                normalizer_params={'is_training': self._is_training})
-
-
     def build(self):
         SAMPLE_SIZE = self.dataset.sample_num
         # Setup input placeholders
@@ -349,16 +318,10 @@ class DtRpnModel(model.DetectionModel):
                              self.placeholders[self.PL_ANCHORS_MASK_B]]
 
         self.bev_anchors_norm_pl = [tf.gather(self._bev_anchors_norm_pl, self.anchors_mask[i])
-                                    for i in range(SAMPLE_SIZE)]
-
+                               for i in range(SAMPLE_SIZE)]
         self.img_anchors_norm_pl = [tf.gather(self._img_anchors_norm_pl, self.anchors_mask[i])
-                                    for i in range(SAMPLE_SIZE)]
+                               for i in range(SAMPLE_SIZE)]
 
-        # get correlation feature
-        self._correlation_layer(self.bev_feature_maps, self.img_feature_maps)
-
-        bev_corr_proposal_input = self.bev_corr_bottleneck
-        img_corr_proposal_input = self.img_corr_bottleneck
 
         fusion_mean_div_factor = 2.0
 
@@ -383,9 +346,6 @@ class DtRpnModel(model.DetectionModel):
                 bev_proposal_input = [tf.multiply(proposal_input,bev_mask)
                                       for proposal_input in bev_proposal_input]
 
-                img_corr_proposal_input = tf.multiply(img_corr_proposal_input, img_mask)
-                bev_corr_proposal_input = tf.multiply(bev_corr_proposal_input, bev_mask)
-
                 self.img_path_drop_mask = img_mask
                 self.bev_path_drop_mask = bev_mask
 
@@ -399,7 +359,8 @@ class DtRpnModel(model.DetectionModel):
                     if any(dim is None for dim in proposals_shape):
                         proposals_shape = tf.shape(boxes)
                     ones_mat = tf.ones(proposals_shape[:2], dtype=tf.int32)
-                    multiplier = tf.expand_dims(tf.range(start=0, limit=proposals_shape[0]), 1)
+                    multiplier = tf.expand_dims(
+                        tf.range(start=0, limit=proposals_shape[0]), 1)
                     return tf.reshape(ones_mat * multiplier, [-1])
 
                 bev_boxes_norm_batches = [tf.expand_dims(
@@ -423,21 +384,6 @@ class DtRpnModel(model.DetectionModel):
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
 
-            # Do ROI Pooling in BEV correlation feature
-            bev_corr_proposal_rois = tf.image.crop_and_resize(
-                bev_corr_proposal_input,
-                self.bev_anchors_norm_pl[0],
-                tf_box_indices[0],
-                self._proposal_roi_crop_size
-            )
-
-            # Do ROI Pooling in img correlation feature
-            img_corr_proposal_rois = tf.image.crop_and_resize(
-                img_corr_proposal_input,
-                self.bev_anchors_norm_pl[0],
-                tf_box_indices[0],
-                self._proposal_roi_crop_size
-            )
 
         with tf.variable_scope('proposal_roi_fusion'):
             rpn_fusion_out = None
@@ -446,15 +392,10 @@ class DtRpnModel(model.DetectionModel):
                                    for i in range(SAMPLE_SIZE)]
                 rpn_fusion_out = [tf.divide(tf_features_sum[i],fusion_mean_div_factor)
                                   for i in range(SAMPLE_SIZE)]
-                corr_fusion_out = tf.divide(tf.add(bev_corr_proposal_rois,
-                                                   img_corr_proposal_rois),
-                                                    fusion_mean_div_factor)
 
             elif self._fusion_method == 'concat':
                 rpn_fusion_out = [tf.concat([bev_proposal_rois[i], img_proposal_rois[i]],
                                     axis=3) for i in range(SAMPLE_SIZE)]
-                corr_fusion_out = tf.concat([bev_corr_proposal_rois,
-                                            img_corr_proposal_rois], axis=3)
             else:
                 raise ValueError('Invalid fusion method', self._fusion_method)
 
@@ -485,27 +426,6 @@ class DtRpnModel(model.DetectionModel):
             offsets = [None] * 2
             with slim.arg_scope([slim.conv2d],
                                 weights_regularizer=weights_regularizer):
-
-                # correlation reg
-                corr_fc6 = slim.conv2d(corr_fusion_out, layers_config.corr_fc6,
-                                       self._proposal_roi_crop_size,
-                                       padding='VALID', scope='corr_fc6')
-                corr_fc6_drop = slim.dropout(corr_fc6, layers_config.keep_prob,
-                                               is_training=self._is_training,
-                                               scope='corr_fc6_drop')
-
-                corr_fc7 = slim.conv2d(corr_fc6_drop, layers_config.corr_fc7,
-                                         [1, 1], scope='corr_fc7')
-
-                corr_fc7_drop = slim.dropout(corr_fc7, layers_config.keep_prob,
-                                               is_training=self._is_training,
-                                               scope='corr_fc7_drop')
-
-                corr_fc8 = slim.conv2d(corr_fc7_drop, 3, [1, 1],
-                                       activation_fn=None, scope='corr_fc8')
-
-                corr_offsets = tf.squeeze(corr_fc8, [1, 2], name='corr_fc8/squeezed')
-
                 for i in range(SAMPLE_SIZE):
                     # Use conv2d instead of fully_connected layers.
                     cls_fc6[i] = slim.conv2d(tensor_in[i], layers_config.cls_fc6,
@@ -569,10 +489,6 @@ class DtRpnModel(model.DetectionModel):
 
         with tf.variable_scope('histograms_rpn'):
             with tf.variable_scope('anchor_predictor'):
-                corr_layers = [corr_fc6, corr_fc7, corr_fc8, corr_offsets]
-                for corr_layer in corr_layers:
-                    tf.summary.histogram(corr_layer.name.replace(':', '_'), corr_layer)
-
                 for i in range(SAMPLE_SIZE):
                     fc_layers = [cls_fc6[i], cls_fc7[i], cls_fc8[i], objectness[i],
                                  reg_fc6[i], reg_fc7[i], reg_fc8[i], offsets[i]]
@@ -616,7 +532,6 @@ class DtRpnModel(model.DetectionModel):
                 top_objectness_softmax = [tf.gather(objectness_scores[i], top_indices[i])
                                           for i in range(SAMPLE_SIZE)]
 
-                top_corr_offsets = tf.gather(corr_offsets, top_indices[0])
                 # top_offsets = tf.gather(offsets, top_indices)
                 # top_objectness = tf.gather(objectness, top_indices)
 
@@ -627,8 +542,6 @@ class DtRpnModel(model.DetectionModel):
                        for i in range(SAMPLE_SIZE)]
         all_classes_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_CLASSES], self.anchors_mask[i])
                        for i in range(SAMPLE_SIZE)]
-
-        all_corr_offset_gt = self.placeholders[self.PL_CORR_ANCHORS_OFFSETS]
 
         with tf.variable_scope('mini_batch'):
             mini_batch_utils = self.dataset.kitti_utils.mini_batch_utils
@@ -658,10 +571,10 @@ class DtRpnModel(model.DetectionModel):
             bev_input_roi_summary_images = [tf.split(
                 bev_input_rois[i], self._bev_depth, axis=3)
                 for i in range(SAMPLE_SIZE)]
-            tf.summary.image('bev_rpn_rois_0',
+            tf.summary.image('bev_rpn_rois',
                              bev_input_roi_summary_images[0][-1],
                              max_outputs=rpn_mini_batch_size)
-            tf.summary.image('bev_rpn_rois_1',
+            tf.summary.image('bev_rpn_rois',
                              bev_input_roi_summary_images[1][-1],
                              max_outputs=rpn_mini_batch_size)
 
@@ -681,10 +594,10 @@ class DtRpnModel(model.DetectionModel):
                 mb_img_box_indices[i],
                 (32, 32)) for i in range(SAMPLE_SIZE)]
 
-            tf.summary.image('img_rpn_rois_0',
+            tf.summary.image('img_rpn_rois',
                              img_input_rois[0],
                              max_outputs=rpn_mini_batch_size)
-            tf.summary.image('img_rpn_rois_1',
+            tf.summary.image('img_rpn_rois',
                              img_input_rois[1],
                              max_outputs=rpn_mini_batch_size)
 
@@ -712,14 +625,12 @@ class DtRpnModel(model.DetectionModel):
                                  for i in range(SAMPLE_SIZE)]
             offsets_masked = [tf.boolean_mask(offsets[i], mini_batch_mask[i])
                               for i in range(SAMPLE_SIZE)]
-            corr_offsets_masked = tf.boolean_mask(corr_offsets, mini_batch_mask[0])
 
         with tf.variable_scope('ground_truth_mini_batch'):
             objectness_gt_masked = [tf.boolean_mask(objectness_gt[i], mini_batch_mask[i])
                                     for i in range(SAMPLE_SIZE)]
             offsets_gt_masked = [tf.boolean_mask(all_offsets_gt[i],mini_batch_mask[i])
                                  for i in range(SAMPLE_SIZE)]
-            corr_offsets_gt_masked = tf.boolean_mask(all_corr_offset_gt, mini_batch_mask[0])
 
         # Specify the tensors to evaluate
         predictions = dict()
@@ -737,24 +648,20 @@ class DtRpnModel(model.DetectionModel):
             # Mini-batch predictions
             predictions[self.PRED_MB_OBJECTNESS] = objectness_masked
             predictions[self.PRED_MB_OFFSETS] = offsets_masked
-            predictions[self.PRED_MB_CORR_OFFSETS] = corr_offsets_masked
 
             # Mini batch ground truth
             predictions[self.PRED_MB_OFFSETS_GT] = offsets_gt_masked
             predictions[self.PRED_MB_OBJECTNESS_GT] = objectness_gt_masked
-            predictions[self.PRED_MB_CORR_OFFSETS_GT] = corr_offsets_gt_masked
 
             # Proposals after nms
             predictions[self.PRED_TOP_INDICES] = top_indices
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
-            predictions[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
 
         else:
             # self._train_val_test == 'test'
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
-            predictions[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
 
         return predictions
 
@@ -809,8 +716,8 @@ class DtRpnModel(model.DetectionModel):
                 eval_cond = (self._train_val_test == "val" and
                              self._eval_all_samples)
 
-                # anchors_valid = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
-                if anchors_info or train_cond or eval_cond:
+                anchors_valid = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
+                if anchors_valid or train_cond or eval_cond:
                     valid_sample = True
         else:
             # For testing, any sample should work
@@ -912,7 +819,7 @@ class DtRpnModel(model.DetectionModel):
         anchor_offsets = []
         anchor_classes = []
 
-        # unpack anchors_info, Create anchors for each class
+        # unpack anchors_info
         for i in range(2):
             all_anchor_boxes_3d = []
             # Create anchors for each class
@@ -935,7 +842,6 @@ class DtRpnModel(model.DetectionModel):
                     anchor_stride=self._anchor_strides[class_idx],
                     ground_plane=ground_plane[i])
                 all_anchor_boxes_3d = grid_anchor_boxes_3d
-
             all_anchor_boxes_3ds.append(all_anchor_boxes_3d)
 
         # Filter empty anchors
@@ -971,13 +877,13 @@ class DtRpnModel(model.DetectionModel):
             temp_mask = []
             for i in range(2):
                 voxel_grid_2d = self.dataset.kitti_utils.create_sliced_voxel_grid_2d(
-                                    sample_name[i], self.dataset.bev_source,
-                                    image_shape=image_shape[i])
+                        sample_name[i], self.dataset.bev_source,
+                        image_shape=image_shape[i])
                 # Convert to anchors and filter
                 anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                                                all_anchor_boxes_3ds[i])
+                    all_anchor_boxes_3ds[i])
                 empty_filter = anchor_filter.get_empty_anchor_filter_2d(
-                    anchors_to_use, voxel_grid_2d, density_threshold=1)
+                    anchors_to_use[i], voxel_grid_2d[i], density_threshold=1)
 
                 temp = all_anchor_boxes_3ds[i][empty_filter]
                 anchor_boxes_3d_to_use.append(temp)
@@ -1008,17 +914,18 @@ class DtRpnModel(model.DetectionModel):
         for i in range(2):
             # Convert to anchors
             anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                                            anchor_boxes_3d_to_use[i])
+                anchor_boxes_3d_to_use[i])
             num_anchors = len(anchors_to_use)
             num_anchors_all += num_anchors
 
             # Project anchors into bev
             bev_anchors, bev_anchors_norm = anchor_projector.project_to_bev(
-                                            anchors_to_use, self._bev_extents)
+                anchors_to_use, self._bev_extents)
 
             # Project box_3d anchors into image space
-            img_anchors, img_anchors_norm = anchor_projector.project_to_image_space(
-                                            anchors_to_use, stereo_calib_p2, image_shape[i])
+            img_anchors, img_anchors_norm = \
+                anchor_projector.project_to_image_space(
+                    anchors_to_use, stereo_calib_p2, image_shape[i])
 
             # Reorder into [y1, x1, y2, x2] for tf.crop_and_resize op
             self._bev_anchors_norm.append(bev_anchors_norm[:, [1, 0, 3, 2]])
@@ -1056,29 +963,6 @@ class DtRpnModel(model.DetectionModel):
             raise ValueError('Got run mode {}, and non-empty anchor info'.
                                     format(self._train_val_test))
 
-        if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
-            # select the anchors that its box_id exist in both frames
-            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
-                np.zeros([len(bev_anchors_all[0]), 3], dtype=np.float32)
-
-            anchor_idx_a = anchors_info[0][anchors_mask[0]]
-            anchor_idx_b = anchors_info[0][anchors_mask[1]]
-
-            common_rois_idx_a = np.zeros_like(anchor_idx_a)
-            common_rois_idx_b = np.zeros_like(anchor_idx_b)
-            common_rois_ids = list(set(anchor_idx_a).intersection(set(anchor_idx_b)))
-            common_rois_ids_a = np.searchsorted(anchor_idx_a, common_rois_ids)
-            common_rois_ids_b = np.searchsorted(anchor_idx_b, common_rois_ids)
-
-            common_rois_idx_a[common_rois_ids_a] = 1
-            common_rois_idx_b[common_rois_ids_b] = 1
-            corr_anchors_idx_a = np.where(common_rois_idx_a > 0)[0]
-            corr_anchors_idx_b = np.where(common_rois_idx_b > 0)[0]
-
-            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx_a] = \
-                anchor_offsets[anchors_mask[1]][corr_anchors_idx_b][:, :3] - \
-                anchor_offsets[anchors_mask[0]][corr_anchors_idx_a][:, :3]
-
         self._placeholder_inputs[self.PL_ANCHORS_MASK_A] = anchors_mask[0]
         self._placeholder_inputs[self.PL_ANCHORS_MASK_B] = anchors_mask[1]
 
@@ -1088,13 +972,11 @@ class DtRpnModel(model.DetectionModel):
         # these should include mini-batch values only
         objectness_gt = prediction_dict[self.PRED_MB_OBJECTNESS_GT]
         offsets_gt = prediction_dict[self.PRED_MB_OFFSETS_GT]
-        corr_offsets_gt = prediction_dict[self.PRED_MB_CORR_OFFSETS_GT]
 
         # Predictions
         with tf.variable_scope('rpn_prediction_mini_batch'):
             objectness = prediction_dict[self.PRED_MB_OBJECTNESS]
             offsets = prediction_dict[self.PRED_MB_OFFSETS]
-            corr_offsets = prediction_dict[self.PRED_MB_CORR_OFFSETS]
 
         with tf.variable_scope('rpn_losses'):
             with tf.variable_scope('objectness'):
@@ -1111,8 +993,8 @@ class DtRpnModel(model.DetectionModel):
                                         tf.shape(objectness_gt[i])[0], dtype=tf.float32)
                                        for i in range(SAMPLE_SIZE)]
 
-                    tf.summary.scalar('objectness_0', objectness_loss[0])
-                    tf.summary.scalar('objectness_1', objectness_loss[1])
+                    tf.summary.scalar('objectness', objectness_loss[0])
+                    tf.summary.scalar('objectness', objectness_loss[1])
 
             with tf.variable_scope('regression'):
                 reg_loss = losses.WeightedSmoothL1Loss()
@@ -1128,40 +1010,25 @@ class DtRpnModel(model.DetectionModel):
                 localization_loss = [tf.reduce_sum(masked_localization_loss[i])
                                      for i in range(SAMPLE_SIZE)]
 
-                corr_loss_weight = self._config.loss_config.corr_loss_weight
-                anchorwise_correlation_loss = reg_loss(corr_offsets,
-                                                       corr_offsets_gt,
-                                                       weight=corr_loss_weight)
-
-                masked_correlation_loss = anchorwise_correlation_loss * objectness_gt[0][:, 1]
-                correlation_loss = tf.reduce_sum(masked_correlation_loss)
-
                 with tf.variable_scope('reg_norm'):
                     # normalize by the number of positive objects
                     num_positives = [tf.reduce_sum(objectness_gt[i][:, 1])
                                      for i in range(SAMPLE_SIZE)]
                     # Assert the condition `num_positives > 0`
                     for i in range(SAMPLE_SIZE):
-                        with tf.control_dependencies([tf.assert_positive(num_positives[i])]):
+                        with tf.control_dependencies(
+                                [tf.assert_positive(num_positives[i])]):
                             localization_loss[i] = localization_loss[i] / num_positives[i]
-                            name = 'regression_' + str(i)
-                            tf.summary.scalar(name, localization_loss[i])
-
-                    with tf.control_dependencies([tf.assert_positive(num_positives[0])]):
-                        correlation_loss = correlation_loss / num_positives[0]
-                        tf.summary.scalar('correlation', correlation_loss)
-
+                            tf.summary.scalar('regression', localization_loss[i])
 
             objectness_loss = tf.reduce_sum(objectness_loss)
             localization_loss = tf.reduce_sum(localization_loss)
-            correlation_loss = tf.reduce_sum(correlation_loss)
             with tf.variable_scope('total_loss'):
-                total_loss = objectness_loss + localization_loss + correlation_loss
+                total_loss = objectness_loss + localization_loss
 
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
-            self.LOSS_RPN_CORRELATION: correlation_loss
         }
 
         return loss_dict, total_loss

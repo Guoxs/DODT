@@ -23,7 +23,6 @@ class DtRpnModel(model.DetectionModel):
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
 
-    PL_CORR_ANCHORS_IDX = 'corr_anchors_idx_pl'
     PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
     PL_ANCHORS_A = 'anchors_pl_0'
@@ -225,11 +224,11 @@ class DtRpnModel(model.DetectionModel):
             tf.summary.image("rgb_image_1", self._img_preprocessed[1], max_outputs=2)
 
         with tf.variable_scope('pl_labels'):
-            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_ANCHORS_A)
-            self._add_placeholder(tf.float32, [None, 8], self.PL_LABEL_BOXES_3D_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_A)
             self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES_A)
-            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_ANCHORS_B)
-            self._add_placeholder(tf.float32, [None, 8], self.PL_LABEL_BOXES_3D_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_B)
             self._add_placeholder(tf.float32, [None, ], self.PL_LABEL_CLASSES_B)
 
         # Placeholders for anchors
@@ -264,8 +263,7 @@ class DtRpnModel(model.DetectionModel):
                 self._img_anchors_norm_pl = [self._img_anchors_norm_pl_0, self._img_anchors_norm_pl_1]
 
             with tf.variable_scope('correlation_anchors'):
-                self._add_placeholder(tf.int32, [None], self.PL_CORR_ANCHORS_IDX)
-                self._add_placeholder(tf.float32, [None, 6], self.PL_CORR_ANCHORS_OFFSETS)
+                self._add_placeholder(tf.float32, [None, 3], self.PL_CORR_ANCHORS_OFFSETS)
 
             with tf.variable_scope('sample_info'):
                 # the calib matrix shape is (3 x 4)
@@ -336,22 +334,22 @@ class DtRpnModel(model.DetectionModel):
         #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
         #                                                  feature_map[0])
 
-    def _correlation_layer(self, bev_proposal_input, img_proposal_input):
+    def _correlation_layer(self, bev_feature_maps, img_feature_maps):
         with tf.variable_scope('bev_correlation'):
-            temp_bev_corr_feature = correlation(bev_proposal_input[0],
-                                                bev_proposal_input[1])
+            self.bev_corr_feature_maps = correlation(bev_feature_maps[0],
+                                                bev_feature_maps[1])
 
-            self.bev_corr_feature = slim.conv2d(temp_bev_corr_feature,
+            self.bev_corr_bottleneck = slim.conv2d(self.bev_corr_feature_maps,
                                                 1, [1,1],
                                                 scope='bev_corr_bottleneck',
                                                 normalizer_fn=slim.batch_norm,
                                                 normalizer_params={'is_training': self._is_training})
 
         with tf.variable_scope('img_correlation'):
-            temp_img_corr_feature = correlation(img_proposal_input[0],
-                                                img_proposal_input[1])
+            self.img_corr_feature_maps = correlation(img_feature_maps[0],
+                                                img_feature_maps[1])
 
-            self.img_corr_feature = slim.conv2d(temp_img_corr_feature,
+            self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
                                                 1, [1, 1],
                                                 scope='img_corr_bottleneck',
                                                 normalizer_fn=slim.batch_norm,
@@ -370,7 +368,10 @@ class DtRpnModel(model.DetectionModel):
         img_proposal_input = self.img_bottleneck
 
         # get correlation feature
-        self._correlation_layer(self.bev_bottleneck, self.img_bottleneck)
+        self._correlation_layer(self.bev_feature_maps, self.img_feature_maps)
+
+        bev_corr_proposal_input = self.bev_corr_bottleneck
+        img_corr_proposal_input = self.img_corr_bottleneck
 
         fusion_mean_div_factor = 2.0
 
@@ -394,6 +395,9 @@ class DtRpnModel(model.DetectionModel):
 
                 bev_proposal_input = [tf.multiply(proposal_input,bev_mask)
                                       for proposal_input in bev_proposal_input]
+
+                img_corr_proposal_input = tf.multiply(img_corr_proposal_input, img_mask)
+                bev_corr_proposal_input = tf.multiply(bev_corr_proposal_input, bev_mask)
 
                 self.img_path_drop_mask = img_mask
                 self.bev_path_drop_mask = bev_mask
@@ -435,7 +439,7 @@ class DtRpnModel(model.DetectionModel):
 
             # Do ROI Pooling in BEV correlation feature
             bev_corr_proposal_rois = tf.image.crop_and_resize(
-                self.bev_corr_feature,
+                bev_corr_proposal_input,
                 self._bev_anchors_norm_pl[0],
                 tf_box_indices[0],
                 self._proposal_roi_crop_size
@@ -443,7 +447,7 @@ class DtRpnModel(model.DetectionModel):
 
             # Do ROI Pooling in img correlation feature
             img_corr_proposal_rois = tf.image.crop_and_resize(
-                self.img_corr_feature,
+                img_corr_proposal_input,
                 self._img_anchors_norm_pl[0],
                 tf_box_indices[0],
                 self._proposal_roi_crop_size
@@ -511,7 +515,7 @@ class DtRpnModel(model.DetectionModel):
                                                is_training=self._is_training,
                                                scope='corr_fc7_drop')
 
-                corr_fc8 = slim.conv2d(corr_fc7_drop, 6, [1, 1],
+                corr_fc8 = slim.conv2d(corr_fc7_drop, 3, [1, 1],
                                        activation_fn=None, scope='corr_fc8')
 
                 corr_offsets = tf.squeeze(corr_fc8, [1, 2], name='corr_fc8/squeezed')
@@ -1067,30 +1071,27 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_A] = self._img_anchors_norm[0]
         self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_B] = self._img_anchors_norm[1]
 
-        # select the anchors that its box_id exist in both frames
-        self._placeholder_inputs[self.PL_CORR_ANCHORS_IDX] = []
-        self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
-                    np.zeros_like(self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A], dtype=np.float32)
-
         if self._train_val_test in ['train', 'val']:
+            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
+                np.zeros([len(anchors_info[0][0]), 3])
             if anchors_info[0] and anchors_info[1]:
-                common_rois_idx = np.zeros_like(anchors_info[0][0])
-                common_rois_ids = list(set(anchors_info[0][0]).intersection(set(anchors_info[1][0])))
-                common_rois_ids = np.searchsorted(anchors_info[0][0], common_rois_ids)
-                common_rois_idx[common_rois_ids] = 1
+                anchor_idx_a = anchors_info[0][0]
+                anchor_idx_b = anchors_info[1][0]
 
-                common_box_ids = list(set(anchors_info[0][-1]).intersection(set(anchors_info[1][-1])))
-                common_box_ids.remove(-1)
-                corr_anchors_idx = np.sum([anchors_info[0][-1] == i for i in common_box_ids], axis = 0)
-                corr_anchors_idx = np.logical_and(common_rois_idx, corr_anchors_idx)
+                common_rois_idx_a = np.zeros_like(anchor_idx_a)
+                common_rois_idx_b = np.zeros_like(anchor_idx_b)
+                common_rois_ids = list(set(anchor_idx_a).intersection(set(anchor_idx_b)))
+                common_rois_ids_a = np.searchsorted(anchor_idx_a, common_rois_ids)
+                common_rois_ids_b = np.searchsorted(anchor_idx_b, common_rois_ids)
 
-                corr_anchors_idx = np.where(corr_anchors_idx > 0)[0]
+                common_rois_idx_a[common_rois_ids_a] = 1
+                common_rois_idx_b[common_rois_ids_b] = 1
+                corr_anchors_idx_a = np.where(common_rois_idx_a > 0)[0]
+                corr_anchors_idx_b = np.where(common_rois_idx_b > 0)[0]
 
-                self._placeholder_inputs[self.PL_CORR_ANCHORS_IDX] = corr_anchors_idx
-
-                self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx] = \
-                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A][corr_anchors_idx] - \
-                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B][corr_anchors_idx]
+                self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx_a] = \
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B][corr_anchors_idx_b][:, :3] - \
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A][corr_anchors_idx_a][:, :3]
 
 
     def loss(self, prediction_dict):

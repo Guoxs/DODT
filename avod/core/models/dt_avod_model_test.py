@@ -2,13 +2,15 @@
 
 import numpy as np
 import tensorflow as tf
-
+import os
 import avod
 import avod.builders.config_builder_util as config_build
 from avod.builders.dataset_builder import DatasetBuilder
 from avod.core import losses
 from avod.core.models.dt_avod_model import DtAvodModel
 from avod.protos import pipeline_pb2
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 
 class AvodModelTest(tf.test.TestCase):

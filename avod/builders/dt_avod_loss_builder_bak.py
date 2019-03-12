@@ -5,6 +5,7 @@ from avod.core import orientation_encoder
 
 KEY_CLASSIFICATION_LOSS = 'classification_loss'
 KEY_REGRESSION_LOSS = 'regression_loss'
+KEY_AVOD_CORR_LOSS = 'avod_corr_loss'
 KEY_AVOD_LOSS = 'avod_loss'
 
 KEY_OFFSET_LOSS_NORM = 'offset_loss_norm'
@@ -181,7 +182,7 @@ def _get_off_ang_loss(model, offsets, offsets_gt,
 
         tf.summary.scalar('mb_num_positives', num_positives)
 
-    return final_reg_loss, offset_loss_norm, ang_loss_norm
+    return final_reg_loss, offset_loss_norm, ang_loss_norm, num_positives
 
 
 def _get_offset_only_loss(model, offsets, offsets_gt,
@@ -257,7 +258,7 @@ def _get_offset_only_loss(model, offsets, offsets_gt,
         tf.summary.scalar('regression_total', reg_loss)
         tf.summary.scalar('mb_num_positives', num_positives)
 
-    return reg_loss, offset_loss_norm
+    return reg_loss, offset_loss_norm, num_positives
 
 
 def _build_cls_off_ang_loss(model, prediction_dict):
@@ -276,11 +277,13 @@ def _build_cls_off_ang_loss(model, prediction_dict):
     mb_cls_softmax = prediction_dict[model.PRED_MB_CLASSIFICATION_SOFTMAX]
     mb_offsets = prediction_dict[model.PRED_MB_OFFSETS]
     mb_angle_vectors = prediction_dict[model.PRED_MB_ANGLE_VECTORS]
+    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
 
     # Ground Truth
     mb_cls_gt = prediction_dict[model.PRED_MB_CLASSIFICATIONS_GT]
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
     mb_orientations_gt = prediction_dict[model.PRED_MB_ORIENTATIONS_GT]
+    mb_corr_offsets_gt = prediction_dict[model.PRED_MB_CORR_OFFSETS_GT]
 
     cls_loss = [None]*2
     final_reg_loss = [None]*2
@@ -301,7 +304,8 @@ def _build_cls_off_ang_loss(model, prediction_dict):
                 cls_loss[i] = _get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
 
             with tf.variable_scope('regression'):
-                final_reg_loss[i], offset_loss_norm[i], ang_loss_norm[i] = _get_off_ang_loss(
+                final_reg_loss[i], offset_loss_norm[i], ang_loss_norm[i],\
+                num_positives[i] = _get_off_ang_loss(
                     model, mb_offsets[i], mb_offsets_gt[i],
                     mb_angle_vectors[i], mb_angle_vectors_gt,
                     mb_cls_softmax[i], mb_cls_gt[i])
@@ -311,12 +315,24 @@ def _build_cls_off_ang_loss(model, prediction_dict):
                 avod_loss[i] = cls_loss[i] + final_reg_loss[i]
                 tf.summary.scalar('avod_loss', avod_loss[i])
 
+    with tf.variable_scope('avod_correlation'):
+        corr_loss = losses.WeightedSmoothL1Loss()
+        corr_loss_weight = model._config.loss_config.corr_loss_weight
+        avod_corr_loss = corr_loss(mb_corr_offsets, mb_corr_offsets_gt,
+                                   weight=corr_loss_weight)
+        pos_div_cond = tf.not_equal(num_positives[0], 0)
+        final_corr_loss = tf.cond(
+            pos_div_cond,
+            lambda: avod_corr_loss / num_positives[0],
+            lambda: tf.constant(0.0))
+
     # Loss dictionary
     losses_output = dict()
 
     losses_output[KEY_CLASSIFICATION_LOSS] = cls_loss
     losses_output[KEY_REGRESSION_LOSS] = final_reg_loss
     losses_output[KEY_AVOD_LOSS] = avod_loss
+    losses_output[KEY_AVOD_CORR_LOSS] = final_corr_loss
 
     # Separate losses for plotting
     losses_output[KEY_OFFSET_LOSS_NORM] = offset_loss_norm
@@ -340,10 +356,12 @@ def _build_cls_off_loss(model, prediction_dict):
     mb_cls_logits = prediction_dict[model.PRED_MB_CLASSIFICATION_LOGITS]
     mb_cls_softmax = prediction_dict[model.PRED_MB_CLASSIFICATION_SOFTMAX]
     mb_offsets = prediction_dict[model.PRED_MB_OFFSETS]
+    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
 
     # Ground truth
     mb_cls_gt = prediction_dict[model.PRED_MB_CLASSIFICATIONS_GT]
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
+    mb_corr_offsets_gt = prediction_dict[model.PRED_MB_CORR_OFFSETS_GT]
 
     cls_loss = [None] * 2
     final_reg_loss = [None] * 2
@@ -356,18 +374,30 @@ def _build_cls_off_loss(model, prediction_dict):
                 cls_loss[i] = _get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
 
             with tf.variable_scope('regression'):
-                final_reg_loss[i], offset_loss_norm[i] = _get_offset_only_loss(
+                final_reg_loss[i], offset_loss_norm[i], num_positives[i] = _get_offset_only_loss(
                     model, mb_offsets[i], mb_offsets_gt[i], mb_cls_softmax[i], mb_cls_gt[i])
 
             with tf.variable_scope('avod_loss'):
                 avod_loss[i] = cls_loss[i] + final_reg_loss[i]
                 tf.summary.scalar('avod_loss', avod_loss[i])
 
+    with tf.variable_scope('avod_correlation'):
+        corr_loss = losses.WeightedSmoothL1Loss()
+        corr_loss_weight = model._config.loss_config.corr_loss_weight
+        avod_corr_loss = corr_loss(mb_corr_offsets, mb_corr_offsets_gt,
+                                   weight=corr_loss_weight)
+        pos_div_cond = tf.not_equal(num_positives[0], 0)
+        final_corr_loss = tf.cond(
+            pos_div_cond,
+            lambda: avod_corr_loss / num_positives[0],
+            lambda: tf.constant(0.0))
+
     losses_output = dict()
 
     losses_output[KEY_CLASSIFICATION_LOSS] = cls_loss
     losses_output[KEY_REGRESSION_LOSS] = final_reg_loss
     losses_output[KEY_AVOD_LOSS] = avod_loss
+    losses_output[KEY_AVOD_CORR_LOSS] = final_corr_loss
 
     losses_output[KEY_OFFSET_LOSS_NORM] = offset_loss_norm
 

@@ -1,13 +1,15 @@
 """Tests for avod.core.models.bev_rpn"""
-
 import numpy as np
 import tensorflow as tf
+import os
 
 import avod
 import avod.builders.config_builder_util as config_build
 from avod.builders.dataset_builder import DatasetBuilder
 from avod.core.models.dt_rpn_model  import DtRpnModel
 from avod.protos import pipeline_pb2
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 
 class DtRpnModelTest(tf.test.TestCase):
@@ -38,8 +40,9 @@ class DtRpnModelTest(tf.test.TestCase):
         with self.test_session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
-            loss_dict_out = sess.run(loss, feed_dict=feed_dict)
-            print('Losses ', loss_dict_out)
+            for i in range(10):
+                loss_dict_out = sess.run(loss, feed_dict=feed_dict)
+                print('Losses ', loss_dict_out)
 
     def test_create_path_drop_masks(self):
         # Tests creating path drop choices

@@ -57,7 +57,7 @@ class KittiDatasetTest(unittest.TestCase):
             class_labels = samples[i].get(constants.KEY_LABEL_CLASSES)
             self.assertIsNotNone(class_labels)
             self.assertIsInstance(class_labels, np.ndarray)
-            self.assertIsInstance(class_labels[0][0], np.int32)
+            self.assertIsInstance(class_labels[0], np.int32)
 
     def test_data_splits(self):
         bad_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_UNITTEST)

@@ -25,8 +25,6 @@ def train(model_config, train_config, dataset_config):
     train_val_test = 'train'
     model_name = model_config.model_name
 
-    batch = dataset.load_samples([5,10,100,500])
-
     with tf.Graph().as_default():
         if model_name == 'dt_rpn_model':
             model = DtRpnModel(model_config,
@@ -49,7 +47,7 @@ def main(_):
     default_pipeline_config_path = avod.root_dir() + \
         '/configs/avod_tracking_cars_example.config'
     default_data_split = 'train'
-    default_device = '1'
+    default_device = '3'
 
     parser.add_argument('--pipeline_config',
                         type=str,

@@ -505,32 +505,31 @@ class KittiTrackingDataset:
                          for i in range(len(bev_images))]
 
             # align anchors_info
-
-            aligned_anchors_info = []
-            anchors_info_mask = []
-            if len(anchors_info[0]) > 0 and len(anchors_info[1]) > 0:
-                anchors_info_mask, _ = self.list_align([anchors_info[0][0],
-                                    anchors_info[1][0]], return_mask=True)
-
-                for (item1, item2) in zip(anchors_info[0], anchors_info[1]):
-                    aligned_anchors_info.append(
-                        self.list_align([item1, item2]))
-
-            label_mask, _ = self.list_align(label_boxes_3d, return_mask=True)
+            # aligned_anchors_info = []
+            # anchors_info_mask = []
+            # if len(anchors_info[0]) > 0 and len(anchors_info[1]) > 0:
+            #     anchors_info_mask, _ = self.list_align([anchors_info[0][0],
+            #                         anchors_info[1][0]], return_mask=True)
+            #
+            #     for (item1, item2) in zip(anchors_info[0], anchors_info[1]):
+            #         aligned_anchors_info.append(
+            #             self.list_align([item1, item2]))
+            #
+            # label_mask, _ = self.list_align(label_boxes_3d, return_mask=True)
             # transpose point_cloud for data align
             point_cloud = [point_cloud[0].T, point_cloud[1].T]
             point_cloud_mask, point_cloud = self.list_align(point_cloud, return_mask=True)
             sample_dict = {
-                constants.KEY_LABEL_BOXES_3D: self.list_align(label_boxes_3d),
-                constants.KEY_LABEL_ANCHORS: self.list_align(label_anchors),
-                constants.KEY_LABEL_CLASSES: self.list_align(label_classes),
-                constants.KEY_LABEL_MASK: label_mask,
+                constants.KEY_LABEL_BOXES_3D: label_boxes_3d,
+                constants.KEY_LABEL_ANCHORS: label_anchors,
+                constants.KEY_LABEL_CLASSES: label_classes,
+                constants.KEY_LABEL_MASK: 0,
 
                 constants.KEY_IMAGE_INPUT: np.asarray(image_input),
                 constants.KEY_BEV_INPUT: np.asarray(bev_input),
 
-                constants.KEY_ANCHORS_INFO: aligned_anchors_info,
-                constants.KEY_ANCHORS_INFO_MASK: anchors_info_mask,
+                constants.KEY_ANCHORS_INFO: anchors_info,
+                constants.KEY_ANCHORS_INFO_MASK: 0,
 
                 constants.KEY_POINT_CLOUD: point_cloud,
                 constants.KEY_POINT_CLOUD_MASK: point_cloud_mask,

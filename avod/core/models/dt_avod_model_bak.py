@@ -36,7 +36,6 @@ class DtAvodModel(model.DetectionModel):
     # Top predictions after BEV NMS
     PRED_TOP_CLASSIFICATION_LOGITS = 'avod_top_classification_logits'
     PRED_TOP_CLASSIFICATION_SOFTMAX = 'avod_top_classification_softmax'
-    PRED_TOP_ANCHORS_CORR_OFFSETS = 'avod_top_anchors_correlation_offsets'
 
     PRED_TOP_PREDICTION_ANCHORS = 'avod_top_prediction_anchors'
     PRED_TOP_PREDICTION_BOXES_3D = 'avod_top_prediction_boxes_3d'
@@ -132,11 +131,8 @@ class DtAvodModel(model.DetectionModel):
         top_anchors = prediction_dict[DtRpnModel.PRED_TOP_ANCHORS]
         ground_plane = rpn_model.placeholders[DtRpnModel.PL_GROUND_PLANE]
 
-        label_mask = [rpn_model.placeholders[DtRpnModel.PL_LABEL_MASK_A],
-                      rpn_model.placeholders[DtRpnModel.PL_LABEL_MASK_B]]
-
-        class_labels = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES],
-                                  label_mask[i]) for i in range(SAMPLE_SIZE)]
+        class_labels = [rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES_A],
+                        rpn_model.placeholders[DtRpnModel.PL_LABEL_CLASSES_B]]
 
         with tf.variable_scope('avod_projection'):
 
@@ -295,15 +291,15 @@ class DtAvodModel(model.DetectionModel):
         # Subsample mini_batch for the loss function
         ######################################################
         # Get the ground truth tensors
-        anchors_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS],
-                                label_mask[i]) for i in range(SAMPLE_SIZE)]
+        anchors_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_A],
+                      rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_B]]
         if self._box_rep in ['box_3d', 'box_4ca']:
-            boxes_3d_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D],
-                           label_mask[i]) for i in range(SAMPLE_SIZE)]
+            boxes_3d_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_A],
+                           rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_B]]
             orientations_gt = [boxes_3d_gt[i][:, 6] for i in range(SAMPLE_SIZE)]
         elif self._box_rep in ['box_8c', 'box_8co', 'box_4c']:
-            boxes_3d_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D],
-                                     label_mask[i]) for i in range(SAMPLE_SIZE)]
+            boxes_3d_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_A],
+                           rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_B]]
         else:
             raise NotImplementedError('Ground truth tensors not implemented')
 
@@ -465,7 +461,7 @@ class DtAvodModel(model.DetectionModel):
 
                 bev_input_roi_summary_images = tf.split(
                     bev_input_rois, self._bev_depth, axis=3)
-                tf.summary.image('bev_avod_rois_%s' %i,
+                tf.summary.image('bev_avod_rois',
                                  bev_input_roi_summary_images[-1],
                                  max_outputs=avod_mini_batch_size)
 
@@ -483,7 +479,7 @@ class DtAvodModel(model.DetectionModel):
                     mb_img_box_indices,
                     (32, 32))
 
-                tf.summary.image('img_avod_rois_%s' %i,
+                tf.summary.image('img_avod_rois',
                                  img_input_rois,
                                  max_outputs=avod_mini_batch_size)
 
@@ -501,8 +497,6 @@ class DtAvodModel(model.DetectionModel):
 
         ground_plane = self._rpn_model.placeholders[
                         self._rpn_model.PL_GROUND_PLANE]
-
-        top_corr_offsets = prediction_dict[DtRpnModel.PRED_TOP_CORR_OFFSETS]
 
         for i in range(SAMPLE_SIZE):
             if all_angle_vectors[i] is not None:
@@ -576,28 +570,32 @@ class DtAvodModel(model.DetectionModel):
 
                 # Gather predictions from NMS indices
                 top_classification_logits[i] = tf.gather(all_cls_logits[i], nms_indices)
-                top_classification_softmax[i] = tf.gather(all_cls_softmax[i], nms_indices)
+                top_classification_softmax[i] = tf.gather(all_cls_softmax, nms_indices)
                 top_prediction_anchors[i] = tf.gather(prediction_anchors, nms_indices)
 
-                # get correlation offsets after avod NMS
-                if i == 0:
-                    top_corr_offsets = tf.gather(top_corr_offsets, nms_indices)
-
                 if self._box_rep == 'box_3d':
-                    top_orientations[i] = tf.gather(all_orientations, nms_indices)
+                    top_orientations[i] = tf.gather(
+                        all_orientations, nms_indices)
 
                 elif self._box_rep in ['box_8c', 'box_8co']:
-                    top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
-                    top_prediction_boxes_8c[i] = tf.gather(prediction_boxes_8c, nms_indices)
+                    top_prediction_boxes_3d[i] = tf.gather(
+                        prediction_boxes_3d, nms_indices)
+                    top_prediction_boxes_8c[i] = tf.gather(
+                        prediction_boxes_8c, nms_indices)
 
                 elif self._box_rep == 'box_4c':
-                    top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
-                    top_prediction_boxes_4c[i] = tf.gather(prediction_boxes_4c, nms_indices)
+                    top_prediction_boxes_3d[i] = tf.gather(
+                        prediction_boxes_3d, nms_indices)
+                    top_prediction_boxes_4c[i] = tf.gather(
+                        prediction_boxes_4c, nms_indices)
 
                 elif self._box_rep == 'box_4ca':
-                    top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
-                    top_prediction_boxes_4c[i] = tf.gather(prediction_boxes_4c, nms_indices)
-                    top_orientations[i] = tf.gather(all_orientations, nms_indices)
+                    top_prediction_boxes_3d[i] = tf.gather(
+                        prediction_boxes_3d, nms_indices)
+                    top_prediction_boxes_4c[i] = tf.gather(
+                        prediction_boxes_4c, nms_indices)
+                    top_orientations[i] = tf.gather(
+                        all_orientations, nms_indices)
 
                 else:
                     raise NotImplementedError('NMS gather not implemented for',
@@ -617,8 +615,8 @@ class DtAvodModel(model.DetectionModel):
             # Top NMS predictions
             prediction_dict[self.PRED_TOP_CLASSIFICATION_LOGITS] = top_classification_logits
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
+
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            prediction_dict[self.PRED_TOP_ANCHORS_CORR_OFFSETS] = top_corr_offsets
 
             # Mini batch predictions (for debugging)
             prediction_dict[self.PRED_MB_MASK] = mb_mask
@@ -637,12 +635,12 @@ class DtAvodModel(model.DetectionModel):
             # self._train_val_test == 'test'
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            prediction_dict[self.PRED_TOP_ANCHORS_CORR_OFFSETS] = top_corr_offsets
 
         if self._box_rep == 'box_3d':
             prediction_dict[self.PRED_MB_ANCHORS_GT] = mb_anchors_gt
             prediction_dict[self.PRED_MB_ORIENTATIONS_GT] = mb_orientations_gt
             prediction_dict[self.PRED_MB_ANGLE_VECTORS] = mb_angle_vectors
+
             prediction_dict[self.PRED_TOP_ORIENTATIONS] = top_orientations
 
             # For debugging
