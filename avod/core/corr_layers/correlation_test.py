@@ -2,6 +2,8 @@ import tensorflow as tf
 import numpy as np
 import math
 import time
+from tensorflow.contrib import slim
+
 from avod.core.corr_layers.correlation import correlation
 
 tf.set_random_seed(0)
@@ -16,12 +18,23 @@ CHANNELS = 64
 # Define two feature maps
 fmA = tf.Variable(np.random.random((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
 fmB = tf.Variable(np.random.random((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
+corr_feature_map = correlation(fmA, fmB, 1, 5, 1, 2, 5)
+
+corr_bottleneck = slim.conv2d(corr_feature_map, 1, [1, 1],
+                            scope='bev_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': True})
+
 
 def main():
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
-    out_2 = correlation(fmA, fmB, 1, 10, 1, 2, 10)
-    print('Output2 size: ', out_2.shape)
-    print(sess.run(out_2[:,:,:,:]))
-    # print(sess.run(fmB))
+    start = time.time()
+    sess.run(corr_feature_map)
+    end = time.time()
+    print('correlation time:', end-start)
+    n_start = time.time()
+    sess.run(corr_bottleneck)
+    n_end = time.time()
+    print('bottleneck time:', n_end-n_start)
 main()
