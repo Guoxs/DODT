@@ -1143,7 +1143,7 @@ class DtRpnModel(model.DetectionModel):
                 anchorwise_correlation_loss = reg_loss(corr_offsets,
                                                        corr_offsets_gt,
                                                        weight=corr_loss_weight)
-                masked_correlation_loss = anchorwise_correlation_loss * objectness[0][:, 1]
+                masked_correlation_loss = anchorwise_correlation_loss * objectness_gt[0][:, 1]
                 correlation_loss = tf.reduce_sum(masked_correlation_loss)
 
                 with tf.variable_scope('reg_norm'):
@@ -1152,11 +1152,14 @@ class DtRpnModel(model.DetectionModel):
                                      for i in range(SAMPLE_SIZE)]
                     # Assert the condition `num_positives > 0`
                     for i in range(SAMPLE_SIZE):
-                        with tf.control_dependencies(
-                                [tf.assert_positive(num_positives[i])]):
+                        with tf.control_dependencies([tf.assert_positive(num_positives[i])]):
                             localization_loss[i] = localization_loss[i] / num_positives[i]
-                            correlation_loss = correlation_loss / num_positives[0]
-                            tf.summary.scalar('regression', localization_loss[i])
+                            name = 'regression_' + str(i)
+                            tf.summary.scalar(name, localization_loss[i])
+
+                    with tf.control_dependencies([tf.assert_positive(num_positives[0])]):
+                        correlation_loss = correlation_loss / num_positives[0]
+                        tf.summary.scalar('correlation', correlation_loss)
 
             objectness_loss = tf.reduce_sum(objectness_loss)
             localization_loss = tf.reduce_sum(localization_loss)

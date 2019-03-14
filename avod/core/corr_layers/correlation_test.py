@@ -20,7 +20,7 @@ fmB = tf.Variable(np.random.random((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype
 def main():
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
-    out_2 = correlation(fmA, fmB, 1, 20, 1, 2, 20)
+    out_2 = correlation(fmA, fmB, 1, 10, 1, 2, 10)
     print('Output2 size: ', out_2.shape)
     print(sess.run(out_2[:,:,:,:]))
     # print(sess.run(fmB))

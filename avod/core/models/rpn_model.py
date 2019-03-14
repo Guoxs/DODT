@@ -921,6 +921,8 @@ class RpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
+            'pred_top_anchor_size': tf.shape(prediction_dict[self.PRED_TOP_ANCHORS]),
+            'bev_anchors_norm': tf.shape(self._bev_anchors_norm_pl)
         }
 
         return loss_dict, total_loss

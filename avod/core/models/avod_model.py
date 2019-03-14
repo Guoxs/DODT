@@ -682,6 +682,8 @@ class AvodModel(model.DetectionModel):
         if ang_loss_loss_norm is not None:
             loss_dict.update({self.LOSS_FINAL_ORIENTATION: ang_loss_loss_norm})
 
+        loss_dict.update({'m_mask': tf.shape(prediction_dict[self.PRED_MB_MASK])})
+
         with tf.variable_scope('model_total_loss'):
             total_loss = rpn_loss + avod_loss
 

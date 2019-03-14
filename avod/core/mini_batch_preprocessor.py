@@ -51,7 +51,7 @@ class MiniBatchPreprocessor(object):
                                 empty_anchor_filter,
                                 gt_labels):
         """Calculates the list of anchor information in the format:
-            N x 8 [max_gt_2d_iou, max_gt_3d_iou, (6 x offsets), class_index]
+            N x 9 [max_gt_2d_iou, max_gt_3d_iou, (6 x offsets), class_index]
                 max_gt_out - highest 3D iou with any ground truth box
                 offsets - encoded offsets [dx, dy, dz, d_dimx, d_dimy, d_dimz]
                 class_index - the anchor's class as an index

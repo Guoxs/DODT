@@ -10,7 +10,7 @@ from avod.core import losses
 from avod.core.models.dt_avod_model import DtAvodModel
 from avod.protos import pipeline_pb2
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 
 class AvodModelTest(tf.test.TestCase):
@@ -22,7 +22,7 @@ class AvodModelTest(tf.test.TestCase):
 
         cls.model_config = config_build.get_model_config_from_file(config_path)
 
-        dataset_config.MergeFrom(DatasetBuilder.KITTI_UNITTEST)
+        dataset_config.MergeFrom(DatasetBuilder.KITTI_TRACKING_UNITTEST)
         cls.dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
 
     def test_avod_loss(self):
@@ -34,13 +34,14 @@ class AvodModelTest(tf.test.TestCase):
 
         predictions = avod_model.build()
         loss, total_loss = avod_model.loss(predictions)
-        feed_dict = avod_model.create_feed_dict()
 
         with self.test_session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
-            loss_dict_out = sess.run(loss, feed_dict=feed_dict)
-            print('Losses ', loss_dict_out)
+            for i in range(20):
+                feed_dict = avod_model.create_feed_dict()
+                loss_dict_out = sess.run(loss, feed_dict=feed_dict)
+                print('Losses ', loss_dict_out)
 
     def test_avod_loss_correct_class_mask(self):
         # since its not easy to test the loss function directly

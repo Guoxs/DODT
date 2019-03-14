@@ -377,6 +377,7 @@ class KittiTrackingDataset:
                 not_empty = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
                 if not not_empty and self.train_val_test == 'train' \
                         and (not self.train_on_all_samples):
+                    anchors_info = []
                     empty_sample_dict = {
                         constants.KEY_SAMPLE_NAME: sample_names,
                         constants.KEY_ANCHORS_INFO: anchors_info
@@ -520,6 +521,7 @@ class KittiTrackingDataset:
             # transpose point_cloud for data align
             point_cloud = [point_cloud[0].T, point_cloud[1].T]
             point_cloud_mask, point_cloud = self.list_align(point_cloud, return_mask=True)
+
             sample_dict = {
                 constants.KEY_LABEL_BOXES_3D: self.list_align(label_boxes_3d),
                 constants.KEY_LABEL_ANCHORS: self.list_align(label_anchors),

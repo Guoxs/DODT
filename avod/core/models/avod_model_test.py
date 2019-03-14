@@ -1,5 +1,5 @@
 """Tests for avod.core.models.avod_model"""
-
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -10,6 +10,7 @@ from avod.core import losses
 from avod.core.models.avod_model import AvodModel
 from avod.protos import pipeline_pb2
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 class AvodModelTest(tf.test.TestCase):
     @classmethod
@@ -33,13 +34,14 @@ class AvodModelTest(tf.test.TestCase):
 
         predictions = avod_model.build()
         loss, total_loss = avod_model.loss(predictions)
-        feed_dict = avod_model.create_feed_dict()
 
         with self.test_session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
-            loss_dict_out = sess.run(loss, feed_dict=feed_dict)
-            print('Losses ', loss_dict_out)
+            for i in range(20):
+                feed_dict = avod_model.create_feed_dict()
+                loss_dict_out = sess.run(loss, feed_dict=feed_dict)
+                print('Losses ', loss_dict_out)
 
     def test_avod_loss_correct_class_mask(self):
         # since its not easy to test the loss function directly

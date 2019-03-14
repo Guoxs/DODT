@@ -8,6 +8,10 @@ import os
 import tensorflow as tf
 import time
 
+from tensorflow.python.client import timeline
+
+from tensorflow.python import debug as tf_debug
+
 from avod.builders import optimizer_builder
 from avod.core import trainer_utils
 from avod.core import summary_utils
@@ -38,8 +42,7 @@ def train(model, train_config):
     #############################
     max_iterations = train_config.max_iterations
     summary_interval = train_config.summary_interval
-    checkpoint_interval = \
-        train_config.checkpoint_interval
+    checkpoint_interval = train_config.checkpoint_interval
     max_checkpoints = train_config.max_checkpoints_to_keep
 
     paths_config = model_config.paths_config
@@ -139,11 +142,17 @@ def train(model, train_config):
         # Initialize the variables
         sess.run(init)
 
+    # sess = tf_debug.LocalCLIDebugWrapperSession(sess=sess)
+
     # Read the global step if restored
     global_step = tf.train.global_step(sess,
                                        global_step_tensor)
     print('Starting from step {} / {}'.format(
         global_step, max_iterations))
+
+    # add additional options to trace the session execution
+    # options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    # run_metadata = tf.RunMetadata()
 
     # Main Training Loop
     last_time = time.time()
@@ -162,8 +171,10 @@ def train(model, train_config):
                 step, max_iterations,
                 checkpoint_path, global_step))
 
+        # feed_dict_time = time.time()
         # Create feed_dict for inferencing
         feed_dict = model.create_feed_dict()
+        # print('feed_dict_time:', time.time()-feed_dict_time)
 
         # Write summaries and train op
         if step % summary_interval == 0:
@@ -173,14 +184,31 @@ def train(model, train_config):
 
             train_op_loss, summary_out = sess.run(
                 [train_op, summary_merged], feed_dict=feed_dict)
+                # options=options, run_metadata=run_metadata)
+
+            # Create the Timeline object, and write it to a json file
+            # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            # chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            # with open('/data/hk1/guoslu/avod/avod/data/outputs/timeline_%d.json'
+            #           % step, 'w+') as f:
+            #     f.write(chrome_trace)
 
             print('Step {}, Total Loss {:0.3f}, Time Elapsed {:0.3f} s'.format(
-                step, train_op_loss, time_elapsed))
+                 step, train_op_loss, time_elapsed))
             train_writer.add_summary(summary_out, step)
 
         else:
             # Run the train op only
-            sess.run(train_op, feed_dict)
+            # each_sess_time = time.time()
+            sess.run(train_op, feed_dict)#, options=options, run_metadata=run_metadata)
+            # print('each_sess_time:', time.time()-each_sess_time)
+
+            # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            # chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            # with open('/data/hk1/guoslu/avod/avod/data/outputs/timeline_%d.json'
+            #           % step, 'w+') as f:
+            #     f.write(chrome_trace)
+
 
     # Close the summary writers
     train_writer.close()

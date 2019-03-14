@@ -282,34 +282,35 @@ def _build_cls_off_ang_loss(model, prediction_dict):
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
     mb_orientations_gt = prediction_dict[model.PRED_MB_ORIENTATIONS_GT]
 
-    cls_loss = [None]*2
-    final_reg_loss = [None]*2
-    avod_loss = [None]*2
-    offset_loss_norm = [None]*2
-    ang_loss_norm = [None]*2
-    num_positives = [None]*2
-    for i in range(2):
-        # Decode ground truth orientations
-        with tf.variable_scope('avod_gt_angle_vectors'):
-            mb_angle_vectors_gt = \
-                orientation_encoder.tf_orientation_to_angle_vector(
-                    mb_orientations_gt[i])
+    size = len(mb_cls_gt)
 
-        # Losses
-        with tf.variable_scope('avod_losses'):
-            with tf.variable_scope('classification'):
-                cls_loss[i] = _get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
+    # Decode ground truth orientations
+    with tf.variable_scope('avod_gt_angle_vectors'):
+        mb_angle_vectors_gt = \
+            [orientation_encoder.tf_orientation_to_angle_vector(
+                mb_orientations_gt[i]) for i in range(size)]
 
-            with tf.variable_scope('regression'):
-                final_reg_loss[i], offset_loss_norm[i], ang_loss_norm[i] = _get_off_ang_loss(
-                    model, mb_offsets[i], mb_offsets_gt[i],
-                    mb_angle_vectors[i], mb_angle_vectors_gt,
-                    mb_cls_softmax[i], mb_cls_gt[i])
+    # Losses
+    with tf.variable_scope('avod_losses'):
+        with tf.variable_scope('classification'):
+            cls_loss = [_get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
+                           for i in range(size)]
 
+        with tf.variable_scope('regression'):
+            final_reg_loss = [None] * 2
+            offset_loss_norm = [None] * 2
+            ang_loss_norm = [None] * 2
+            for i in range(size):
+                final_reg_loss[i], offset_loss_norm[i], ang_loss_norm[i] = \
+                    _get_off_ang_loss(model, mb_offsets[i], mb_offsets_gt[i],
+                                    mb_angle_vectors[i], mb_angle_vectors_gt[i],
+                                    mb_cls_softmax[i], mb_cls_gt[i])
 
-            with tf.variable_scope('avod_loss'):
+        with tf.variable_scope('avod_loss'):
+            avod_loss = [None] * 2
+            for i in range(size):
                 avod_loss[i] = cls_loss[i] + final_reg_loss[i]
-                tf.summary.scalar('avod_loss', avod_loss[i])
+                tf.summary.scalar('avod_loss_%d' %i, avod_loss[i])
 
     # Loss dictionary
     losses_output = dict()
@@ -345,23 +346,25 @@ def _build_cls_off_loss(model, prediction_dict):
     mb_cls_gt = prediction_dict[model.PRED_MB_CLASSIFICATIONS_GT]
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
 
-    cls_loss = [None] * 2
-    final_reg_loss = [None] * 2
-    avod_loss = [None] * 2
-    offset_loss_norm = [None] * 2
-    num_positives = [None] * 2
-    for i in range(2):
-        with tf.variable_scope('avod_losses'):
-            with tf.variable_scope('classification'):
-                cls_loss[i] = _get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
+    size = len(mb_cls_gt)
 
-            with tf.variable_scope('regression'):
+    with tf.variable_scope('avod_losses'):
+        with tf.variable_scope('classification'):
+            cls_loss = [_get_cls_loss(model, mb_cls_logits[i], mb_cls_gt[i])
+                        for i in range(size)]
+
+        with tf.variable_scope('regression'):
+            final_reg_loss = [None] * 2
+            offset_loss_norm = [None] * 2
+            for i in range(size):
                 final_reg_loss[i], offset_loss_norm[i] = _get_offset_only_loss(
                     model, mb_offsets[i], mb_offsets_gt[i], mb_cls_softmax[i], mb_cls_gt[i])
 
-            with tf.variable_scope('avod_loss'):
+        with tf.variable_scope('avod_loss'):
+            avod_loss = [None] * 2
+            for i in range(size):
                 avod_loss[i] = cls_loss[i] + final_reg_loss[i]
-                tf.summary.scalar('avod_loss', avod_loss[i])
+                tf.summary.scalar('avod_loss_%d' %i, avod_loss[i])
 
     losses_output = dict()
 

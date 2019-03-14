@@ -7,8 +7,10 @@ message LayersConfig {
     required FeatureExtractor bev_feature_extractor = 1;
     required FeatureExtractor img_feature_extractor = 2;
 
-    required RPNLayersConfig rpn_config = 3;
-    required AVODLayersConfig avod_config = 4;
+    optional CorrelationConfig correlation_config = 3;
+
+    required RPNLayersConfig rpn_config = 4;
+    required AVODLayersConfig avod_config = 5;
 }
 
 message FeatureExtractor {
@@ -20,6 +22,11 @@ message FeatureExtractor {
         PyramidLayersConfig img_vgg_pyr = 3;
         PyramidLayersConfig bev_vgg_pyr = 4;
     }
+}
+
+message CorrelationConfig {
+    optional int32 max_displacement = 1;
+    optional int32 padding = 2;
 }
 
 message VGGLayersConfig {

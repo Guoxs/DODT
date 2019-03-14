@@ -22,7 +22,7 @@ class DtRpnModelTest(tf.test.TestCase):
 
         cls.model_config = config_build.get_model_config_from_file(config_path)
 
-        dataset_config.MergeFrom(DatasetBuilder.KITTI_UNITTEST)
+        dataset_config.MergeFrom(DatasetBuilder.KITTI_TRACKING_UNITTEST)
         cls.dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
 
     def test_rpn_loss(self):

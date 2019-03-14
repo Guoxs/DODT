@@ -14,7 +14,7 @@ class DatasetBuilder(object):
     Static class to return preconfigured dataset objects
     """
 
-    KITTI_UNITTEST = KittiDatasetConfig(
+    KITTI_TRACKING_UNITTEST = KittiDatasetConfig(
         name="unittest-kitti",
         dataset_dir=avod.root_dir() + "/tests/datasets/Kitti/tracking",
         data_split="train",
@@ -25,6 +25,18 @@ class DatasetBuilder(object):
         classes=["Car", "Pedestrian", "Cyclist"],
         num_clusters=[2, 1, 1],
         data_stride = 1,
+    )
+
+    KITTI_UNITTEST = KittiDatasetConfig(
+        name="unittest-kitti",
+        dataset_dir=avod.root_dir() + "/tests/datasets/Kitti/object",
+        data_split="train",
+        data_split_dir="training",
+        has_labels=True,
+        cluster_split="train",
+        classes=["Car", "Pedestrian", "Cyclist"],
+        num_clusters=[2, 1, 1],
+        data_stride=1,
     )
 
     KITTI_TRAIN = KittiDatasetConfig(

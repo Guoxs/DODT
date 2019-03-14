@@ -121,6 +121,7 @@ class DtAvodModel(model.DetectionModel):
 
         self.sample_info = {}
 
+
     def build(self):
 
         SAMPLE_SIZE = self.dataset.sample_num
@@ -465,7 +466,7 @@ class DtAvodModel(model.DetectionModel):
 
                 bev_input_roi_summary_images = tf.split(
                     bev_input_rois, self._bev_depth, axis=3)
-                tf.summary.image('bev_avod_rois_%s' %i,
+                tf.summary.image('bev_avod_rois_%d' %i,
                                  bev_input_roi_summary_images[-1],
                                  max_outputs=avod_mini_batch_size)
 
@@ -483,7 +484,7 @@ class DtAvodModel(model.DetectionModel):
                     mb_img_box_indices,
                     (32, 32))
 
-                tf.summary.image('img_avod_rois_%s' %i,
+                tf.summary.image('img_avod_rois_%d' %i,
                                  img_input_rois,
                                  max_outputs=avod_mini_batch_size)
 
@@ -676,8 +677,7 @@ class DtAvodModel(model.DetectionModel):
 
         return prediction_dict
 
-    def sample_mini_batch(self, anchor_box_list_gt, anchor_box_list,
-                          class_labels):
+    def sample_mini_batch(self, anchor_box_list_gt, anchor_box_list, class_labels):
 
         with tf.variable_scope('avod_create_mb_mask'):
             # Get IoU for every anchor

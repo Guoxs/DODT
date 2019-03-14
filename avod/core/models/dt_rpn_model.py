@@ -313,25 +313,34 @@ class DtRpnModel(model.DetectionModel):
         #                                                  feature_map[0])
 
     def _correlation_layer(self, bev_feature_maps, img_feature_maps):
-        with tf.variable_scope('bev_correlation'):
-            self.bev_corr_feature_maps = correlation(bev_feature_maps[0],
-                                                     bev_feature_maps[1])
+        corr_config = self._config.layers_config.correlation_config
 
-            self.bev_corr_bottleneck = slim.conv2d(self.bev_corr_feature_maps,
-                                                1, [1,1],
-                                                scope='bev_corr_bottleneck',
-                                                normalizer_fn=slim.batch_norm,
-                                                normalizer_params={'is_training': self._is_training})
+        with tf.variable_scope('bev_correlation'):
+            self.bev_corr_feature_maps = correlation(
+                bev_feature_maps[0], bev_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
 
         with tf.variable_scope('img_correlation'):
-            self.img_corr_feature_maps = correlation(img_feature_maps[0],
-                                                     img_feature_maps[1])
+            self.img_corr_feature_maps = correlation(
+                img_feature_maps[0],img_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
 
+        with tf.variable_scope('bev_corr_bottleneck'):
+            self.bev_corr_bottleneck = slim.conv2d(
+                            self.bev_corr_feature_maps,
+                            1, [1, 1],
+                            scope='bev_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
+
+        with tf.variable_scope('img_corr_bottleneck'):
             self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
-                                                1, [1, 1],
-                                                scope='img_corr_bottleneck',
-                                                normalizer_fn=slim.batch_norm,
-                                                normalizer_params={'is_training': self._is_training})
+                            1, [1, 1],
+                            scope='img_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
 
 
     def build(self):
@@ -416,6 +425,7 @@ class DtRpnModel(model.DetectionModel):
                 self.bev_anchors_norm_pl[i],
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
+
             # Do ROI Pooling on image
             img_proposal_rois = [tf.image.crop_and_resize(
                 img_proposal_input[i],
@@ -809,7 +819,6 @@ class DtRpnModel(model.DetectionModel):
                 eval_cond = (self._train_val_test == "val" and
                              self._eval_all_samples)
 
-                # anchors_valid = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
                 if anchors_info or train_cond or eval_cond:
                     valid_sample = True
         else:

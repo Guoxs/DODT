@@ -1,5 +1,5 @@
 """Dataset unit test module."""
-
+import os
 import unittest
 import numpy as np
 import avod.tests as tests
@@ -8,6 +8,7 @@ from avod.builders.dataset_builder import DatasetBuilder
 from avod.core import constants
 from avod.datasets.kitti.kitti_dataset import KittiDataset
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 class KittiDatasetTest(unittest.TestCase):
     @classmethod

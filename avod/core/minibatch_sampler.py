@@ -87,7 +87,6 @@ class MinibatchSampler(object):
         selected_indices = tf.slice(indices, [0], tf.reshape(num_samples, [1]))
 
         selected_indicator = ops.indices_to_dense_vector(selected_indices,
-                                                         tf.shape(indicator)[
-                                                             0])
+                                                         tf.shape(indicator)[0])
 
         return tf.equal(selected_indicator, 1)
