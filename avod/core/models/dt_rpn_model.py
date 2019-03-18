@@ -1065,6 +1065,7 @@ class DtRpnModel(model.DetectionModel):
             raise ValueError('Got run mode {}, and non-empty anchor info'.
                                     format(self._train_val_test))
 
+
         if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
             # select the anchors that its box_id exist in both frames
             self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
@@ -1087,6 +1088,9 @@ class DtRpnModel(model.DetectionModel):
             self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx_a] = \
                 anchor_offsets[anchors_mask[1]][corr_anchors_idx_b][:, :3] - \
                 anchor_offsets[anchors_mask[0]][corr_anchors_idx_a][:, :3]
+        else:
+            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
+                np.zeros([len(bev_anchors_all[0]), 3], dtype=np.float32)
 
         self._placeholder_inputs[self.PL_ANCHORS_MASK_A] = anchors_mask[0]
         self._placeholder_inputs[self.PL_ANCHORS_MASK_B] = anchors_mask[1]

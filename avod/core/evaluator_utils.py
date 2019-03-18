@@ -19,7 +19,8 @@ def save_predictions_in_kitti_format(model,
                                      checkpoint_name,
                                      data_split,
                                      score_threshold,
-                                     global_step):
+                                     global_step,
+                                     is_detection_single=True):
     """ Converts a set of network predictions into text files required for
     KITTI evaluation.
     """
@@ -32,8 +33,12 @@ def save_predictions_in_kitti_format(model,
     predictions_root_dir = avod.root_dir() + '/data/outputs/' + \
         checkpoint_name + '/predictions'
 
-    final_predictions_root_dir = predictions_root_dir + \
-        '/final_predictions_and_scores/' + dataset.data_split
+    if is_detection_single:
+        final_predictions_root_dir = predictions_root_dir + \
+            '/final_predictions_and_scores/' + dataset.data_split
+    else:
+        final_predictions_root_dir = predictions_root_dir + \
+            '/kitti_detection_predictions_and_scores/' + dataset.data_split
 
     final_predictions_dir = final_predictions_root_dir + \
         '/' + str(global_step)
@@ -65,7 +70,10 @@ def save_predictions_in_kitti_format(model,
 
         sample_name = dataset.sample_names[sample_idx]
 
-        prediction_file = sample_name + '.txt'
+        if is_detection_single:
+            prediction_file = sample_name + '.txt'
+        else:
+            prediction_file = sample_name[0] + '.txt'
 
         kitti_predictions_3d_file_path = kitti_predictions_3d_dir + \
             '/' + prediction_file
@@ -98,13 +106,19 @@ def save_predictions_in_kitti_format(model,
 
         # Project to image space
         sample_name = prediction_file.split('.')[0]
-        img_idx = int(sample_name)
 
         # Load image for truncation
         image = Image.open(dataset.get_rgb_image_path(sample_name))
 
-        stereo_calib_p2 = calib_utils.read_calibration(dataset.calib_dir,
+        if is_detection_single:
+            img_idx = int(sample_name)
+            stereo_calib_p2 = calib_utils.read_calibration(dataset.calib_dir,
                                                        img_idx).p2
+        else:
+            img_idx = sample_name
+            video_id = int(img_idx[:2])
+            stereo_calib_p2 = calib_utils.read_tracking_calibration(
+                dataset.calib_dir, video_id).p2
 
         boxes = []
         image_filter = []

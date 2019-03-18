@@ -651,8 +651,8 @@ class AvodModel(model.DetectionModel):
 
         return mb_mask, mb_class_label_indices, mb_gt_indices
 
-    def create_feed_dict(self):
-        feed_dict = self._rpn_model.create_feed_dict()
+    def create_feed_dict(self, sample_index=None):
+        feed_dict = self._rpn_model.create_feed_dict(sample_index=sample_index)
         self.sample_info = self._rpn_model.sample_info
         return feed_dict
 

@@ -66,10 +66,10 @@ def evaluate(model_config, eval_config, dataset_config):
     model_config.path_drop_probabilities = [1.0, 1.0]
 
     with tf.Graph().as_default():
-        if model_name == 'avod_model':
+        if model_name == 'dt_avod_model':
             model = DtAvodModel(model_config, train_val_test=eval_mode,
                               dataset=dataset)
-        elif model_name == 'rpn_model':
+        elif model_name == 'dt_rpn_model':
             model = DtRpnModel(model_config, train_val_test=eval_mode,
                              dataset=dataset)
         else:
@@ -89,7 +89,9 @@ def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/avod_tracking_cars_example.config'
+        '/configs/pyramid_cars_with_aug_dt_tracking.config'
+
+    default_device = '0'
 
     parser.add_argument('--pipeline_config',
                         type=str,
@@ -106,7 +108,7 @@ def main(_):
     parser.add_argument('--device',
                         type=str,
                         dest='device',
-                        default='0',
+                        default=default_device,
                         help='CUDA device id')
 
     args = parser.parse_args()

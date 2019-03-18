@@ -217,23 +217,26 @@ def get_road_plane(name, planes_dir):
     frame_id = int(name[2:])
     plane_file = planes_dir + '/%04d/%06d.txt' % (video_id,frame_id)
 
-    with open(plane_file, 'r') as input_file:
-        lines = input_file.readlines()
-        input_file.close()
+    if not os.path.exists(plane_file):
+        plane = np.asarray([0, -1, 0, 1.65])
+    else:
+        with open(plane_file, 'r') as input_file:
+            lines = input_file.readlines()
+            input_file.close()
 
-    # Plane coefficients stored in 4th row
-    lines = lines[3].split()
+        # Plane coefficients stored in 4th row
+        lines = lines[3].split()
 
-    # Convert str to float
-    lines = [float(i) for i in lines]
+        # Convert str to float
+        lines = [float(i) for i in lines]
 
-    plane = np.asarray(lines)
+        plane = np.asarray(lines)
 
     #######################################
     # fixed the plane for tracking datasets
     #######################################
     # TODO calculate the plane files for the tracking datasets
-    plane = np.asarray([0,-1,0,1.65])
+    plane = np.asarray([0, -1, 0, 1.65])
 
     # Ensure normal is always facing up.
     # In Kitti's frame of reference, +y is down

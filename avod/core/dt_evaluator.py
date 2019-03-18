@@ -185,6 +185,12 @@ class DtEvaluator:
             # Avod average losses dictionary
             eval_avod_losses = self._create_avod_losses_dict()
 
+        # Add folders to save predicitons for native kitti eval
+        kitti_detection_eval_prediction_dir = predictions_base_dir + \
+            "/kitti_detection_predictions_and_scores/{}/{}".format(
+            data_split, global_step)
+        trainer_utils.create_dir(kitti_detection_eval_prediction_dir)
+
         num_valid_samples = 0
 
         # Keep track of feed_dict and inference time
@@ -214,6 +220,10 @@ class DtEvaluator:
                 if box_rep in ['box_8c', 'box_8co', 'box_4c', 'box_4ca']:
                     avod_box_corners_file_path = avod_box_corners_dir + \
                         '/{}_{}.txt'.format(sample_name[0], sample_name[1])
+
+            # kitti detection native eval, only eval first frame
+            kitti_eval_file_path = kitti_detection_eval_prediction_dir + \
+                                   '/{}.txt'.format(sample_name[0])
 
             num_valid_samples += 1
             print("Step {}: {} / {}, Inference on sample {}_{}".format(
@@ -259,6 +269,12 @@ class DtEvaluator:
                     self.get_avod_predicted_boxes_3d_and_scores(predictions,
                                                                 box_rep)
                 np.savetxt(avod_file_path, predictions_and_scores, fmt='%.5f')
+
+                # Save predictions for kitti native deteciton eval
+                first_frame_indices = np.where(predictions_and_scores[:, -1] == 0)
+                kitti_eval_prediction_and_scores = \
+                    predictions_and_scores[first_frame_indices][:, :9]
+                np.savetxt(kitti_eval_file_path, kitti_eval_prediction_and_scores, fmt='%.5f')
 
                 if self.full_model:
                     if box_rep in ['box_3d', 'box_4ca']:
@@ -984,7 +1000,7 @@ class DtEvaluator:
         objectness_gt = predictions[DtRpnModel.PRED_MB_OBJECTNESS_GT]
         objectness_accuracy = [self.calculate_cls_accuracy(pred, gt)
                 for pred, gt in zip(objectness_pred, objectness_gt)]
-        objectness_accuracy = np.sum(objectness_accuracy)
+        objectness_accuracy = np.mean(objectness_accuracy)
 
         # get this from the key
         sum_rpn_obj_accuracy = eval_rpn_losses[KEY_SUM_RPN_OBJ_ACC]
@@ -1001,7 +1017,7 @@ class DtEvaluator:
                 predictions[DtAvodModel.PRED_MB_CLASSIFICATIONS_GT]
             classification_accuracy = [self.calculate_cls_accuracy(pred, gt)
                 for pred, gt in zip(classification_pred, classification_gt)]
-            classification_accuracy = np.sum(classification_accuracy)
+            classification_accuracy = np.mean(classification_accuracy)
 
             sum_avod_cls_accuracy = eval_avod_losses[KEY_SUM_AVOD_CLS_ACC]
             sum_avod_cls_accuracy += classification_accuracy
@@ -1263,7 +1279,8 @@ class DtEvaluator:
             self.model_config.checkpoint_name,
             self.dataset_config.data_split,
             self.eval_config.kitti_score_threshold,
-            global_step)
+            global_step,
+            is_detection_single=False)
 
         checkpoint_name = self.model_config.checkpoint_name
         kitti_score_threshold = self.eval_config.kitti_score_threshold

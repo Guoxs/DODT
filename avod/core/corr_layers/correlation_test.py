@@ -18,7 +18,7 @@ CHANNELS = 64
 # Define two feature maps
 fmA = tf.Variable(np.random.random((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
 fmB = tf.Variable(np.random.random((BATCH_SIZE, HEIGHT, WIDTH, CHANNELS)), dtype=tf.float32)
-corr_feature_map = correlation(fmA, fmB, 1, 5, 1, 2, 5)
+corr_feature_map = correlation(fmA, fmB, 1, 20, 1, 2, 20)
 
 corr_bottleneck = slim.conv2d(corr_feature_map, 1, [1, 1],
                             scope='bev_corr_bottleneck',
