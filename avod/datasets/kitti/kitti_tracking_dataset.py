@@ -352,6 +352,11 @@ class KittiTrackingDataset:
             labels[-1] = label_next
         return labels
 
+    def inv_label_transform(self, t, ry, sample_names):
+        trans, matrix, delta = self.coordinate_transform(sample_names)
+        ori_t = t @ np.linalg.inv(matrix) - trans
+        ori_delta = ry - delta
+        return ori_t, ori_delta
 
     def load_samples(self, indices):
         """ Loads input-output data for a set of samples. Should only be

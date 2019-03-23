@@ -1,6 +1,6 @@
 """Common functions for evaluating checkpoints.
 """
-
+import collections
 import time
 import os
 import numpy as np
@@ -12,6 +12,8 @@ from avod.core import box_3d_encoder
 from avod.core import evaluator_utils
 from avod.core import summary_utils
 from avod.core import trainer_utils
+from avod.core.evaluator_utils import encoder_tracking_dets, \
+    track_through_ious, convert_trajectory_to_kitti_format
 
 from avod.core.models.dt_avod_model import DtAvodModel
 from avod.core.models.dt_rpn_model import DtRpnModel
@@ -41,7 +43,8 @@ class DtEvaluator:
                  eval_config,
                  skip_evaluated_checkpoints=True,
                  eval_wait_interval=30,
-                 do_kitti_native_eval=True):
+                 do_kitti_native_eval=True,
+                 do_kitti_native_tracking_eval=True):
         """Evaluator class for evaluating model's detection output.
 
         Args:
@@ -74,6 +77,7 @@ class DtEvaluator:
         self.eval_wait_interval = eval_wait_interval
 
         self.do_kitti_native_eval = do_kitti_native_eval
+        self.do_kitti_native_tracking_eval = do_kitti_native_tracking_eval
 
         # Create a variable tensor to hold the global step
         self.global_step_tensor = tf.Variable(
@@ -93,6 +97,15 @@ class DtEvaluator:
                 # Copy kitti native eval code into the predictions folder
                 evaluator_utils.copy_kitti_native_code(
                     self.model_config.checkpoint_name)
+
+        if self.do_kitti_native_tracking_eval:
+            # generate video frames for tracking evaluation
+            self.video_frames = self.generate_video_frames()
+            video_ids = self.video_frames.keys()
+            # Copy kitti tracking native eval code into the predictions folder
+            evaluator_utils.copy_kitti_native_tracking_code(
+                self.model_config.checkpoint_name,
+                video_ids, eval_mode)
 
         allow_gpu_mem_growth = self.eval_config.allow_gpu_mem_growth
         if allow_gpu_mem_growth:
@@ -132,6 +145,21 @@ class DtEvaluator:
             #                   tf.contrib.memory_stats.BytesInUse())
             tf.summary.scalar('max_bytes',
                               tf.contrib.memory_stats.MaxBytesInUse())
+
+    def generate_video_frames(self):
+        video_frames = {}
+        dataset = self.model.dataset
+        sample_names = dataset.sample_names
+        for sample_name in sample_names:
+            video_id = sample_name[0][:2]
+            if not video_frames.__contains__(video_id):
+                video_frames[video_id] = []
+            txt_name = sample_name[0] + '_' + sample_name[1]
+            video_frames[video_id].append(txt_name)
+
+        video_frames = collections.OrderedDict(sorted(video_frames.items(),
+                                                      key=lambda obj: obj[0]))
+        return video_frames
 
     def run_checkpoint_once(self, checkpoint_to_restore):
         """Evaluates network metrics once over all the validation samples.
@@ -190,6 +218,11 @@ class DtEvaluator:
             "/kitti_detection_predictions_and_scores/{}/{}".format(
             data_split, global_step)
         trainer_utils.create_dir(kitti_detection_eval_prediction_dir)
+
+        # Add folders to save predictions for native kitti tracking eval
+        kitti_tracking_eval_prediction_dir = predictions_base_dir + \
+            "/kitti_tracking_native_eval/results/{}/data/".format(global_step)
+        trainer_utils.create_dir(kitti_tracking_eval_prediction_dir)
 
         num_valid_samples = 0
 
@@ -346,10 +379,16 @@ class DtEvaluator:
                     box_rep=box_rep)
 
                 # Kitti native evaluation, do this during validation
-                # and when running Avod model.
+                # and when running dtAvod model.
                 # Store predictions in kitti format
                 if self.do_kitti_native_eval:
                     self.run_kitti_native_eval(global_step)
+                if self.do_kitti_native_tracking_eval:
+                    self.run_kitti_native_tracking_eval(
+                        avod_predictions_dir,
+                        kitti_tracking_eval_prediction_dir,
+                        global_step
+                    )
 
         else:
             # Test mode --> train_val_test == 'test'
@@ -1296,3 +1335,32 @@ class DtEvaluator:
         # this will cause one zombie process - should be fixed later.
         native_eval_proc.start()
         native_eval_proc_05_iou.start()
+
+
+    def run_kitti_native_tracking_eval(self, root_dir, output_dir, global_step):
+        video_frames = self.video_frames
+        dataset = self.model.dataset
+        for (video_id, frames) in video_frames.items():
+            dets_for_track, dets_for_ious = encoder_tracking_dets(
+                root_dir, frames, dataset,
+                self.eval_config.track_lth)
+
+            # track_iou algorithm
+            tracks_finished = track_through_ious(
+                dets_for_track, dets_for_ious,
+                self.eval_config.track_hth,
+                self.eval_config.track_liou,
+                self.eval_config.tmin
+            )
+            # convert tracks into kitti format
+            track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
+            # store final result
+            # create txt to store tracking predictions
+            video_result_path = output_dir + video_id.zfill(4) + '.txt'
+            np.savetxt(video_result_path, track_kitti_format, newline='\r\n', fmt='%s')
+
+        # run eval script
+        eval_script_dir = output_dir + '/../../../'
+        eval_script = eval_script_dir + 'evaluate_tracking.py'
+        code = 'python %s %s %s' % (eval_script, eval_script_dir, global_step)
+        os.system(code)

@@ -145,11 +145,11 @@ def convert_pred_to_kitti_format(all_predictions, sample_name, dataset, score_th
         return []
 
     # Project to image space
-    img_idx = int(sample_name)
+    video_idx = int(sample_name[:2])
     # Load image for truncation
     image = Image.open(dataset.get_rgb_image_path(sample_name))
     stereo_calib_p2 = calib_utils.read_tracking_calibration(dataset.calib_dir,
-                                                            img_idx).p2
+                                                            video_idx).p2
     boxes = []
     image_filter = []
     for i in range(len(all_predictions)):

@@ -17,7 +17,7 @@ class KittiDatasetTest(unittest.TestCase):
 
     def get_fake_dataset(self, data_split, directory):
         dataset_config = DatasetBuilder.copy_config(
-            DatasetBuilder.KITTI_UNITTEST)
+            DatasetBuilder.KITTI_TRACKING_UNITTEST)
 
         # Overwrite config values
         dataset_config.data_split = data_split

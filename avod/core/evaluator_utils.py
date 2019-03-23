@@ -1,18 +1,20 @@
 import sys
+import os
+import copy
 import datetime
 import subprocess
 from distutils import dir_util
 
 import numpy as np
-import os
 from PIL import Image
 import tensorflow as tf
-
-from wavedata.tools.core import calib_utils
 
 import avod
 from avod.core import box_3d_projector
 from avod.core import summary_utils
+from wavedata.tools.core import calib_utils
+from wavedata.tools.obj_detection.evaluation import three_d_iou
+from avod.core.dt_inference_utils import convert_pred_to_kitti_format
 
 
 def save_predictions_in_kitti_format(model,
@@ -194,6 +196,171 @@ def save_predictions_in_kitti_format(model,
     print('Num samples:', num_samples)
 
 
+def decode_tracking_file(root_dir, file_name, dataset, threshold):
+    file_path = os.path.join(root_dir, file_name+'.txt')
+    sample_name_0 = file_name.split('_')[0]
+    sample_name_1 = file_name.split('_')[1]
+
+    # file not exist
+    if not os.path.exists(file_path):
+        return [], [], []
+
+    np_file = np.loadtxt(file_path, dtype=np.float32)
+    frame_mask_0 = np.where(np_file[:, -1] == 0)[0]
+    frame_mask_1 = np.where(np_file[:, -1] == 1)[0]
+    pred_frame_0 = np_file[frame_mask_0][:, :9]
+    pred_frame_1 = np_file[frame_mask_1][:, :9]
+
+    pred_frame_kitti_0 = convert_pred_to_kitti_format(
+        pred_frame_0, sample_name_0, dataset, threshold)
+    pred_frame_kitti_1 = convert_pred_to_kitti_format(
+        pred_frame_1, sample_name_1, dataset, threshold)
+
+    # frame 1 kitti label after adding offsets
+    corr_offsets = np_file[frame_mask_0][:, 9:12]
+    pred_frame_0[:, :3] += corr_offsets
+    pred_frame_kitti_offsets = convert_pred_to_kitti_format(
+        pred_frame_0, sample_name_0, dataset, threshold)
+
+    return pred_frame_kitti_0, pred_frame_kitti_1, pred_frame_kitti_offsets
+
+
+def encoder_tracking_dets(root_dir, dataset, frames, threshold):
+    frames.sort()
+    frame_num = len(frames)
+    dets_for_track = []
+    dets_for_ious = [{}]
+    for i in range(frame_num):
+        frame_name_0 = int(frames[i].split('_')[0][2:])
+        frame_name_1 = int(frames[i].split('_')[1][2:])
+        # get kitti type predicted label and offsets
+        pred_frame_kitti_0, pred_frame_kitti_1, frame_offsets = \
+            decode_tracking_file(root_dir, frames[i], dataset, threshold)
+
+        if len(pred_frame_kitti_0) == 0 and len(pred_frame_kitti_1) == 0:
+            continue
+        elif len(pred_frame_kitti_0) == 0:
+            track_item = []
+        else:
+            track_item = [{'frame_id': str(frame_name_0),
+                           'info': frame[:4],
+                           'boxes2d': np.array(frame[4:8], dtype=np.float32),
+                           'boxes3d': np.array(frame[8:-1], dtype=np.float32),
+                           'offsets': np.array(offset[8:-1], dtype=np.float32),
+                           'scores': np.array(frame[-1], dtype=np.float32)}
+                          for (frame, offset) in zip(pred_frame_kitti_0, frame_offsets)]
+
+        iou_item = [{'frame_id': str(frame_name_1),
+                     'info': frame[:4],
+                     'boxes2d': np.array(frame[4:8], dtype=np.float32),
+                     'boxes3d': np.array(frame[8:-1], dtype=np.float32),
+                     'scores': np.array(frame[-1], dtype=np.float32)}
+                    for frame in pred_frame_kitti_1]
+
+        dets_for_track.append(track_item)
+        dets_for_ious.append(iou_item)
+
+    return dets_for_track, dets_for_ious
+
+def track_through_ious(dets_for_track, dets_for_ious, high_threshold,
+                       iou_threshold, t_min):
+
+    def iou_3d(box3d_1, box3d_2):
+        # convert to [ry, l, h, w, tx, ty, tz]
+        box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
+        if len(box3d_2.shape) == 1:
+            boxes3d = box3d_2[[-2, 0, 2, 1, 3, 4, 5]]
+        else:
+            boxes3d = box3d_2[:, [-2, 0, 2, 1, 3, 4, 5]]
+        iou = three_d_iou(box3d, boxes3d)
+        return iou
+
+    def merge_dets(dets, dets_iou):
+        # merge dets_iou and dets
+        merged_dets = dets
+        for item1 in dets_iou:
+            overlap = False
+            boxes3d = item1['boxes3d']
+            for item2 in dets:
+                if iou_3d(boxes3d, item2['boxes3d']) > 0:
+                    overlap = True
+                    break
+            if not overlap:
+                item1['offsets'] = item1['boxes3d']
+                merged_dets.append(item1)
+        return merged_dets
+
+    tracks_active = []
+    tracks_finished = []
+
+    for frame_num, dets in enumerate(dets_for_track, start=0):
+        update_tracks = []
+        # get frame label for iou computing
+        dets_iou = dets_for_ious[frame_num]
+
+        for track in tracks_active:
+            if len(dets) > 0:
+                # 1-2', 2-3, using 2' to compute iou, len(2') == len(2)??
+                if len(dets_iou) != len(dets):
+                    # merge dets_iou and dets
+                    merged_dets = merge_dets(dets, dets_iou)
+                    dets = copy.deepcopy(merged_dets)
+                    dets_iou = copy.deepcopy(merged_dets)
+                # get det with the highest iou
+                # first frame uses offsets to compute iou
+                ious = [iou_3d(track['trajectory'][-1]['offsets'], x['boxes3d'])
+                        for x in dets_iou]
+                best_match_id = int(np.argmax(ious))
+                if ious[best_match_id] > iou_threshold:
+                    track['trajectory'].append(dets[best_match_id])
+                    track['max_score'] = max(track['max_score'], dets[best_match_id]['scores'])
+
+                    update_tracks.append(track)
+
+                    # remove from best matching detection from detections
+                    del dets[best_match_id]
+                    del dets_iou[best_match_id]
+
+            # if track was not updated
+            if len(update_tracks) == 0 or track is not update_tracks[-1]:
+                # finish track when the conditions are met
+                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
+                    tracks_finished.append(track)
+
+        # create new tracks
+        new_tracks = [{'trajectory':[det], 'max_score':det['scores'],
+                       'start_frame':frame_num} for det in dets]
+
+        tracks_active = update_tracks + new_tracks
+
+    # finish all remaining active tracks
+    tracks_finished += [track for track in tracks_active if track['max_score']
+                        >= high_threshold and len(track['trajectory']) >= t_min]
+
+    return tracks_finished
+
+
+def convert_trajectory_to_kitti_format(trajectories):
+    final_pred_label = []
+    trace_len = len(trajectories)
+    for id in range(trace_len):
+        trace = trajectories[id]
+        trajectory = trace['trajectory']
+        score = trace['max_score']
+        for obj in trajectory:
+            frame_id = obj['frame_id']
+            info     = obj['info'].tolist()
+            boxes2d  = obj['boxes2d'].tolist()
+            boxes3d  = obj['boxes3d'].tolist()
+
+            label = [frame_id] + [id] + info + boxes2d + boxes3d + [score]
+            final_pred_label.append(label)
+
+    final_pred_label.sort(key = lambda obj: 100*int(obj[0])+int(obj[1]))
+    final_pred_label = np.asarray(final_pred_label)
+    return final_pred_label
+
+
 def set_up_summary_writer(model_config,
                           sess):
     """ Helper function to set up log directories and summary
@@ -298,6 +465,33 @@ def copy_kitti_native_code(checkpoint_name):
         os.makedirs(results_05_dir)
 
 
+def copy_kitti_native_tracking_code(checkpoint_name, video_ids, train_split='val'):
+    from_path = avod.root_dir() + '/../scripts/offline_eval/' \
+                'kitti_tracking_native_eval/python/'
+    to_path = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
+                '/predictions/kitti_tracking_native_eval/'
+
+    # Only copy if the code has not been already copied over
+    if not os.path.exists(to_path):
+        os.makedirs(to_path)
+        # copy data dir
+        dir_util.copy_tree(from_path, to_path)
+
+    # edit evaluate_tracking_seqmap
+    if train_split in ['train', 'val', 'trainval']:
+        source_seqmap_path = to_path + 'data/tracking/' \
+                            'evaluate_tracking.seqmap.training'
+    else:
+        source_seqmap_path = to_path + 'data/tracking/' \
+                                       'evaluate_tracking.seqmap.test'
+    source_seqmap = open(source_seqmap_path, 'r').readlines()
+    mask = [int(i) for i in video_ids]
+    eval_map = to_path + 'data/tracking/evaluate_tracking.seqmap'
+    with open(eval_map, 'w+') as map:
+        for id in mask:
+            map.write(source_seqmap[id])
+
+
 def run_kitti_native_script(checkpoint_name, score_threshold, global_step):
     """Runs the kitti native code script."""
 
@@ -341,3 +535,12 @@ def run_kitti_native_script_with_05_iou(checkpoint_name, score_threshold,
                      str(global_step),
                      str(checkpoint_name),
                      str(results_dir)])
+
+
+def run_kitti_tracking_script(checkpoint_name, global_step):
+    eval_script_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
+                      '/predictions/kitti_tracking_native_eval/'
+    eval_script = eval_script_dir + 'evaluate_tracking.py'
+    code = 'python %s %s %s' %(eval_script, eval_script_dir, global_step)
+    print(code)
+    os.system(code)

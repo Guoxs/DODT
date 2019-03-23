@@ -582,6 +582,8 @@ class DtAvodModel(model.DetectionModel):
 
                 # get correlation offsets after avod NMS
                 if i == 0:
+                    # delta_x = (x2 - x1) * w,...
+                    top_corr_offsets = tf.multiply(top_corr_offsets, top_anchors[i][:, 3:6])
                     top_corr_offsets = tf.gather(top_corr_offsets, nms_indices)
 
                 if self._box_rep == 'box_3d':

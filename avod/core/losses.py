@@ -73,7 +73,7 @@ class WeightedL2LocalizationLoss(Loss):
        Loss[b,a] = .5 * ||weights[b,a] * (prediction[b,a,:] - target[b,a,:])||^2
     """
 
-    def _compute_loss(self, prediction_tensor, target_tensor, weights):
+    def _compute_loss(self, prediction_tensor, target_tensor, weight):
         """Compute loss function.
         Args:
           prediction_tensor: A float tensor of shape [batch_size, num_anchors,
@@ -88,7 +88,7 @@ class WeightedL2LocalizationLoss(Loss):
                 or a float tensor of shape [batch_size, num_anchors]
         """
         weighted_diff = (prediction_tensor - target_tensor) * tf.expand_dims(
-            weights, 2)
+            weight, 1)
         square_diff = 0.5 * tf.square(weighted_diff)
         return tf.reduce_sum(square_diff)
 

@@ -198,7 +198,6 @@ class trackingEvaluation(object):
         """
             Helper function to load tracker data.
         """
-        
         try:
             if not self._loadData(self.t_path, cls=self.cls, loading_groundtruth=False):
                 return False
@@ -224,7 +223,8 @@ class trackingEvaluation(object):
         for seq, s_name in enumerate(self.sequence_name):
             i              = 0
             filename       = os.path.join(root_dir, "%s.txt" % s_name)
-            f              = open(filename, "r")
+
+            f              = open(filename, 'r')
 
             f_data         = [[] for x in range(self.n_frames[seq])] # current set has only 1059 entries, sufficient length is checked anyway
             ids            = []
@@ -942,6 +942,7 @@ if __name__ == "__main__":
 
     # check for correct number of arguments. if user_sha and email are not supplied,
     # no notification email is sent (this option is used for auto-updates)
+    sys.argv = ['evaluate_tracking.py', 'test_0001']
     if len(sys.argv)!=2 and len(sys.argv)!=4:
       print("Usage: python eval_tracking.py result_sha [user_sha email]")
       sys.exit(1)
