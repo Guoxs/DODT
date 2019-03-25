@@ -1340,6 +1340,8 @@ class DtEvaluator:
     def run_kitti_native_tracking_eval(self, root_dir, output_dir, global_step):
         video_frames = self.video_frames
         dataset = self.model.dataset
+        # flag for the exist of vaild trajectory
+        is_empty = True
         for (video_id, frames) in video_frames.items():
             dets_for_track, dets_for_ious = encoder_tracking_dets(
                 root_dir, frames, dataset,
@@ -1350,17 +1352,23 @@ class DtEvaluator:
                 dets_for_track, dets_for_ious,
                 self.eval_config.track_hth,
                 self.eval_config.track_liou,
-                self.eval_config.tmin
+                self.eval_config.track_tmin
             )
             # convert tracks into kitti format
             track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
+
+            if len(track_kitti_format) != 0:
+                is_empty = False
             # store final result
             # create txt to store tracking predictions
             video_result_path = output_dir + video_id.zfill(4) + '.txt'
             np.savetxt(video_result_path, track_kitti_format, newline='\r\n', fmt='%s')
 
         # run eval script
-        eval_script_dir = output_dir + '/../../../'
-        eval_script = eval_script_dir + 'evaluate_tracking.py'
-        code = 'python %s %s %s' % (eval_script, eval_script_dir, global_step)
-        os.system(code)
+        if not is_empty:
+            eval_script_dir = output_dir + '/../../../'
+            eval_script = eval_script_dir + 'evaluate_tracking.py'
+            code = 'python %s %s %s' % (eval_script, eval_script_dir, global_step)
+            os.system(code)
+        else:
+            print('There is not vaild trajectory in prediction result!')

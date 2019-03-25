@@ -225,7 +225,7 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold):
     return pred_frame_kitti_0, pred_frame_kitti_1, pred_frame_kitti_offsets
 
 
-def encoder_tracking_dets(root_dir, dataset, frames, threshold):
+def encoder_tracking_dets(root_dir, frames, dataset, threshold):
     frames.sort()
     frame_num = len(frames)
     dets_for_track = []
