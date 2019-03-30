@@ -44,7 +44,7 @@ class DtEvaluator:
                  skip_evaluated_checkpoints=True,
                  eval_wait_interval=30,
                  do_kitti_native_eval=True,
-                 do_kitti_native_tracking_eval=True):
+                 do_kitti_native_tracking_eval=False):
         """Evaluator class for evaluating model's detection output.
 
         Args:

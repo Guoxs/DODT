@@ -1074,20 +1074,20 @@ class DtRpnModel(model.DetectionModel):
             anchor_idx_a = anchors_info[0][anchors_mask[0]]
             anchor_idx_b = anchors_info[0][anchors_mask[1]]
 
-            common_rois_idx_a = np.zeros_like(anchor_idx_a)
-            common_rois_idx_b = np.zeros_like(anchor_idx_b)
+
             common_rois_ids = list(set(anchor_idx_a).intersection(set(anchor_idx_b)))
+            common_rois_ids.sort()
             common_rois_ids_a = np.searchsorted(anchor_idx_a, common_rois_ids)
             common_rois_ids_b = np.searchsorted(anchor_idx_b, common_rois_ids)
 
-            common_rois_idx_a[common_rois_ids_a] = 1
-            common_rois_idx_b[common_rois_ids_b] = 1
-            corr_anchors_idx_a = np.where(common_rois_idx_a > 0)[0]
-            corr_anchors_idx_b = np.where(common_rois_idx_b > 0)[0]
+            # common_rois_idx_a[common_rois_ids_a] = 1
+            # common_rois_idx_b[common_rois_ids_b] = 1
+            # corr_anchors_idx_a = np.where(common_rois_idx_a > 0)[0]
+            # corr_anchors_idx_b = np.where(common_rois_idx_b > 0)[0]
 
-            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][corr_anchors_idx_a] = \
-                anchor_offsets[anchors_mask[1]][corr_anchors_idx_b][:, :3] - \
-                anchor_offsets[anchors_mask[0]][corr_anchors_idx_a][:, :3]
+            self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][common_rois_ids_a] = \
+                anchor_offsets[anchors_mask[1]][common_rois_ids_b][:, :3] - \
+                anchor_offsets[anchors_mask[0]][common_rois_ids_a][:, :3]
         else:
             self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
                 np.zeros([len(bev_anchors_all[0]), 3], dtype=np.float32)

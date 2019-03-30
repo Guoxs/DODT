@@ -56,7 +56,7 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold):
 
     # frame 1 kitti label after adding offsets
     corr_offsets = np_file[frame_mask_0][:, 9:12]
-    pred_frame_0[:, :3] += corr_offsets
+    # pred_frame_0[:, :3] += corr_offsets
     pred_frame_kitti_offsets = convert_pred_to_kitti_format(
         pred_frame_0, sample_name_0, dataset, threshold)
 
@@ -112,7 +112,7 @@ def run_kitti_tracking_script(checkpoint_name, global_step):
     os.system(code)
         
 
-def track_iou(dets_for_track, dets_for_ious, sigma_h, sigma_iou, t_min):
+def track_iou(dets_for_track, dets_for_ious, frame_stride, sigma_h, sigma_iou, t_min):
     def merge_dets(dets, dets_iou):
         # merge dets_iou and dets
         merged_dets = dets
@@ -133,7 +133,15 @@ def track_iou(dets_for_track, dets_for_ious, sigma_h, sigma_iou, t_min):
     for frame_num, dets in enumerate(dets_for_track, start=0):
         update_tracks = []
         # get frame label for iou computing
-        dets_iou = dets_for_ious[frame_num]
+        if frame_num > 0:
+            dets_iou = dets_for_ious[frame_num-1]
+            # if len(dets) > 0 and len(dets_for_ious[frame_num]) > 0:
+            #     frame_0 = int(dets[0]['frame_id'])
+            #     frame_1 = int(dets_for_ious[frame_num][0]['frame_id'])
+            #     if (frame_1 - frame_0) != frame_stride:
+            #         continue
+        else:
+            dets_iou = []
 
         for track in tracks_active:
             if len(dets) > 0:
@@ -177,8 +185,8 @@ def track_iou(dets_for_track, dets_for_ious, sigma_h, sigma_iou, t_min):
     return tracks_finished
 
 
-checkpoint_name = 'pyramid_cars_with_aug_dt_tracking'
-ckpt_indices = '104000'
+checkpoint_name = 'pyramid_cars_with_aug_dt_tracking_2'
+ckpt_indices = '80000'
 root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
            '/predictions/final_predictions_and_scores/val/' + ckpt_indices
 
@@ -200,9 +208,10 @@ model_config, _, eval_config, dataset_config = \
             experiment_config_path, is_training=False)
 
 dataset = build_dataset(dataset_config)
+frame_stride = dataset.data_stride
 
 video_frames = {}
-low_threshold = 0.5
+low_threshold = 0.1
 sample_names = dataset.sample_names
 for sample_name in sample_names:
     video_id = sample_name[0][:2]
@@ -218,13 +227,14 @@ video_frames = collections.OrderedDict(sorted(video_frames.items(),
 video_ids = video_frames.keys()
 copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
 
+
 for (key, values) in video_frames.items():
     # resort file
     values.sort()
     frame_num = len(values)
     dets_for_track = []
     # first item is empty
-    dets_for_ious = [{}]
+    dets_for_ious = []
     # create tracking list
     for i in range(frame_num):
         frame_name_0 = int(values[i].split('_')[0][2:])
@@ -233,9 +243,7 @@ for (key, values) in video_frames.items():
         pred_frame_kitti_0, pred_frame_kitti_1, frame_offsets = \
             decode_tracking_file(root_dir, values[i], dataset, low_threshold)
 
-        if len(pred_frame_kitti_0) == 0 and len(pred_frame_kitti_1) == 0:
-            continue
-        elif len(pred_frame_kitti_0) == 0:
+        if len(pred_frame_kitti_0) == 0:
             track_item = []
         else:
             track_item = [{'frame_id':   str(frame_name_0),
@@ -246,19 +254,38 @@ for (key, values) in video_frames.items():
                            'scores'  :   np.array(frame[-1], dtype=np.float32)}
                            for (frame, offset) in zip(pred_frame_kitti_0, frame_offsets)]
 
-        iou_item   = [{'frame_id':   str(frame_name_1),
-                       'info'    :   frame[:4],
-                       'boxes2d' :   np.array(frame[4:8], dtype=np.float32),
-                       'boxes3d' :   np.array(frame[8:-1], dtype=np.float32),
-                       'scores'  :   np.array(frame[-1], dtype=np.float32)}
-                       for frame in pred_frame_kitti_1]
+        if len(pred_frame_kitti_1) == 0:
+            iou_item = []
+        else:
+            iou_item   = [{'frame_id':   str(frame_name_1),
+                           'info'    :   frame[:4],
+                           'boxes2d' :   np.array(frame[4:8], dtype=np.float32),
+                           'boxes3d' :   np.array(frame[8:-1], dtype=np.float32),
+                           'scores'  :   np.array(frame[-1], dtype=np.float32)}
+                           for frame in pred_frame_kitti_1]
 
         dets_for_track.append(track_item)
         dets_for_ious.append(iou_item)
 
+    # split dets according to frame_stride
+    # track_stride_dets = [[] for _ in range(frame_stride)]
+    # ious_stride_dets  = [[] for _ in range(frame_stride)]
+    # for i in range(len(dets_for_track)):
+    #     index = int(i % frame_stride)
+    #     track_stride_dets[index].append(dets_for_track[i])
+    #     ious_stride_dets[index].append(dets_for_ious[i])
+
     # track_iou algorithm
-    tracks_finished = track_iou(dets_for_track, dets_for_ious,
-                                sigma_h=0.9, sigma_iou=0.005, t_min=3)
+    # tracks_finished = []
+    # for i in range(frame_stride):
+    #     temp_dets = track_stride_dets[i]
+    #     temp_ious = ious_stride_dets[i]
+    #     temp_tracks_finished = track_iou(temp_dets, temp_ious, frame_stride,
+    #                                 sigma_h=0.5, sigma_iou=0.005, t_min=3)
+    #     tracks_finished += temp_tracks_finished
+
+    tracks_finished = track_iou(dets_for_track, dets_for_ious, frame_stride,
+                                sigma_h=0.5, sigma_iou=0.005, t_min=5)
 
     # convert tracks into kitti format
     track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

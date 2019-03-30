@@ -58,7 +58,7 @@ class KittiTrackingDataset:
         # 2 image a samples
         self.sample_num = 2
 
-        # stride for couple data, default is 2
+        # stride for couple data, default is 1
         self.data_stride = self.config.data_stride
 
         # video id for training split
@@ -233,6 +233,24 @@ class KittiTrackingDataset:
                                             sample_name)
             anchors_info.append(anchor_info)
         return anchors_info
+
+    def get_video_frames(self, video_id):
+        set_file = self.dataset_dir + '/' + self.data_split + '.txt'
+        data_list = []
+        with open(set_file, 'r') as f:
+            sample_names = f.read().split('\n\n')
+            items = sample_names[video_id]
+            items = items.split('\n')
+            if items[-1] == '':
+                items = items[:-1]
+            for line in items:
+                names = line.split('/')
+                video_id = int(names[0])
+                frame_id = int(names[1])
+                data_name = str(video_id).zfill(2) + str(frame_id).zfill(4)
+                data_list.append(data_name)
+        return data_list
+
 
     # generate sample couple
     def generate_sample_couple(self):
