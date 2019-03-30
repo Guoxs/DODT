@@ -1,0 +1,91 @@
+\begin{thebibliography}{13}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Behl et~al.(2018)Behl, Paschalidou, Donn{\'e}, and
+  Geiger]{behl2018pointflownet}
+Aseem Behl, Despoina Paschalidou, Simon Donn{\'e}, and Andreas Geiger.
+\newblock Pointflownet: Learning representations for 3d scene flow estimation
+  from point clouds.
+\newblock \emph{arXiv preprint arXiv:1806.02170}, 2018.
+
+\bibitem[Dai et~al.(2016)Dai, Li, He, and Sun]{dai2016r}
+Jifeng Dai, Yi~Li, Kaiming He, and Jian Sun.
+\newblock R-fcn: Object detection via region-based fully convolutional
+  networks.
+\newblock In \emph{Advances in neural information processing systems}, pages
+  379--387, 2016.
+
+\bibitem[Feichtenhofer et~al.(2017)Feichtenhofer, Pinz, and
+  Zisserman]{feichtenhofer2017detect}
+Christoph Feichtenhofer, Axel Pinz, and Andrew Zisserman.
+\newblock Detect to track and track to detect.
+\newblock In \emph{Proceedings of the IEEE International Conference on Computer
+  Vision}, pages 3038--3046, 2017.
+
+\bibitem[Girshick(2015)]{girshick2015fast}
+Ross Girshick.
+\newblock Fast r-cnn.
+\newblock In \emph{Proceedings of the IEEE international conference on computer
+  vision}, pages 1440--1448, 2015.
+
+\bibitem[He et~al.(2016)He, Zhang, Ren, and Sun]{he2016deep}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock Deep residual learning for image recognition.
+\newblock In \emph{Proceedings of the IEEE conference on computer vision and
+  pattern recognition}, pages 770--778, 2016.
+
+\bibitem[Krizhevsky et~al.(2012)Krizhevsky, Sutskever, and
+  Hinton]{krizhevsky2012imagenet}
+Alex Krizhevsky, Ilya Sutskever, and Geoffrey~E Hinton.
+\newblock Imagenet classification with deep convolutional neural networks.
+\newblock In \emph{Advances in neural information processing systems}, pages
+  1097--1105, 2012.
+
+\bibitem[Ku et~al.(2018)Ku, Mozifian, Lee, Harakeh, and Waslander]{ku2018joint}
+Jason Ku, Melissa Mozifian, Jungwook Lee, Ali Harakeh, and Steven~L Waslander.
+\newblock Joint 3d proposal generation and object detection from view
+  aggregation.
+\newblock In \emph{2018 IEEE/RSJ International Conference on Intelligent Robots
+  and Systems (IROS)}, pages 1--8. IEEE, 2018.
+
+\bibitem[Lenz et~al.(2015)Lenz, Geiger, and Urtasun]{lenz2015followme}
+Philip Lenz, Andreas Geiger, and Raquel Urtasun.
+\newblock Followme: Efficient online min-cost flow tracking with bounded memory
+  and computation.
+\newblock In \emph{Proceedings of the IEEE International Conference on Computer
+  Vision}, pages 4364--4372, 2015.
+
+\bibitem[Liu et~al.(2018)Liu, Qi, and Guibas]{liu2018learning}
+Xingyu Liu, Charles~R Qi, and Leonidas~J Guibas.
+\newblock Learning scene flow in 3d point clouds.
+\newblock \emph{arXiv preprint arXiv:1806.01411}, 2018.
+
+\bibitem[Ren et~al.(2015)Ren, He, Girshick, and Sun]{ren2015faster}
+Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
+\newblock Faster r-cnn: Towards real-time object detection with region proposal
+  networks.
+\newblock In \emph{Advances in neural information processing systems}, pages
+  91--99, 2015.
+
+\bibitem[Simonyan and Zisserman(2014)]{simonyan2014very}
+Karen Simonyan and Andrew Zisserman.
+\newblock Very deep convolutional networks for large-scale image recognition.
+\newblock \emph{arXiv preprint arXiv:1409.1556}, 2014.
+
+\bibitem[Zhu et~al.(2017)Zhu, Wang, Dai, Yuan, and Wei]{zhu2017flow}
+Xizhou Zhu, Yujie Wang, Jifeng Dai, Lu~Yuan, and Yichen Wei.
+\newblock Flow-guided feature aggregation for video object detection.
+\newblock In \emph{Proceedings of the IEEE International Conference on Computer
+  Vision}, pages 408--417, 2017.
+
+\bibitem[Zhu et~al.(2018)Zhu, Dai, Yuan, and Wei]{zhu2018towards}
+Xizhou Zhu, Jifeng Dai, Lu~Yuan, and Yichen Wei.
+\newblock Towards high performance video object detection.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 7210--7218, 2018.
+
+\end{thebibliography}

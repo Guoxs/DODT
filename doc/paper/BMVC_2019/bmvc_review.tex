@@ -1,0 +1,86 @@
+\documentclass{bmvc2k}
+
+%% Enter your paper number here for the review copy
+\bmvcreviewcopy{??}
+
+\title{3D Object Detection and tracking in Point Cloud Flow}
+
+% Enter the paper's authors in order
+% \addauthor{Name}{email/homepage}{INSTITUTION_CODE}
+\addauthor{Xusen Guo}{guoxs3@mail2.sysu.edu.cn}{1}
+\addauthor{Kai Huang}{huangk36@mail.sysu.edu.cn}{1}
+
+% Enter the institutions
+% \addinstitution{Name\\Address}
+\addinstitution{
+	Key Laboratory of Machine Intelligence\\
+	and Advanced Computing, Ministry of \\
+	Education School of Data and Computer Science, Sun Yat-Sen \\
+	University, GuangZhou, China
+}
+
+\runninghead{XuSen Guo, KaiHuang, SYSU}{3D Object Detection and tracking in Point Cloud Flow}
+
+% Any macro definitions you would like to include
+% These are not defined in the style file, because they don't begin
+% with \bmva, so they might conflict with the user's own macros.
+% The \bmvaOneDot macro adds a full stop unless there is one in the
+% text already.
+\def\eg{\emph{e.g}\bmvaOneDot}
+\def\Eg{\emph{E.g}\bmvaOneDot}
+\def\etal{\emph{et al}\bmvaOneDot}
+
+%-------------------------------------------------------------------------
+% Document starts here
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Recent approaches for 3D object detection has made great progresses due to the evolution in deep learning. However, previous works are mostly based on single frame point cloud or image, information between point cloud frames is almost not utilized. In this paper, we try to leverage the temporal information in point cloud flow and explore 3D object detection and tracking based on 3D data flow. Towards this goal, we set up a ConvNet architecture that can associate multi-frame image and LIDAR data to produce accurate 3D detection boxes and trajectories. Notably, a correlation module is introduced to capture object co-occurrences across time, and a multi-task objective for frame-based object detection and across-frame track regression is used, therefore, the network can performs detection and tracking simultaneously. Our proposed architecture is shown to produce competitive results on the KITTI Object tracking datasets. Code and models will be available soon.
+\end{abstract}
+
+%-------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+A lot of attention has been paid to 3D object detection because of the rapid development of  autonomous driving industry in recent years. Although object detection in images has made tremendous progress due to the emergence of deep learning \cite{krizhevsky2012imagenet, simonyan2014very, he2016deep} and their region based descendants \cite{dai2016r, girshick2015fast, ren2015faster}, extending 2D approaches to 3D scene is extremely hard. This is mainly because of the curse of dimensionality and the sparsity of 3D data. 
+
+In spite of the difficulty in 3D object detection, many works have been carried out. Recent approaches are usually done in three fronts: image based, point cloud based and fusion of image and point cloud. These methods have achieved remarkable performance but are limited to single frame input, applying existing detection networks on individual frames will loss the consistency and difference between frame and introduce unaffordable computational cost for most applications.
+
+Compare to single point cloud frame, point cloud flow data is more natural and straightforward for most situation. Thus Fast and accurate point cloud flow object detection is crucial for autonomous driving. Similar to extend 2D object detection methods to 3D situation, we also can extend video object detection approaches to 3D point cloud flow object detection. 
+
+Most modern computer vision approaches to video object detection require flow estimation, which is a fundamental task in video analysis. For example, a series work in \cite{zhu2017flow,zhu2018towards} associate vision feature and optical flow to build an accurate and end-to-end learning framework for video object detection. However, applying video object detection framework to autonomous driving is hard, because video object detection suffers from motion blur and partial occlusion, which are conventional in driving scenarios. While another choice is to utilize LIDAR data, since point cloud provides an accurate spatial representation of the world allowing for precise positioning of objects of interest, motion blur and occlusion problem can be avoided in 3D object detection. However, LIDAR does not capture appearance well when compared to the richness of images, moreover, accurate 3D scene flow estimation from point clouds is tremendously tough. Although some approaches such as \cite{liu2018learning, behl2018pointflownet} have been presented to learn 3D motion field in the world, it is hard to implementation in large scenes. Thus the challenge is, can we propose an approach that accurately do 3D object detection in point cloud flow without 3D scene flow?
+
+Inspired by \cite{feichtenhofer2017detect}, we transform AVOD \cite{ku2018joint} structure into 
+a two stream network embedding with a correlation module, named Bi-AVOD, which takes two adjacent key frames as input and predicts location and orientation of object as well as their local displacement. Noting that Bi-AVOD is an aggregate view object detection architecture capable of fusing different features in image and point cloud, thus its input includes two adjacent images in front view and two adjacent BEV (bird eye view) from LIDAR data. While the correlation module compute convolutional cross-correlation between the feature responses of adjacent key frames to estimate displacement of the same objects. With local displacement and object orientation, object location in intermediate frames can be calculated by interpolation. Moreover, detections can be linked between frames with the help of local displacement and multiple object tracking can be performed through \textit{tracking by detection} \cite{lenz2015followme}. 
+
+In summary, our contributions are threefold: \textit{(i)} we set up a two stream architecture based on AVOD for simultaneous 3D object detection and tracking; \textit{(ii)} we introduce correlation features to capture object co-occurrences across time and perform frame-level detections in a high speed through interpolation; \textit{(iii)} we utilize tracking result to improve detection performance and preliminary explore the algorithm for key frame selection. 
+
+%-------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related work}
+
+\subsection{Video object detection}
+
+\subsection{3D object detection}
+
+\subsection{3D object tracking}
+
+%-------------------------------------------------------------------------
+\section{Methodology}
+\label{sec:method}
+
+
+%-------------------------------------------------------------------------
+\section{Experiments}
+\label{sec:experiments}
+
+
+%-------------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+
+%-------------------------------------------------------------------------
+\bibliography{egbib}
+\end{document}
