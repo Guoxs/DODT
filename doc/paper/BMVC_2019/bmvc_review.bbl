@@ -1,4 +1,4 @@
-\begin{thebibliography}{13}
+\begin{thebibliography}{25}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -12,6 +12,35 @@ Aseem Behl, Despoina Paschalidou, Simon Donn{\'e}, and Andreas Geiger.
   from point clouds.
 \newblock \emph{arXiv preprint arXiv:1806.02170}, 2018.
 
+\bibitem[Bochinski et~al.(2018)Bochinski, Senst, and
+  Sikora]{bochinski2018extending}
+Erik Bochinski, Tobias Senst, and Thomas Sikora.
+\newblock Extending iou based multi-object tracking by visual information.
+\newblock \emph{AVSS. IEEE}, 2018.
+
+\bibitem[{Chen} et~al.(2016){Chen}, {Kundu}, {Zhang}, {Ma}, {Fidler}, and
+  {Urtasun}]{7780605}
+X.~{Chen}, K.~{Kundu}, Z.~{Zhang}, H.~{Ma}, S.~{Fidler}, and R.~{Urtasun}.
+\newblock Monocular 3d object detection for autonomous driving.
+\newblock In \emph{2016 IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, pages 2147--2156, June 2016.
+\newblock \doi{10.1109/CVPR.2016.236}.
+
+\bibitem[Chen et~al.(2017)Chen, Ma, Wan, Li, and Xia]{chen2017multi}
+Xiaozhi Chen, Huimin Ma, Ji~Wan, Bo~Li, and Tian Xia.
+\newblock Multi-view 3d object detection network for autonomous driving.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 1907--1915, 2017.
+
+\bibitem[Chen et~al.(2018)Chen, Kundu, Zhu, Ma, Fidler, and
+  Urtasun]{chen20183d}
+Xiaozhi Chen, Kaustav Kundu, Yukun Zhu, Huimin Ma, Sanja Fidler, and Raquel
+  Urtasun.
+\newblock 3d object proposals using stereo imagery for accurate object class
+  detection.
+\newblock \emph{IEEE transactions on pattern analysis and machine
+  intelligence}, 40\penalty0 (5):\penalty0 1259--1272, 2018.
+
 \bibitem[Dai et~al.(2016)Dai, Li, He, and Sun]{dai2016r}
 Jifeng Dai, Yi~Li, Kaiming He, and Jian Sun.
 \newblock R-fcn: Object detection via region-based fully convolutional
@@ -19,12 +48,27 @@ Jifeng Dai, Yi~Li, Kaiming He, and Jian Sun.
 \newblock In \emph{Advances in neural information processing systems}, pages
   379--387, 2016.
 
+\bibitem[Engelcke et~al.(2017)Engelcke, Rao, Wang, Tong, and
+  Posner]{engelcke2017vote3deep}
+Martin Engelcke, Dushyant Rao, Dominic~Zeng Wang, Chi~Hay Tong, and Ingmar
+  Posner.
+\newblock Vote3deep: Fast object detection in 3d point clouds using efficient
+  convolutional neural networks.
+\newblock In \emph{2017 IEEE International Conference on Robotics and
+  Automation (ICRA)}, pages 1355--1361. IEEE, 2017.
+
 \bibitem[Feichtenhofer et~al.(2017)Feichtenhofer, Pinz, and
   Zisserman]{feichtenhofer2017detect}
 Christoph Feichtenhofer, Axel Pinz, and Andrew Zisserman.
 \newblock Detect to track and track to detect.
 \newblock In \emph{Proceedings of the IEEE International Conference on Computer
   Vision}, pages 3038--3046, 2017.
+
+\bibitem[Frossard and Urtasun(2018)]{frossard2018end}
+Davi Frossard and Raquel Urtasun.
+\newblock End-to-end learning of multi-sensor 3d tracking by detection.
+\newblock In \emph{2018 IEEE International Conference on Robotics and
+  Automation (ICRA)}, pages 635--642. IEEE, 2018.
 
 \bibitem[Girshick(2015)]{girshick2015fast}
 Ross Girshick.
@@ -59,10 +103,29 @@ Philip Lenz, Andreas Geiger, and Raquel Urtasun.
 \newblock In \emph{Proceedings of the IEEE International Conference on Computer
   Vision}, pages 4364--4372, 2015.
 
+\bibitem[Li(2017)]{li20173d}
+Bo~Li.
+\newblock 3d fully convolutional network for vehicle detection in point cloud.
+\newblock In \emph{2017 IEEE/RSJ International Conference on Intelligent Robots
+  and Systems (IROS)}, pages 1513--1518. IEEE, 2017.
+
 \bibitem[Liu et~al.(2018)Liu, Qi, and Guibas]{liu2018learning}
 Xingyu Liu, Charles~R Qi, and Leonidas~J Guibas.
 \newblock Learning scene flow in 3d point clouds.
 \newblock \emph{arXiv preprint arXiv:1806.01411}, 2018.
+
+\bibitem[Luo et~al.(2018)Luo, Yang, and Urtasun]{luo2018fast}
+Wenjie Luo, Bin Yang, and Raquel Urtasun.
+\newblock Fast and furious: Real time end-to-end 3d detection, tracking and
+  motion forecasting with a single convolutional net.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 3569--3577, 2018.
+
+\bibitem[Qi et~al.(2018)Qi, Liu, Wu, Su, and Guibas]{qi2018frustum}
+Charles~R Qi, Wei Liu, Chenxia Wu, Hao Su, and Leonidas~J Guibas.
+\newblock Frustum pointnets for 3d object detection from rgb-d data.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 918--927, 2018.
 
 \bibitem[Ren et~al.(2015)Ren, He, Girshick, and Sun]{ren2015faster}
 Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
@@ -71,10 +134,30 @@ Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
 \newblock In \emph{Advances in neural information processing systems}, pages
   91--99, 2015.
 
+\bibitem[Simon et~al.(2018)Simon, Milz, Amende, and Gross]{simon2018complex}
+Martin Simon, Stefan Milz, Karl Amende, and Horst-Michael Gross.
+\newblock Complex-yolo: An euler-region-proposal for real-time 3d object
+  detection on point clouds.
+\newblock In \emph{European Conference on Computer Vision}, pages 197--209.
+  Springer, 2018.
+
 \bibitem[Simonyan and Zisserman(2014)]{simonyan2014very}
 Karen Simonyan and Andrew Zisserman.
 \newblock Very deep convolutional networks for large-scale image recognition.
 \newblock \emph{arXiv preprint arXiv:1409.1556}, 2014.
+
+\bibitem[Yang et~al.(2018)Yang, Luo, and Urtasun]{yang2018pixor}
+Bin Yang, Wenjie Luo, and Raquel Urtasun.
+\newblock Pixor: Real-time 3d object detection from point clouds.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 7652--7660, 2018.
+
+\bibitem[Zhou and Tuzel(2018)]{zhou2018voxelnet}
+Yin Zhou and Oncel Tuzel.
+\newblock Voxelnet: End-to-end learning for point cloud based 3d object
+  detection.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 4490--4499, 2018.
 
 \bibitem[Zhu et~al.(2017)Zhu, Wang, Dai, Yuan, and Wei]{zhu2017flow}
 Xizhou Zhu, Yujie Wang, Jifeng Dai, Lu~Yuan, and Yichen Wei.

@@ -7,45 +7,61 @@ Repeated entry---line 130 of file egbib.bib
  : @inproceedings{feichtenhofer2017detect
  :                                       ,
 I'm skipping whatever remains of this entry
-You've used 13 entries,
+Repeated entry---line 236 of file egbib.bib
+ : @inproceedings{ku2018joint
+ :                           ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 245 of file egbib.bib
+ : @inproceedings{zhu2017flow
+ :                           ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 253 of file egbib.bib
+ : @inproceedings{zhu2018towards
+ :                              ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 261 of file egbib.bib
+ : @inproceedings{feichtenhofer2017detect
+ :                                       ,
+I'm skipping whatever remains of this entry
+You've used 25 entries,
             2773 wiz_defined-function locations,
-            657 strings with 7150 characters,
-and the built_in function-call counts, 7867 in all, are:
-= -- 714
-> -- 442
-< -- 12
-+ -- 148
-- -- 135
-* -- 593
-:= -- 1104
-add.period$ -- 40
-call.type$ -- 13
-change.case$ -- 84
-chr.to.int$ -- 13
-cite$ -- 26
-duplicate$ -- 392
-empty$ -- 638
-format.name$ -- 150
-if$ -- 1739
+            716 strings with 9416 characters,
+and the built_in function-call counts, 15787 in all, are:
+= -- 1458
+> -- 881
+< -- 25
++ -- 295
+- -- 270
+* -- 1195
+:= -- 2196
+add.period$ -- 81
+call.type$ -- 25
+change.case$ -- 165
+chr.to.int$ -- 25
+cite$ -- 50
+duplicate$ -- 774
+empty$ -- 1270
+format.name$ -- 301
+if$ -- 3513
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 13
-newline$ -- 73
-num.names$ -- 52
-pop$ -- 199
+missing$ -- 25
+newline$ -- 134
+num.names$ -- 100
+pop$ -- 389
 preamble$ -- 1
-purify$ -- 71
+purify$ -- 140
 quote$ -- 0
-skip$ -- 338
+skip$ -- 673
 stack$ -- 0
-substring$ -- 362
-swap$ -- 117
-text.length$ -- 10
+substring$ -- 789
+swap$ -- 244
+text.length$ -- 20
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 143
+type$ -- 275
 warning$ -- 0
-while$ -- 69
+while$ -- 136
 width$ -- 0
-write$ -- 174
-(There was 1 error message)
+write$ -- 335
+(There were 5 error messages)
