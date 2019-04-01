@@ -1141,13 +1141,13 @@ class DtRpnModel(model.DetectionModel):
                 localization_loss = [tf.reduce_sum(masked_localization_loss[i])
                                      for i in range(SAMPLE_SIZE)]
 
-                corr_loss = losses.WeightedL2LocalizationLoss()
+                # corr_loss = losses.WeightedL2LocalizationLoss()
                 corr_loss_weight = self._config.loss_config.corr_loss_weight
-                anchorwise_correlation_loss = corr_loss(corr_offsets,
+                anchorwise_correlation_loss = reg_loss(corr_offsets,
                                                        corr_offsets_gt,
-                                                       weight=objectness_gt[0][:, 1])
+                                                       weight=reg_loss_weight)
 
-                masked_correlation_loss = anchorwise_correlation_loss * corr_loss_weight
+                masked_correlation_loss = anchorwise_correlation_loss * objectness_gt[0][:, 1]
                 correlation_loss = tf.reduce_sum(masked_correlation_loss)
 
                 with tf.variable_scope('reg_norm'):

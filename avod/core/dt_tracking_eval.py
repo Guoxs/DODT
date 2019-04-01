@@ -56,7 +56,7 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold):
 
     # frame 1 kitti label after adding offsets
     corr_offsets = np_file[frame_mask_0][:, 9:12]
-    # pred_frame_0[:, :3] += corr_offsets
+    pred_frame_0[:, :3] += corr_offsets
     pred_frame_kitti_offsets = convert_pred_to_kitti_format(
         pred_frame_0, sample_name_0, dataset, threshold)
 
@@ -211,7 +211,7 @@ dataset = build_dataset(dataset_config)
 frame_stride = dataset.data_stride
 
 video_frames = {}
-low_threshold = 0.1
+low_threshold = 0
 sample_names = dataset.sample_names
 for sample_name in sample_names:
     video_id = sample_name[0][:2]
