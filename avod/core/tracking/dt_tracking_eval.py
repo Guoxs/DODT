@@ -24,6 +24,20 @@ def build_dataset(dataset_config):
                                                      use_defaults=False)
     return dataset
 
+def get_frames(dataset):
+    video_frames = {}
+    sample_names = dataset.sample_names
+    for sample_name in sample_names:
+        video_id = sample_name[0][:2]
+        if not video_frames.__contains__(video_id):
+            video_frames[video_id] = []
+        txt_name = sample_name[0] + '_' + sample_name[1]
+        video_frames[video_id].append(txt_name)
+
+    video_frames = collections.OrderedDict(sorted(video_frames.items(),
+                                                  key=lambda obj: obj[0]))
+    return video_frames
+
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
@@ -185,8 +199,8 @@ def track_iou(dets_for_track, dets_for_ious, frame_stride, sigma_h, sigma_iou, t
     return tracks_finished
 
 
-checkpoint_name = 'pyramid_cars_with_aug_dt_tracking_2'
-ckpt_indices = '80000'
+checkpoint_name = 'pyramid_cars_with_aug_dt_tracking'
+ckpt_indices = '102000'
 root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
            '/predictions/final_predictions_and_scores/val/' + ckpt_indices
 
@@ -209,25 +223,13 @@ model_config, _, eval_config, dataset_config = \
 
 dataset = build_dataset(dataset_config)
 frame_stride = dataset.data_stride
-
-video_frames = {}
-low_threshold = 0
-sample_names = dataset.sample_names
-for sample_name in sample_names:
-    video_id = sample_name[0][:2]
-    if not video_frames.__contains__(video_id):
-        video_frames[video_id] = []
-    txt_name = sample_name[0] + '_' + sample_name[1]
-    video_frames[video_id].append(txt_name)
-
-video_frames = collections.OrderedDict(sorted(video_frames.items(),
-                                              key = lambda obj: obj[0]))
+video_frames = get_frames(dataset)
 
 # copy tracking eval script to tracking_output_dir
 video_ids = video_frames.keys()
 copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
 
-
+low_threshold = 0.1
 for (key, values) in video_frames.items():
     # resort file
     values.sort()
@@ -285,7 +287,7 @@ for (key, values) in video_frames.items():
     #     tracks_finished += temp_tracks_finished
 
     tracks_finished = track_iou(dets_for_track, dets_for_ious, frame_stride,
-                                sigma_h=0.5, sigma_iou=0.005, t_min=5)
+                                sigma_h=0.5, sigma_iou=0.005, t_min=3)
 
     # convert tracks into kitti format
     track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

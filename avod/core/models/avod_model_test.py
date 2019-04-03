@@ -10,7 +10,7 @@ from avod.core import losses
 from avod.core.models.avod_model import AvodModel
 from avod.protos import pipeline_pb2
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 class AvodModelTest(tf.test.TestCase):
     @classmethod

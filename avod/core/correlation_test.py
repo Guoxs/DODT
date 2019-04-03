@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import math
-from avod.core.correlation.correlation import correlation
+from avod.core.correlation import correlation
 
 tf.set_random_seed(0)
 

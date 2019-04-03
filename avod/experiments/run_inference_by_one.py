@@ -13,7 +13,7 @@ from avod.core.dt_inference_utils import get_avod_pred, \
 from wavedata.tools.obj_detection.evaluation import three_d_iou
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 def build_dataset(dataset_config):
     # Overwrite the defaults

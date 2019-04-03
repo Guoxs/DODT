@@ -323,6 +323,7 @@ class RpnModel(model.DetectionModel):
                 def get_box_indices(boxes):
                     proposals_shape = boxes.get_shape().as_list()
                     if any(dim is None for dim in proposals_shape):
+                        print('Call None')
                         proposals_shape = tf.shape(boxes)
                     ones_mat = tf.ones(proposals_shape[:2], dtype=tf.int32)
                     multiplier = tf.expand_dims(
