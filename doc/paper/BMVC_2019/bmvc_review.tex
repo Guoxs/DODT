@@ -73,12 +73,34 @@ More and more work has been done in 3D object tracking based on tracking by dete
 %-------------------------------------------------------------------------
 \section{Methodology}
 \label{sec:method}
+In this section we first present the problem statement of point cloud flow detection and tracking (Sec. 3.1), then we will give an overview of the Bi-AVOD approach (Sec. 3.2) that generates detections and tracklets give two adjacent key frames as input. We then introduce the correlation module (Sec. 3.3) that aid the network in the tracking process. Sec. 3.4 shows how we link detections to trajectories and Sec. 3.5 simply introduces evaluation metrics in multiple object tracking.
 
+\subsection{Problem formulation}
+Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the stream object detection task requires a set of detections $D_f$ for each frame $I_f$. Each detection set consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$).  
+
+\subsection{Bi-AVOD model structure}
+
+
+\subsection{Correlation module for object tracking}
+
+
+\subsection{Link detections to trajectories}
+
+\subsection{Metrics}
 
 %-------------------------------------------------------------------------
 \section{Experiments}
 \label{sec:experiments}
 
+\subsection{KITTI tracking datasets}
+
+
+\subsection{Data preprocessing}
+
+
+\subsection{Training and testing}
+
+\subsection{Results}
 
 %-------------------------------------------------------------------------
 \section{Conclusion}

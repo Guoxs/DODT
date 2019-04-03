@@ -23,11 +23,11 @@ tf.logging.set_verbosity(tf.logging.INFO)
 KEY_SUM_RPN_OBJ_LOSS = 'sum_rpn_obj_loss'
 KEY_SUM_RPN_REG_LOSS = 'sum_rpn_reg_loss'
 KEY_SUM_RPN_TOTAL_LOSS = 'sum_rpn_total_loss'
-KEY_SUM_RPN_CORR_LOSS = 'sum_rpn_corr_loss'
 KEY_SUM_RPN_OBJ_ACC = 'sum_rpn_obj_accuracy'
 
 KEY_SUM_AVOD_CLS_LOSS = 'sum_avod_cls_loss'
 KEY_SUM_AVOD_REG_LOSS = 'sum_avod_reg_loss'
+KEY_SUM_AVOD_CORR_LOSS = 'sum_avod_corr_loss'
 KEY_SUM_AVOD_TOTAL_LOSS = 'sum_avod_total_loss'
 KEY_SUM_AVOD_LOC_LOSS = 'sum_avod_loc_loss'
 KEY_SUM_AVOD_ANG_LOSS = 'sum_avod_ang_loss'
@@ -283,12 +283,10 @@ class DtEvaluator:
 
                 rpn_objectness_loss = eval_losses[DtRpnModel.LOSS_RPN_OBJECTNESS]
                 rpn_regression_loss = eval_losses[DtRpnModel.LOSS_RPN_REGRESSION]
-                rpn_correlation_loss = eval_losses[DtRpnModel.LOSS_RPN_CORRELATION]
 
                 self._update_rpn_losses(eval_rpn_losses,
                                         rpn_objectness_loss,
                                         rpn_regression_loss,
-                                        rpn_correlation_loss,
                                         eval_total_loss,
                                         global_step)
 
@@ -529,7 +527,6 @@ class DtEvaluator:
                            eval_rpn_losses,
                            rpn_objectness_loss,
                            rpn_regression_loss,
-                           rpn_correlation_loss,
                            eval_total_loss,
                            global_step):
         """Helper function to calculate the evaluation average losses.
@@ -539,7 +536,6 @@ class DtEvaluator:
                 losses.
             rpn_objectness_loss: A list of two scalar losses of rpn objectness.
             rpn_regression_loss: A list of two scalar losses of rpn objectness.
-            rpn_correlation_loss: frame correlation loss
             eval_total_loss: A scalar loss of rpn total loss.
             global_step: Global step at which the metrics are computed.
         """
@@ -547,29 +543,25 @@ class DtEvaluator:
         if self.full_model:
             # The full model total_loss will be the sum of Rpn and Avod
             # so calculate the total rpn loss instead
-            rpn_total_loss = rpn_objectness_loss + rpn_regression_loss \
-                            + rpn_correlation_loss
+            rpn_total_loss = rpn_objectness_loss + rpn_regression_loss
         else:
             rpn_total_loss = eval_total_loss
 
         print("Step {}: Eval RPN Loss: objectness {:.3f}, "
-              "regression {:.3f}, correlation {:.3f}, total {:.3f}".format(
+              "regression {:.3f}, total {:.3f}".format(
                     global_step,
                     rpn_objectness_loss,
                     rpn_regression_loss,
-                    rpn_correlation_loss,
                     rpn_total_loss))
 
         # Get the loss sums from the losses dict
         sum_rpn_obj_loss = eval_rpn_losses[KEY_SUM_RPN_OBJ_LOSS]
         sum_rpn_reg_loss = eval_rpn_losses[KEY_SUM_RPN_REG_LOSS]
-        sum_rpn_corr_loss = eval_rpn_losses[KEY_SUM_RPN_CORR_LOSS]
         sum_rpn_total_loss = eval_rpn_losses[KEY_SUM_RPN_TOTAL_LOSS]
 
 
         sum_rpn_obj_loss += rpn_objectness_loss
         sum_rpn_reg_loss += rpn_regression_loss
-        sum_rpn_corr_loss += rpn_correlation_loss
         sum_rpn_total_loss += rpn_total_loss
 
         # update the losses sums
@@ -578,9 +570,6 @@ class DtEvaluator:
 
         eval_rpn_losses.update({KEY_SUM_RPN_REG_LOSS:
                                 sum_rpn_reg_loss})
-
-        eval_rpn_losses.update({KEY_SUM_RPN_CORR_LOSS:
-                                sum_rpn_corr_loss})
 
         eval_rpn_losses.update({KEY_SUM_RPN_TOTAL_LOSS:
                                 sum_rpn_total_loss})
@@ -606,6 +595,7 @@ class DtEvaluator:
         # Get the loss sums from the losses dict
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -614,6 +604,8 @@ class DtEvaluator:
             eval_losses[DtAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_REGRESSION]
+        avod_correlation_loss = \
+            eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
 
         avod_localization_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_LOCALIZATION]
@@ -622,6 +614,7 @@ class DtEvaluator:
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         # update the losses sums
@@ -630,6 +623,9 @@ class DtEvaluator:
 
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                 sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -658,10 +654,12 @@ class DtEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -692,6 +690,7 @@ class DtEvaluator:
 
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -700,12 +699,15 @@ class DtEvaluator:
             eval_losses[DtAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_REGRESSION]
+        avod_correlation_loss = \
+            eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
 
         avod_localization_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_LOCALIZATION]
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         eval_avod_losses.update({KEY_SUM_AVOD_CLS_LOSS:
@@ -713,6 +715,9 @@ class DtEvaluator:
 
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                     sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -736,10 +741,12 @@ class DtEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -756,29 +763,19 @@ class DtEvaluator:
         """
         sum_rpn_obj_loss = eval_rpn_losses[KEY_SUM_RPN_OBJ_LOSS]
         sum_rpn_reg_loss = eval_rpn_losses[KEY_SUM_RPN_REG_LOSS]
-        sum_rpn_corr_loss = eval_rpn_losses[KEY_SUM_RPN_CORR_LOSS]
         sum_rpn_total_loss = eval_rpn_losses[KEY_SUM_RPN_TOTAL_LOSS]
         sum_rpn_obj_accuracy = eval_rpn_losses[KEY_SUM_RPN_OBJ_ACC]
 
         # Calculate average loss and accuracy
         avg_rpn_obj_loss = sum_rpn_obj_loss / num_valid_samples
         avg_rpn_reg_loss = sum_rpn_reg_loss / num_valid_samples
-        avg_rpn_corr_loss = sum_rpn_corr_loss / num_valid_samples
         avg_rpn_total_loss = sum_rpn_total_loss / num_valid_samples
         avg_rpn_obj_accuracy = sum_rpn_obj_accuracy / num_valid_samples
 
-        # Write summaries
-        summary_utils.add_scalar_summary(
-            'rpn_losses/regression/correlation',
-            avg_rpn_corr_loss,
-            self.summary_writer, global_step)
-
         print("Step {}: Average RPN Losses: objectness {:.3f}, "
-              "regression {:.3f}, correlation {:.3f}, total {:.3f}"
-                                                .format(global_step,
+              "regression {:.3f}, total {:.3f}".format(global_step,
                                                        avg_rpn_obj_loss,
                                                        avg_rpn_reg_loss,
-                                                        avg_rpn_corr_loss,
                                                        avg_rpn_total_loss))
         print("Step {}: Average Objectness Accuracy:{} ".format(
             global_step,
@@ -791,10 +788,9 @@ class DtEvaluator:
                        np.reshape([global_step,
                                    avg_rpn_obj_loss,
                                    avg_rpn_reg_loss,
-                                   avg_rpn_corr_loss,
                                    avg_rpn_total_loss],
                                   (1, 5)),
-                       fmt='%d, %.5f, %.5f, %.5f, %.5f')
+                       fmt='%d, %.5f, %.5f, %.5f')
 
         avg_acc_file_path = predictions_base_dir + '/rpn_avg_obj_acc.csv'
         with open(avg_acc_file_path, 'ba') as fp:
@@ -823,19 +819,19 @@ class DtEvaluator:
         """
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         sum_avod_loc_loss = eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS]
         sum_avod_ang_loss = eval_avod_losses[KEY_SUM_AVOD_ANG_LOSS]
 
-        sum_avod_cls_accuracy = \
-            eval_avod_losses[KEY_SUM_AVOD_CLS_ACC]
+        sum_avod_cls_accuracy = eval_avod_losses[KEY_SUM_AVOD_CLS_ACC]
 
-        num_valid_regression_samples = \
-            eval_avod_losses[KEY_NUM_VALID_REG_SAMPLES]
+        num_valid_regression_samples = eval_avod_losses[KEY_NUM_VALID_REG_SAMPLES]
 
         avg_avod_cls_loss = sum_avod_cls_loss / num_valid_samples
         avg_avod_reg_loss = sum_avod_reg_loss / num_valid_samples
+        avg_avod_corr_loss = sum_avod_corr_loss / num_valid_samples
         avg_avod_total_loss = sum_avod_total_loss / num_valid_samples
 
         if num_valid_regression_samples > 0:
@@ -860,6 +856,10 @@ class DtEvaluator:
             'avod_losses/regression/regression_total',
             avg_avod_reg_loss,
             self.summary_writer, global_step)
+        summary_utils.add_scalar_summary(
+            'avod_losses/correlation/correlation_total',
+            avg_avod_corr_loss,
+            self.summary_writer, global_step)
 
         summary_utils.add_scalar_summary(
             'avod_losses/regression/localization',
@@ -874,10 +874,12 @@ class DtEvaluator:
         print("Step {}: Average AVOD Losses: "
               "cls {:.5f}, "
               "reg {:.5f}, "
+              "corr {: .5},"
               "total {:.5f} ".format(
                 global_step,
                 avg_avod_cls_loss,
                 avg_avod_reg_loss,
+                avg_avod_corr_loss,
                 avg_avod_total_loss,
                   ))
 
@@ -910,13 +912,14 @@ class DtEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
 
                                 avg_avod_loc_loss,
                                 avg_avod_ang_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
         elif box_rep in ['box_8c', 'box_8co', 'box_4c']:
             with open(avg_loss_file_path, 'ba') as fp:
                 np.savetxt(fp,
@@ -924,12 +927,13 @@ class DtEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
 
                                 avg_avod_loc_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
         else:
             raise NotImplementedError('Saving losses not implemented')
 
@@ -948,6 +952,7 @@ class DtEvaluator:
         # Initialize Avod average losses
         eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_REG_LOSS] = 0
+        eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS] = 0
 
         eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS] = 0
@@ -969,7 +974,6 @@ class DtEvaluator:
         # Initialize Rpn average losses
         eval_rpn_losses[KEY_SUM_RPN_OBJ_LOSS] = 0
         eval_rpn_losses[KEY_SUM_RPN_REG_LOSS] = 0
-        eval_rpn_losses[KEY_SUM_RPN_CORR_LOSS] = 0
         eval_rpn_losses[KEY_SUM_RPN_TOTAL_LOSS] = 0
 
         eval_rpn_losses[KEY_SUM_RPN_OBJ_ACC] = 0
@@ -1092,13 +1096,12 @@ class DtEvaluator:
 
         Returns:
             proposals_and_scores: A list of two numpy array of shape
-            (number_of_proposals, 12), containing the rpn proposal boxes and scores.
-            [x, y, z, w, h, l, r, score, delta_x, delta_y, delta_z, frame_mark]
+            (number_of_proposals, 8), containing the rpn proposal boxes and scores.
+            [x, y, z, w, h, l, r, frame_mark]
         """
 
         top_anchors = predictions[DtRpnModel.PRED_TOP_ANCHORS]
         softmax_scores = predictions[DtRpnModel.PRED_TOP_OBJECTNESS_SOFTMAX]
-        top_corr_offsets = predictions[DtRpnModel.PRED_TOP_CORR_OFFSETS]
 
         top_proposals = [box_3d_encoder.anchors_to_box_3d(anchor)
                          for anchor in top_anchors]
@@ -1109,15 +1112,12 @@ class DtEvaluator:
         zero_mark = np.zeros((proposals_and_scores[0].shape[0], 1))
         one_mark = np.ones((proposals_and_scores[1].shape[0], 1))
 
-        corr_mark = np.zeros((proposals_and_scores[1].shape[0],
-                                        top_corr_offsets.shape[1]))
-
         # add frame id in the end
         proposals_and_scores[0] = np.column_stack((
-            proposals_and_scores[0], top_corr_offsets, zero_mark))
+            proposals_and_scores[0], zero_mark))
 
         proposals_and_scores[1] = np.column_stack((
-            proposals_and_scores[1], corr_mark, one_mark))
+            proposals_and_scores[1], one_mark))
 
         # concatenate two frame proposals
         proposals_and_scores = np.concatenate(proposals_and_scores, axis=0)
@@ -1136,7 +1136,8 @@ class DtEvaluator:
             predictions_and_scores: A numpy array of shape
                 (number_of_predicted_boxes, 13), containing the final prediction
                 boxes, orientations, scores, and types, frame no.
-                [x, y, z, w, h, l, r, score, type, delta_x, delta_y, delta_z, frame_mark]
+                [x, y, z, w, h, l, r, score, type, delta_x,
+                delta_y, delta_z, delta_w, delta_h, delta_l, delta_h, frame_mark]
         """
 
         if box_rep == 'box_3d':
@@ -1214,7 +1215,7 @@ class DtEvaluator:
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
-        pred_corr_offsets = predictions[DtAvodModel.PRED_TOP_ANCHORS_CORR_OFFSETS]
+        pred_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
         corr_mark = np.zeros((final_pred_softmax[1].shape[0],
                              pred_corr_offsets.shape[1]))
         final_pred_corr_offsets = [pred_corr_offsets, corr_mark]
@@ -1260,7 +1261,7 @@ class DtEvaluator:
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
         # get top correlation offsets
-        pred_corr_offsets = predictions[DtAvodModel.PRED_TOP_ANCHORS_CORR_OFFSETS]
+        pred_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
         corr_mark = np.zeros((final_pred_softmax[1].shape[0],
                               pred_corr_offsets.shape[1]))
         final_pred_corr_offsets = [pred_corr_offsets, corr_mark]
