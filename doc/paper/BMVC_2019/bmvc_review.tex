@@ -76,7 +76,18 @@ More and more work has been done in 3D object tracking based on tracking by dete
 In this section we first present the problem statement of point cloud flow detection and tracking (Sec. 3.1), then we will give an overview of the Bi-AVOD approach (Sec. 3.2) that generates detections and tracklets give two adjacent key frames as input. We then introduce the correlation module (Sec. 3.3) that aid the network in the tracking process. Sec. 3.4 shows how we link detections to trajectories and Sec. 3.5 simply introduces evaluation metrics in multiple object tracking.
 
 \subsection{Problem formulation}
-Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the stream object detection task requires a set of detections $D_f$ for each frame $I_f$. Each detection set consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$).  
+Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the stream object detection task needs to predict a set of detections $D_f$ for each frame $I_f$. Each detection set $D_f$ consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$). Note that $D_f$ can also be an empty set when no object is detected in a frame. In 3D object detection, Each detection $D^i_f$ is parametrized as $D^i_f = (x^i_f, y^i_f, z^i_f, w^i_f, h^i_f, l^i_f, \theta^i_f, s^i_f)$, where $(x^i_f, y^i_f, z^i_f)$ corresponds to the center (bottom center in KITTI\cite{geiger2013vision} Datasets) of the detection box in point cloud, $(w^i_f, h^i_f, l^i_f)$ corresponds to width, height, length of the detection box, $\theta^i_f$ is the rotation angle in yaw axis and $s^i_f$ is the detectors confidence in the bounding box.
+
+Because of the redundant features in streaming, we can only compute the object detections in key frames, while the detections in intermediate frames can be calculated using the detections in adjacent two key frames. Support we have two predicted object detections set $(D_f, D_{f+\tau})$ in two consecutive key frames $(I_f, I_{f+\tau})$ where $\tau$ is temporal stride, the detection results $\{D^i_{f+t}\}$ $(t \in \{1, \tau-1\})$ in intermediate frame $D_{f+t}$ can be obtained by:
+
+\begin{equation}
+D^i_{f+t} = \mathcal{F}(W_f D^i_f, W_{f+\tau} D^i_{f+\tau})
+\end{equation}
+
+where $W$ is corresponding weight and $\mathcal{F}$ is generation function to produce $D^i_{f+t}$, in this paper we use quadratic interpolation function. Note that we can utilize (1) to generate $D^i_{f+t}$ only when the target exists in $D_f$ and $D_{f+\tau}$ simultaneously. if the target is emerged or end in intermediate frames, this method would be failed. Though we can develop the key frames selection function carefully to handle this situation, it is beyond the scope of this article. In this paper we focus on the targets that always exist between two key frames.
+
+With object detections in each frame, multi-object tracking can be implemented by tracking-by-detection paradigm. For each bounding box in each frame, MOT try to associate it to a unique target trajectory $T_k = \{D^k_{f_1}, D^k_{f_2}, ..., D^k_{f_{N_k}}\}$, where $k$ is trajectory id and $N_k$ is the length of $T_k$, $\{f_1, f_2, ..., f_{N_k}\}$ are corresponding frames id.
+
 
 \subsection{Bi-AVOD model structure}
 

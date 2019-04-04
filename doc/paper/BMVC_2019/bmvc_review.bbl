@@ -1,4 +1,4 @@
-\begin{thebibliography}{25}
+\begin{thebibliography}{26}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -69,6 +69,13 @@ Davi Frossard and Raquel Urtasun.
 \newblock End-to-end learning of multi-sensor 3d tracking by detection.
 \newblock In \emph{2018 IEEE International Conference on Robotics and
   Automation (ICRA)}, pages 635--642. IEEE, 2018.
+
+\bibitem[Geiger et~al.(2013)Geiger, Lenz, Stiller, and
+  Urtasun]{geiger2013vision}
+Andreas Geiger, Philip Lenz, Christoph Stiller, and Raquel Urtasun.
+\newblock Vision meets robotics: The kitti dataset.
+\newblock \emph{The International Journal of Robotics Research}, 32\penalty0
+  (11):\penalty0 1231--1237, 2013.
 
 \bibitem[Girshick(2015)]{girshick2015fast}
 Ross Girshick.

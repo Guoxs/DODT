@@ -23,45 +23,45 @@ Repeated entry---line 261 of file egbib.bib
  : @inproceedings{feichtenhofer2017detect
  :                                       ,
 I'm skipping whatever remains of this entry
-You've used 25 entries,
+You've used 26 entries,
             2773 wiz_defined-function locations,
-            716 strings with 9416 characters,
-and the built_in function-call counts, 15787 in all, are:
-= -- 1458
-> -- 881
+            725 strings with 9653 characters,
+and the built_in function-call counts, 16361 in all, are:
+= -- 1509
+> -- 920
 < -- 25
-+ -- 295
-- -- 270
-* -- 1195
-:= -- 2196
-add.period$ -- 81
-call.type$ -- 25
-change.case$ -- 165
-chr.to.int$ -- 25
-cite$ -- 50
-duplicate$ -- 774
-empty$ -- 1270
-format.name$ -- 301
-if$ -- 3513
++ -- 308
+- -- 282
+* -- 1251
+:= -- 2284
+add.period$ -- 84
+call.type$ -- 26
+change.case$ -- 172
+chr.to.int$ -- 26
+cite$ -- 52
+duplicate$ -- 795
+empty$ -- 1313
+format.name$ -- 314
+if$ -- 3630
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 25
-newline$ -- 134
-num.names$ -- 100
-pop$ -- 389
+missing$ -- 26
+newline$ -- 139
+num.names$ -- 104
+pop$ -- 401
 preamble$ -- 1
-purify$ -- 140
+purify$ -- 146
 quote$ -- 0
-skip$ -- 673
+skip$ -- 689
 stack$ -- 0
-substring$ -- 789
-swap$ -- 244
+substring$ -- 822
+swap$ -- 245
 text.length$ -- 20
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 275
+type$ -- 286
 warning$ -- 0
-while$ -- 136
+while$ -- 141
 width$ -- 0
-write$ -- 335
+write$ -- 348
 (There were 5 error messages)
