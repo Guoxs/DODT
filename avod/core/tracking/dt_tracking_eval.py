@@ -69,7 +69,7 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold):
         pred_frame_1, sample_name_1, dataset, threshold)
 
     # frame 1 kitti label after adding offsets
-    corr_offsets = np_file[frame_mask_0][:, 9:12]
+    corr_offsets = np_file[frame_mask_0][:, 9:-1]
     pred_frame_0[:, :3] += corr_offsets
     pred_frame_kitti_offsets = convert_pred_to_kitti_format(
         pred_frame_0, sample_name_0, dataset, threshold)
@@ -199,8 +199,8 @@ def track_iou(dets_for_track, dets_for_ious, frame_stride, sigma_h, sigma_iou, t
     return tracks_finished
 
 
-checkpoint_name = 'pyramid_cars_with_aug_dt_tracking'
-ckpt_indices = '102000'
+checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking'
+ckpt_indices = '36000'
 root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
            '/predictions/final_predictions_and_scores/val/' + ckpt_indices
 

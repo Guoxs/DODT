@@ -48,6 +48,10 @@ class DtAvodModel(model.DetectionModel):
     PRED_TOP_BOXES_8C = 'avod_top_regressed_boxes_8c'
     PRED_TOP_BOXES_4C = 'avod_top_prediction_boxes_4c'
 
+    PRED_TOP_CORR_PREDICTION_BOXES_3D = 'avod_top_corr_prediction_boxes_3d'
+    PRED_TOP_CORR_BOXES_8C = 'avod_top_corr_boxes_8c'
+    PRED_TOP_CORR_BOXES_4C = 'avod_top_corr_boxes_4c'
+
     # Mini batch (mb) predictions (for debugging)
     PRED_MB_MASK = 'avod_mb_mask'
     PRED_MB_POS_MASK = 'avod_mb_pos_mask'
@@ -329,7 +333,8 @@ class DtAvodModel(model.DetectionModel):
         anchors_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS],
                                 label_mask[i]) for i in range(SAMPLE_SIZE)]
 
-        corr_offsets_gt = rpn_model.placeholders[DtRpnModel.PL_CORR_ANCHORS_OFFSETS]
+        corr_boxes_3d_gt = rpn_model.placeholders[DtRpnModel.PL_LABEL_CORR_BOXES_3D]
+        corr_anchors_gt = rpn_model.placeholders[DtRpnModel.PL_LABEL_CORR_ANCHORS]
 
         if self._box_rep in ['box_3d', 'box_4ca']:
             boxes_3d_gt = [tf.gather(rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D],
@@ -390,7 +395,8 @@ class DtAvodModel(model.DetectionModel):
                 all_cls_softmax[i], mb_mask[i]) for i in range(SAMPLE_SIZE)]
 
             # Offsets
-            mb_offsets = [tf.boolean_mask(all_offsets[i], mb_mask[i]) for i in range(SAMPLE_SIZE)]
+            mb_offsets = [tf.boolean_mask(all_offsets[i], mb_mask[i])
+                          for i in range(SAMPLE_SIZE)]
 
             # Angle Vectors
             mb_angle_vectors = [None]*SAMPLE_SIZE
@@ -412,7 +418,8 @@ class DtAvodModel(model.DetectionModel):
             proposal_boxes_4c = [None]*SAMPLE_SIZE
 
             # Gather corresponding ground truth corr offsets for each mb sample
-            mb_corr_offsets_gt = tf.gather(corr_offsets_gt, mb_gt_indices[0])
+            mb_corr_boxes_3d_gt = tf.gather(corr_boxes_3d_gt, mb_gt_indices[0])
+            mb_corr_anchors_gt = tf.gather(corr_anchors_gt, mb_gt_indices[0])
 
             for i in range(SAMPLE_SIZE):
                 mb_anchors = tf.boolean_mask(top_anchors[i], mb_mask[i])
@@ -422,6 +429,9 @@ class DtAvodModel(model.DetectionModel):
                     mb_anchors_gt[i] = tf.gather(anchors_gt[i], mb_gt_indices[i])
                     mb_offsets_gt[i] = anchor_encoder.tf_anchor_to_offset(
                         mb_anchors, mb_anchors_gt[i])
+
+                    if i == 0:
+                        mb_corr_offsets_gt = mb_corr_anchors_gt
 
                     # Gather corresponding ground truth orientation for each
                     # mb sample
@@ -455,11 +465,13 @@ class DtAvodModel(model.DetectionModel):
 
                     # Convert correlation gt: anchors -> box_3d -> box8c
                     if i == 0:
-                        mb_corr_boxes_3d_gt = box_3d_encoder.anchors_to_box_3d(
-                            mb_corr_offsets_gt, fix_lw=True)
-                        mb_corr_boxes_8c_gt = box_8c_encoder.tf_box_3d_to_box_8c(
-                            mb_corr_boxes_3d_gt)
-                        mb_corr_offsets_gt = tf.reshape(mb_corr_boxes_8c_gt, [-1, 24])
+                        corr_proposal_boxes_3d = \
+                            box_3d_encoder.anchors_to_box_3d(top_anchors[i], fix_lw=True)
+                        corr_proposal_boxes_8c = \
+                            box_8c_encoder.tf_box_3d_to_box_8c(corr_proposal_boxes_3d)
+
+                        # Flatten the offsets to a (N x 24) vector
+                        mb_corr_offsets_gt = tf.reshape(mb_corr_offsets_gt, [-1, 24])
 
                 elif self._box_rep in ['box_4c', 'box_4ca']:
 
@@ -484,12 +496,22 @@ class DtAvodModel(model.DetectionModel):
                     mb_offsets_gt[i] = box_4c_encoder.tf_box_4c_to_offsets(
                         mb_boxes_4c, mb_boxes_4c_gt)
 
-                    # Convert correlation gt: anchors -> box_3d -> box8c
+                    # Convert correlation gt: box_3d -> box8c
                     if i == 0:
-                        mb_corr_boxes_3d_gt = box_3d_encoder.anchors_to_box_3d(
-                            mb_corr_offsets_gt, fix_lw=True)
+                        # Convert gt boxes_3d -> box_4c
                         mb_corr_offsets_gt = box_4c_encoder.tf_box_3d_to_box_4c(
                             mb_corr_boxes_3d_gt, ground_plane)
+
+                        # Convert proposals: anchors -> box_3d -> box_4c
+                        corr_proposal_boxes_3d = \
+                            box_3d_encoder.anchors_to_box_3d(top_anchors[i], fix_lw=True)
+                        corr_proposal_boxes_4c = \
+                            box_4c_encoder.tf_box_3d_to_box_4c(corr_proposal_boxes_3d,
+                                                               ground_plane)
+                        # # Get mini batch
+                        # mb_corr_boxes_4c = tf.boolean_mask(corr_proposal_boxes_4c, mb_mask[0])
+                        # mb_corr_offsets_gt = box_4c_encoder.tf_box_4c_to_offsets(
+                        #                     mb_corr_boxes_4c, mb_corr_boxes_4c_gt)
 
                     if self._box_rep == 'box_4ca':
                         # Gather corresponding ground truth orientation for each
@@ -572,6 +594,9 @@ class DtAvodModel(model.DetectionModel):
                     prediction_anchors = \
                         anchor_encoder.offset_to_anchor(top_anchors[i],
                                                         all_offsets[i])
+                    if i == 0:
+                        prediction_corr_anchors = anchor_encoder.offset_to_anchor(
+                                top_anchors[0], all_offsets[0]+all_corr_offsets)
 
                 elif self._box_rep in ['box_8c', 'box_8co']:
                     # Reshape the 24-dim regressed offsets to (N x 3 x 8)
@@ -589,6 +614,18 @@ class DtAvodModel(model.DetectionModel):
                     prediction_anchors = \
                         box_3d_encoder.tf_box_3d_to_anchor(prediction_boxes_3d)
 
+                    if i == 0:
+                        reshaped_corr_offsets = tf.reshape(all_corr_offsets, [-1, 3, 8])
+
+                        prediction_corr_boxes_8c = box_8c_encoder.tf_offsets_to_box_8c(
+                            corr_proposal_boxes_8c, reshaped_offsets+reshaped_corr_offsets)
+                        prediction_corr_boxes_3d = \
+                            box_8c_encoder.box_8c_to_box_3d(prediction_corr_boxes_8c)
+
+                        # Convert the box_3d to anchor format for nms
+                        prediction_corr_anchors = \
+                            box_3d_encoder.tf_box_3d_to_anchor(prediction_corr_boxes_3d)
+
                 elif self._box_rep in ['box_4c', 'box_4ca']:
                     # Convert predictions box_4c -> box_3d
                     prediction_boxes_4c = \
@@ -602,6 +639,19 @@ class DtAvodModel(model.DetectionModel):
                     # Convert to anchor format for nms
                     prediction_anchors = \
                         box_3d_encoder.tf_box_3d_to_anchor(prediction_boxes_3d)
+
+                    if i == 0:
+                        prediction_corr_boxes_4c = \
+                            box_4c_encoder.tf_offsets_to_box_4c(corr_proposal_boxes_4c,
+                                                    all_corr_offsets + all_offsets[0])
+
+                        prediction_corr_boxes_3d = \
+                            box_4c_encoder.tf_box_4c_to_box_3d(prediction_corr_boxes_4c,
+                                                               ground_plane[i])
+
+                        # Convert to anchor format for nms
+                        prediction_corr_anchors = \
+                            box_3d_encoder.tf_box_3d_to_anchor(prediction_corr_boxes_3d)
 
                 else:
                     raise NotImplementedError('Regression not implemented for',
@@ -633,10 +683,8 @@ class DtAvodModel(model.DetectionModel):
                 top_classification_logits[i] = tf.gather(all_cls_logits[i], nms_indices)
                 top_classification_softmax[i] = tf.gather(all_cls_softmax[i], nms_indices)
                 top_prediction_anchors[i] = tf.gather(prediction_anchors, nms_indices)
-
-                # get correlation offsets after avod NMS
                 if i == 0:
-                    top_corr_offsets = tf.gather(all_corr_offsets, nms_indices)
+                    top_corr_anchors = tf.gather(prediction_corr_anchors, nms_indices)
 
                 if self._box_rep == 'box_3d':
                     top_orientations[i] = tf.gather(all_orientations, nms_indices)
@@ -644,15 +692,26 @@ class DtAvodModel(model.DetectionModel):
                 elif self._box_rep in ['box_8c', 'box_8co']:
                     top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
                     top_prediction_boxes_8c[i] = tf.gather(prediction_boxes_8c, nms_indices)
+                    if i == 0:
+                        top_corr_prediction_boxes_3d = tf.gather(prediction_corr_boxes_3d, nms_indices)
+                        top_corr_prediction_boxes_8c = tf.gather(prediction_corr_boxes_8c, nms_indices)
 
                 elif self._box_rep == 'box_4c':
                     top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
                     top_prediction_boxes_4c[i] = tf.gather(prediction_boxes_4c, nms_indices)
 
+                    if i == 0:
+                        top_corr_prediction_boxes_3d = tf.gather(prediction_corr_boxes_3d, nms_indices)
+                        top_corr_prediction_boxes_4c = tf.gather(prediction_corr_boxes_4c, nms_indices)
+
                 elif self._box_rep == 'box_4ca':
                     top_prediction_boxes_3d[i] = tf.gather(prediction_boxes_3d, nms_indices)
                     top_prediction_boxes_4c[i] = tf.gather(prediction_boxes_4c, nms_indices)
                     top_orientations[i] = tf.gather(all_orientations, nms_indices)
+
+                    if i == 0:
+                        top_corr_prediction_boxes_3d = tf.gather(prediction_corr_boxes_3d, nms_indices)
+                        top_corr_prediction_boxes_4c = tf.gather(prediction_corr_boxes_4c, nms_indices)
 
                 else:
                     raise NotImplementedError('NMS gather not implemented for',
@@ -675,7 +734,7 @@ class DtAvodModel(model.DetectionModel):
             prediction_dict[self.PRED_TOP_CLASSIFICATION_LOGITS] = top_classification_logits
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_anchors
 
             # Mini batch predictions (for debugging)
             prediction_dict[self.PRED_MB_MASK] = mb_mask
@@ -694,7 +753,7 @@ class DtAvodModel(model.DetectionModel):
             # self._train_val_test == 'test'
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_anchors
 
         if self._box_rep == 'box_3d':
             prediction_dict[self.PRED_MB_ANCHORS_GT] = mb_anchors_gt
@@ -711,9 +770,15 @@ class DtAvodModel(model.DetectionModel):
             # Store the corners before converting for visualization purposes
             prediction_dict[self.PRED_TOP_BOXES_8C] = top_prediction_boxes_8c
 
+            prediction_dict[self.PRED_TOP_CORR_PREDICTION_BOXES_3D] = top_corr_prediction_boxes_3d
+            prediction_dict[self.PRED_TOP_CORR_BOXES_8C] = top_corr_prediction_boxes_8c
+
         elif self._box_rep == 'box_4c':
             prediction_dict[self.PRED_TOP_PREDICTION_BOXES_3D] = top_prediction_boxes_3d
             prediction_dict[self.PRED_TOP_BOXES_4C] = top_prediction_boxes_4c
+
+            prediction_dict[self.PRED_TOP_CORR_PREDICTION_BOXES_3D] = top_corr_prediction_boxes_3d
+            prediction_dict[self.PRED_TOP_CORR_BOXES_4C] = top_corr_prediction_boxes_4c
 
         elif self._box_rep == 'box_4ca':
             if self._train_val_test in ['train', 'val']:
@@ -723,6 +788,8 @@ class DtAvodModel(model.DetectionModel):
             prediction_dict[self.PRED_TOP_PREDICTION_BOXES_3D] = top_prediction_boxes_3d
             prediction_dict[self.PRED_TOP_BOXES_4C] = top_prediction_boxes_4c
             prediction_dict[self.PRED_TOP_ORIENTATIONS] = top_orientations
+            prediction_dict[self.PRED_TOP_CORR_PREDICTION_BOXES_3D] = top_corr_prediction_boxes_3d
+            prediction_dict[self.PRED_TOP_CORR_BOXES_4C] = top_corr_prediction_boxes_4c
 
         else:
             raise NotImplementedError('Prediction dict not implemented for',

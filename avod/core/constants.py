@@ -3,6 +3,9 @@ KEY_LABEL_ANCHORS = 'label_anchors'
 KEY_LABEL_CLASSES = 'label_classes'
 KEY_LABEL_MASK = 'label_mask'
 
+KEY_LABEL_CORR_BOXES_3D = 'label_corr_boxes_3d'
+KEY_LABEL_CORR_ANCHORS = 'label_corr_anchors'
+
 KEY_IMAGE_INPUT = 'image_input'
 KEY_BEV_INPUT = 'bev_input'
 
