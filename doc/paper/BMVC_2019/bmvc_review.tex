@@ -30,12 +30,12 @@
 \def\Eg{\emph{E.g}\bmvaOneDot}
 \def\etal{\emph{et al}\bmvaOneDot}
 
+\usepackage{amsfonts,amssymb} 
+
 %-------------------------------------------------------------------------
 % Document starts here
 \begin{document}
-
 \maketitle
-
 \begin{abstract}
 Recent approaches for 3D object detection has made great progresses due to the evolution in deep learning. However, previous works are mostly based on single frame point cloud or image, information between point cloud frames is almost not utilized. In this paper, we try to leverage the temporal information in point cloud flow and explore 3D object detection and tracking based on 3D data flow. Towards this goal, we set up a ConvNet architecture that can associate multi-frame image and LiDAR data to produce accurate 3D detection boxes and trajectories. Notably, a correlation module is introduced to capture object co-occurrences across time, and a multi-task objective for frame-based object detection and across-frame track regression is used, therefore, the network can performs detection and tracking simultaneously. Our proposed architecture is shown to produce competitive results on the KITTI Object tracking datasets. Code and models will be available soon.
 \end{abstract}
@@ -75,6 +75,17 @@ More and more work has been done in 3D object tracking based on tracking by dete
 \label{sec:method}
 In this section we first present the problem statement of point cloud flow detection and tracking (Sec. 3.1), then we will give an overview of the Bi-AVOD approach (Sec. 3.2) that generates detections and tracklets give two adjacent key frames as input. We then introduce the correlation module (Sec. 3.3) that aid the network in the tracking process. Sec. 3.4 shows how we link detections to trajectories and Sec. 3.5 simply introduces evaluation metrics in multiple object tracking.
 
+\begin{figure}
+	\rule{0pt}{1ex}
+	\setlength{\abovecaptionskip}{-1.0cm}
+	\begin{center}
+		\includegraphics[width=\textwidth]{images/Bi-AVOD}
+	\end{center}
+	\caption{Bi-AVOD architecture}
+	\label{fig:bi-avod}
+	\vspace{-0.4cm}
+\end{figure}
+
 \subsection{Problem formulation}
 Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the stream object detection task needs to predict a set of detections $D_f$ for each frame $I_f$. Each detection set $D_f$ consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$). Note that $D_f$ can also be an empty set when no object is detected in a frame. In 3D object detection, Each detection $D^i_f$ is parametrized as $D^i_f = (x^i_f, y^i_f, z^i_f, w^i_f, h^i_f, l^i_f, \theta^i_f, s^i_f)$, where $(x^i_f, y^i_f, z^i_f)$ corresponds to the center (bottom center in KITTI\cite{geiger2013vision} Datasets) of the detection box in point cloud, $(w^i_f, h^i_f, l^i_f)$ corresponds to width, height, length of the detection box, $\theta^i_f$ is the rotation angle in yaw axis and $s^i_f$ is the detectors confidence in the bounding box.
 
@@ -88,16 +99,49 @@ where $W$ is corresponding weight and $\mathcal{F}$ is generation function to pr
 
 With object detections in each frame, multi-object tracking can be implemented by tracking-by-detection paradigm. For each bounding box in each frame, MOT try to associate it to a unique target trajectory $T_k = \{D^k_{f_1}, D^k_{f_2}, ..., D^k_{f_{N_k}}\}$, where $k$ is trajectory id and $N_k$ is the length of $T_k$, $\{f_1, f_2, ..., f_{N_k}\}$ are corresponding frames id.
 
-
 \subsection{Bi-AVOD model structure}
 
+\begin{figure}
+	\setlength{\abovecaptionskip}{-0.5cm}
+	\begin{minipage}[t]{0.5\linewidth}
+		\centering
+		\includegraphics[width=2.2in]{images/AVOD}
+		\caption{AVOD architecture}
+		\label{fig:avod}
+	\end{minipage}%
+	\begin{minipage}[t]{0.5\linewidth}
+		\centering
+		\includegraphics[width=2.2in]{images/Correlation}
+		\caption{Correlation module}
+		\label{fig:correlation}
+	\end{minipage}
+\end{figure}
 
-\subsection{Correlation module for object tracking}
+We aim at performing 3D object detection in point cloud flow, and later apply multi-object tracking using tracking by detection paradigm. We build our Bi-AVOD mainly based on AVOD\cite{ku2018joint}, \figurename .\ref{fig:bi-avod} illustrates our Bi-AVOD architecture. By doubling its input field, we can feed two adjacent key frames simultaneously and obtained corresponding object detection results. Meanwhile, the local displacements can be estimated by computing convolutional cross-correlation between the feature responses of adjacent frames using correlation module. With the predicted bounding boxes of two adjacent key frames and their local displacements, we can implement interpolation algorithms to generate interval bounding boxes for 3D flow detection and develop data association algorithms for 3D object tracking. Note that two \textit{Feature Extractor} and two \textit{AVOD module} in \figurename .\ref{fig:bi-avod} are parameter sharing, thus the increased computational cost comes only from the correlation module. We will simply review the AVOD architecture in this section, and the correlation module will leave to the next section.
 
+AVOD architecture is proposed for 3D object detection in autonomous driving by aggregating front view image and bird eye view (BEV) feature maps (generated by LiDAR data). It is a two stage method and \figurename .\ref{fig:avod} illustrates its architecture. Firstly, it uses feature pyramids based extractors to generate full resolution feature maps from both BEV map and RGB image. Both feature maps are then feed to fusion RPN to generate \textit{Top K} non-oriented region proposals after applied a $1 \times 1$ convolutional layer for dimensionality reduction, note that the default anchors in image and BEV map are generated through 3D anchor grid projection, and ROI Pooling is implemented by \textit{Crop and Resize} operations. Finally, the \textit{Top K} proposals are passed to the detection network for dimension refinement, orientation estimation and category classification. We refer
+the reader to \cite{ku2018joint} for an further explanation of the architecture.
+
+\subsection{Correlation module}
+The correlation module is illustrated in \figurename .\ref{fig:correlation}. It first performs correlation on two image features and two BEV map features respectively. Then similar to the above mentioned RPN, it extracts feature crops via multiview \textit{Crop and Resize} operations guided by \textit{Top K} non-oriented region proposals. The feature crops then feed to fusion module and multiview aggregated features are generated.While the fusion module is identical to the one mentioned in AVOD, which first introduced in MV3D\cite{chen2017multi}, and includes three different fusion schemes, \textit{early fusion}, \textit{late fusion} and \textit{deep fusion}. Finally, the aggregated features are passed to a fully connected layer for regression after NMS.
+
+Similar to FlowNet \cite{dosovitskiy2015flownet}, we restrict correlation to a local neighborhood instead of all possible circular shifts in a feature map, which avoids large output dimensionality and too large displacements. The correlation operation performs point-wise feature comparison of two feature maps $f_t$, $f_{t+\tau}$ by
+
+\begin{equation}
+\mathcal{C}^{t, t+\tau}(i, j, p, q) = \Big \langle f_t(i, j), f_{t+\tau} (i+p, j+q) \Big \rangle 
+\end{equation}
+
+where $p, q \in [-d, d]$ are offsets to compare features in a local square window defined by the maximum displacement $d$, and $i, j$ are the location of window center in feature map. The output is a correlation feature map of size $\mathcal{C} \in \mathbb{R}^{h \times w \times (2d+1) \times (2d+1)}$ where $h, w$ are the height, width of the feature map.
+
+After above operation we get two correlation feature maps, one for point cloud $\mathcal{C}^{t, t+\tau}_{pc}$, and another for RGB image $\mathcal{C}^{t, t+\tau}_{img}$. Later ROI pooling and \textit{early fusion} are performed just as in detection part. Aggregate feature $\mathcal{C}^{t,t+\tau}_{fusion} = \frac{1}{2}(\mathcal{C}^{t, t+\tau}_{pc} + \mathcal{C}^{t, t+\tau}_{img})$ is then flatten and fed to a fully connected layer to predict the transformation
+ $\Delta^{t, t+\tau} = (\Delta^{t,t+\tau}_{x, y, z}, \Delta^{t,t+\tau}_{w, h, l},\Delta^{t,t+\tau}_{r}) \in \mathbb{R}^7$ of the RoIs from $t$ to $t+\tau$. 
+
+\subsection{Multitask detection and correlation objective}
+
+\subsection{Generate intermediate bounding boxes}
 
 \subsection{Link detections to trajectories}
 
-\subsection{Metrics}
 
 %-------------------------------------------------------------------------
 \section{Experiments}

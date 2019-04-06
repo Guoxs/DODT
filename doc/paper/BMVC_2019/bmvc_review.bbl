@@ -1,4 +1,4 @@
-\begin{thebibliography}{26}
+\begin{thebibliography}{27}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -47,6 +47,14 @@ Jifeng Dai, Yi~Li, Kaiming He, and Jian Sun.
   networks.
 \newblock In \emph{Advances in neural information processing systems}, pages
   379--387, 2016.
+
+\bibitem[Dosovitskiy et~al.(2015)Dosovitskiy, Fischer, Ilg, Hausser, Hazirbas,
+  Golkov, Van Der~Smagt, Cremers, and Brox]{dosovitskiy2015flownet}
+Alexey Dosovitskiy, Philipp Fischer, Eddy Ilg, Philip Hausser, Caner Hazirbas,
+  Vladimir Golkov, Patrick Van Der~Smagt, Daniel Cremers, and Thomas Brox.
+\newblock Flownet: Learning optical flow with convolutional networks.
+\newblock In \emph{Proceedings of the IEEE international conference on computer
+  vision}, pages 2758--2766, 2015.
 
 \bibitem[Engelcke et~al.(2017)Engelcke, Rao, Wang, Tong, and
   Posner]{engelcke2017vote3deep}

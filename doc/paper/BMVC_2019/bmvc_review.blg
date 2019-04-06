@@ -23,45 +23,49 @@ Repeated entry---line 261 of file egbib.bib
  : @inproceedings{feichtenhofer2017detect
  :                                       ,
 I'm skipping whatever remains of this entry
-You've used 26 entries,
+Repeated entry---line 296 of file egbib.bib
+ : @article{simonyan2014very
+ :                          ,
+I'm skipping whatever remains of this entry
+You've used 27 entries,
             2773 wiz_defined-function locations,
-            725 strings with 9653 characters,
-and the built_in function-call counts, 16361 in all, are:
-= -- 1509
-> -- 920
-< -- 25
-+ -- 308
-- -- 282
-* -- 1251
-:= -- 2284
-add.period$ -- 84
-call.type$ -- 26
-change.case$ -- 172
-chr.to.int$ -- 26
-cite$ -- 52
-duplicate$ -- 795
-empty$ -- 1313
-format.name$ -- 314
-if$ -- 3630
+            729 strings with 9922 characters,
+and the built_in function-call counts, 17321 in all, are:
+= -- 1590
+> -- 1004
+< -- 26
++ -- 336
+- -- 309
+* -- 1335
+:= -- 2424
+add.period$ -- 87
+call.type$ -- 27
+change.case$ -- 184
+chr.to.int$ -- 27
+cite$ -- 54
+duplicate$ -- 830
+empty$ -- 1370
+format.name$ -- 342
+if$ -- 3835
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 26
-newline$ -- 139
-num.names$ -- 104
-pop$ -- 401
+missing$ -- 27
+newline$ -- 144
+num.names$ -- 108
+pop$ -- 428
 preamble$ -- 1
-purify$ -- 146
+purify$ -- 157
 quote$ -- 0
-skip$ -- 689
+skip$ -- 726
 stack$ -- 0
-substring$ -- 822
-swap$ -- 245
-text.length$ -- 20
+substring$ -- 864
+swap$ -- 258
+text.length$ -- 21
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 286
+type$ -- 297
 warning$ -- 0
-while$ -- 141
+while$ -- 147
 width$ -- 0
-write$ -- 348
-(There were 5 error messages)
+write$ -- 361
+(There were 6 error messages)
