@@ -123,7 +123,7 @@ AVOD architecture is proposed for 3D object detection in autonomous driving by a
 the reader to \cite{ku2018joint} for an further explanation of the architecture.
 
 \subsection{Correlation module}
-The correlation module is illustrated in \figurename .\ref{fig:correlation}. It first performs correlation on two image features and two BEV map features respectively. Then similar to the above mentioned RPN, it extracts feature crops via multiview \textit{Crop and Resize} operations guided by \textit{Top K} non-oriented region proposals. The feature crops then feed to fusion module and multiview aggregated features are generated.While the fusion module is identical to the one mentioned in AVOD, which first introduced in MV3D\cite{chen2017multi}, and includes three different fusion schemes, \textit{early fusion}, \textit{late fusion} and \textit{deep fusion}. Finally, the aggregated features are passed to a fully connected layer for regression after NMS.
+The correlation module is illustrated in \figurename .\ref{fig:correlation}. It first performs correlation on two image features and two BEV map features respectively. Then similar to the above mentioned RPN, it extracts feature crops via multiview \textit{Crop and Resize} operations guided by \textit{Top K} non-oriented region proposals. The feature crops then feed to fusion module and multiview aggregated features are generated. While the fusion module is identical to the one mentioned in AVOD, which first introduced in MV3D\cite{chen2017multi}, and includes three different fusion schemes, \textit{early fusion}, \textit{late fusion} and \textit{deep fusion}. Finally, the aggregated features are passed to a fully connected layer for regression after NMS.
 
 Similar to FlowNet \cite{dosovitskiy2015flownet}, we restrict correlation to a local neighborhood instead of all possible circular shifts in a feature map, which avoids large output dimensionality and too large displacements. The correlation operation performs point-wise feature comparison of two feature maps $f_t$, $f_{t+\tau}$ by
 
@@ -137,10 +137,19 @@ After above operation we get two correlation feature maps, one for point cloud $
  $\Delta^{t, t+\tau} = (\Delta^{t,t+\tau}_{x, y, z}, \Delta^{t,t+\tau}_{w, h, l},\Delta^{t,t+\tau}_{r}) \in \mathbb{R}^7$ of the RoIs from $t$ to $t+\tau$. 
 
 \subsection{Multitask detection and correlation objective}
+We extend the multi-task loss of object detection, consisting of a classification loss $L_{cls}$ and a regression loss $L_{reg}$, with an additional term $L_{corr}$ that scores the displacement regression between objects across two frames. Considering a batch of $N$ RoIs after category balanced sampling, the network predicts softmax probabilities $\{p_i\}^N_{i=1}$, bounding box regression offsets $\{b_i\}^N_{i=1}$, and cross-frame displacement regression $\{\Delta^{t+\tau}_i\}^{N_{corr}}_{i=1}$, the overall objective function is shown as:
 
-\subsection{Generate intermediate bounding boxes}
+\begin{equation}
+\begin{split}
+L(\{p_i\}, \{b_i\}, \{\Delta_i\}) = \frac{1}{N} \sum^N_{i=1} L_{cls}(p_{i, c^*}) 
++ \frac{\alpha}{N_{fg}}\sum^N_{i=1} [c^*_i > 0]L_{reg}(b_i, b^*_i) \\
++ \frac{\beta}{N_{corr}} \sum^{N_{corr}}_{i=1}L_{corr}(\Delta^{t+\tau}_i, \Delta^{*, t+\tau}_i)
+\end{split}
+\end{equation}
 
-\subsection{Link detections to trajectories}
+where $c^*_i$ is the ground truth class label of an RoI and $p_{i, c^*_i}$ is corresponding predicted softmax score. $b^*_i$ is the ground truth bounding box regression target, and $\Delta^{*, t+\tau}_i$ is the displacement regression target. The indicator function $ [c^*_i > 0]$ is 1 for foreground RoIs and 0 for background RoIs. $L_{cls})$ is cross-entropy loss, and $L_{reg}$, $L_{corr}$ are smooth L1 loss \cite{girshick2015fast}. $\alpha$ and $\beta$ are weight for $L_{reg}$ and $L_{corr}$. Note that we only consider the $N_{fg}$ foreground RoIs loss for $L_{reg}$, and $L_{corr}$ is active only for foreground RoIs which have a track correspondence across two key frames. Additionally, For a single target $D_t = (D^{x,y,z}_t, D^{w,h,l}_t, D^r_t) \in \mathbb{R}^7$ in frame $t$ and its track correspondence $D_{t+\tau}$ in frame $t+\tau$, the displacement regression values for the target $ \Delta^{*, t+\tau}_i$ are encoded just like the 3D bounding box in \cite{ku2018joint}.
+
+\subsection{Video detection and tracking}
 
 
 %-------------------------------------------------------------------------

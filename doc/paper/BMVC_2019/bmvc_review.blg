@@ -27,6 +27,10 @@ Repeated entry---line 296 of file egbib.bib
  : @article{simonyan2014very
  :                          ,
 I'm skipping whatever remains of this entry
+Repeated entry---line 311 of file egbib.bib
+ : @inproceedings{girshick2015fast
+ :                                ,
+I'm skipping whatever remains of this entry
 You've used 27 entries,
             2773 wiz_defined-function locations,
             729 strings with 9922 characters,
@@ -68,4 +72,4 @@ warning$ -- 0
 while$ -- 147
 width$ -- 0
 write$ -- 361
-(There were 6 error messages)
+(There were 7 error messages)
