@@ -18,6 +18,15 @@ from avod.core import summary_utils
 
 slim = tf.contrib.slim
 
+def name_in_checkpoint(var):
+    name = var.op.name
+    if 'bev_vgg_pyr' in name:
+        name = name.replace('feature_extractor/', '')
+    elif 'img_vgg_pyr' in name:
+        name = name.replace('feature_extractor/', '')
+    elif 'box_predictor' in name:
+        name = name.replace('avod_fc_layer/', '')
+    return name
 
 def train(model, train_config):
     """Training function for detection models.
@@ -56,6 +65,9 @@ def train(model, train_config):
     checkpoint_path = checkpoint_dir + '/' + \
         model_config.checkpoint_name
 
+    pretrained_checkpoint_dir = checkpoint_dir + \
+        '/../../pyramid_cars_with_aug_example/checkpoints'
+
     global_summaries = set([])
 
     # The model should return a dictionary of predictions
@@ -83,10 +95,6 @@ def train(model, train_config):
             training_optimizer,
             clip_gradient_norm=1.0,
             global_step=global_step_tensor)
-
-    # Save checkpoints regularly.
-    saver = tf.train.Saver(max_to_keep=max_checkpoints,
-                           pad_step_number=True)
 
     # Add the result of the train_op to the summary
     tf.summary.scalar("training_loss", train_op)
@@ -124,35 +132,55 @@ def train(model, train_config):
     logdir = logdir + '/train'
     train_writer = tf.summary.FileWriter(logdir + '/' + datetime_str,
                                          sess.graph)
+    # Save checkpoints regularly.
+    saver = tf.train.Saver(max_to_keep=max_checkpoints,
+                                pad_step_number=True)
 
     # Create init op
     init = tf.global_variables_initializer()
 
     # Continue from last saved checkpoint
     if not train_config.overwrite_checkpoints:
-        trainer_utils.load_checkpoints(checkpoint_dir,
-                                       saver)
+        trainer_utils.load_checkpoints(checkpoint_dir,saver)
         if len(saver.last_checkpoints) > 0:
             checkpoint_to_restore = saver.last_checkpoints[-1]
             saver.restore(sess, checkpoint_to_restore)
         else:
-            # Initialize the variables
+            # load pretrained model
             sess.run(init)
+            if train_config.use_pretrained_model:
+                variable_to_restore = slim.get_model_variables()
+                variable_to_restore = variable_to_restore[:160]
+                variable_to_restore = {name_in_checkpoint(var):
+                                           var for var in variable_to_restore}
+                saver2 = tf.train.Saver(var_list=variable_to_restore)
+                print('Loading pretrained model...')
+                trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver)
+                checkpoint_to_restore = saver.last_checkpoints[-1]
+                saver2.restore(sess, checkpoint_to_restore)
+            else:
+                sess.run(init)
     else:
-        # Initialize the variables
+        # load pretrained model
         sess.run(init)
-
-    # sess = tf_debug.LocalCLIDebugWrapperSession(sess=sess)
+        if train_config.use_pretrained_model:
+            variable_to_restore = slim.get_model_variables()
+            variable_to_restore = variable_to_restore[:160]
+            variable_to_restore = {name_in_checkpoint(var):
+                                       var for var in variable_to_restore}
+            saver2 = tf.train.Saver(var_list=variable_to_restore)
+            print('Loading pretrained model...')
+            trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver)
+            checkpoint_to_restore = saver.last_checkpoints[-1]
+            saver2.restore(sess, checkpoint_to_restore)
+        else:
+            sess.run(init)
 
     # Read the global step if restored
     global_step = tf.train.global_step(sess,
                                        global_step_tensor)
     print('Starting from step {} / {}'.format(
         global_step, max_iterations))
-
-    # add additional options to trace the session execution
-    # options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-    # run_metadata = tf.RunMetadata()
 
     # Main Training Loop
     last_time = time.time()
@@ -171,10 +199,7 @@ def train(model, train_config):
                 step, max_iterations,
                 checkpoint_path, global_step))
 
-        # feed_dict_time = time.time()
-        # Create feed_dict for inferencing
         feed_dict = model.create_feed_dict()
-        # print('feed_dict_time:', time.time()-feed_dict_time)
 
         # Write summaries and train op
         if step % summary_interval == 0:
@@ -184,31 +209,13 @@ def train(model, train_config):
 
             train_op_loss, summary_out = sess.run(
                 [train_op, summary_merged], feed_dict=feed_dict)
-                # options=options, run_metadata=run_metadata)
-
-            # Create the Timeline object, and write it to a json file
-            # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            # chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            # with open('/data/hk1/guoslu/avod/avod/data/outputs/timeline_%d.json'
-            #           % step, 'w+') as f:
-            #     f.write(chrome_trace)
-
             print('Step {}, Total Loss {:0.3f}, Time Elapsed {:0.3f} s'.format(
                  step, train_op_loss, time_elapsed))
             train_writer.add_summary(summary_out, step)
 
         else:
             # Run the train op only
-            # each_sess_time = time.time()
-            sess.run(train_op, feed_dict)#, options=options, run_metadata=run_metadata)
-            # print('each_sess_time:', time.time()-each_sess_time)
-
-            # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            # chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            # with open('/data/hk1/guoslu/avod/avod/data/outputs/timeline_%d.json'
-            #           % step, 'w+') as f:
-            #     f.write(chrome_trace)
-
+            sess.run(train_op, feed_dict)
 
     # Close the summary writers
     train_writer.close()

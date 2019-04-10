@@ -45,9 +45,9 @@ def main(_):
 
     # Defaults
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/avod_tracking_cars_example.config'
+        '/configs/pyramid_cars_with_aug_dt_5_tracking_pretrained.config'
     default_data_split = 'train'
-    default_device = '3'
+    default_device = '1'
 
     parser.add_argument('--pipeline_config',
                         type=str,

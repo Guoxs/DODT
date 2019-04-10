@@ -6,6 +6,7 @@ import avod
 from avod.core import trainer_utils
 import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
+from avod.core.models.avod_model import AvodModel
 from avod.core.models.dt_avod_model import DtAvodModel
 from avod.core.dt_inference_utils import get_avod_pred, \
                                 convert_pred_to_kitti_format
@@ -13,9 +14,9 @@ from avod.core.dt_inference_utils import get_avod_pred, \
 from wavedata.tools.obj_detection.evaluation import three_d_iou
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
-def build_dataset(dataset_config):
+def build_dataset(dataset_config, dataset_name='tracking'):
     # Overwrite the defaults
     dataset_config = config_builder.proto_to_obj(dataset_config)
     dataset_config.data_split = 'test'
@@ -24,21 +25,27 @@ def build_dataset(dataset_config):
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
      # Build the dataset object
-    dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
-                                                     use_defaults=False)
+    if dataset_name == 'tracking':
+        dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
+                                                        use_defaults=False)
+    else:
+        dataset = DatasetBuilder.build_kitti_dataset(dataset_config,
+                                                    use_defaults=False)
     return dataset
 
-def model_setup(model_config):
+def model_setup(model_config, dataset, dataset_name='tracking'):
     # Overwrite repeated field
     model_config = config_builder.proto_to_obj(model_config)
     # Switch path drop off during evaluation
     model_config.path_drop_probabilities = [1.0, 1.0]
-    model = DtAvodModel(model_config, train_val_test='test', dataset=dataset)
+    if dataset_name == 'tracking':
+        model = DtAvodModel(model_config, train_val_test='test', dataset=dataset)
+    else:
+        model = AvodModel(model_config, train_val_test='test', dataset=dataset)
     return model
 
 def create_sesson(model_config, cpkt_idx):
     checkpoint_dir = model_config.paths_config.checkpoint_dir
-
     saver = tf.train.Saver()
     trainer_utils.load_checkpoints(checkpoint_dir, saver)
     checkpoint_to_restore = saver.last_checkpoints[cpkt_idx]
@@ -82,28 +89,42 @@ def cal_iou_mat(kitti_pred1, kitti_pred2, offsets):
         iou_3d[i] = three_d_iou(box3d_1[i], box3d_2)
     return iou_3d
 
+def get_config(checkpoint_name):
+    # Read the config from the experiment folder
+    experiment_config_path = avod.root_dir() + '/data/outputs/' +\
+            checkpoint_name + '/' + checkpoint_name + '.config'
 
-checkpoint_name = 'pyramid_cars_with_aug_dt_tracking_stride_5'
-# Read the config from the experiment folder
-experiment_config_path = avod.root_dir() + '/data/outputs/' +\
-        checkpoint_name + '/' + checkpoint_name + '.config'
+    model_config, _, eval_config, dataset_config = \
+            config_builder.get_configs_from_pipeline_file(
+                experiment_config_path, is_training=False)
+    return model_config, dataset_config
 
-model_config, _, eval_config, dataset_config = \
-        config_builder.get_configs_from_pipeline_file(
-            experiment_config_path, is_training=False)
 
-dataset = build_dataset(dataset_config)
+checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking'
+# checkpoint_name = 'pyramid_cars_with_aug_example'
+dataset_name = 'tracking'
+model_config, dataset_config = get_config(checkpoint_name)
+dataset = build_dataset(dataset_config, dataset_name)
 box_rep = model_config.avod_config.avod_box_representation
 
 with tf.Graph().as_default():
-    model = model_setup(model_config)
+    model = model_setup(model_config, dataset, dataset_name)
     prediction_dict = model.build()
-    sess = create_sesson(model_config, cpkt_idx=107)
-    for i in range(200):
-        feed_dict = model.create_feed_dict(sample_index=i)
-        predictions = sess.run(prediction_dict, feed_dict=feed_dict)
-        pred_frame_kitti_0, pred_frame_kitti_1, corr_offset = \
-            get_kitti_pred(predictions, i, dataset, box_rep)
-        iou_3d = cal_iou_mat(pred_frame_kitti_0, pred_frame_kitti_1, corr_offset)
-        print(iou_3d)
+    sess = create_sesson(model_config, cpkt_idx=70)
+    all_vars = tf.global_variables()
+    for var in all_vars:
+        print(var.eval())
+
+
+
+
+
+
+    # for i in range(200):
+    #     feed_dict = model.create_feed_dict(sample_index=i)
+    #     predictions = sess.run(prediction_dict, feed_dict=feed_dict)
+    #     pred_frame_kitti_0, pred_frame_kitti_1, corr_offset = \
+    #         get_kitti_pred(predictions, i, dataset, box_rep)
+    #     iou_3d = cal_iou_mat(pred_frame_kitti_0, pred_frame_kitti_1, corr_offset)
+    #     print(iou_3d)
 

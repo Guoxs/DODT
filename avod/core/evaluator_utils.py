@@ -217,8 +217,9 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold):
         pred_frame_1, sample_name_1, dataset, threshold)
 
     # frame 1 kitti label after adding offsets
-    corr_offsets = np_file[frame_mask_0][:, 9:-1]
-    # pred_frame_0[:, :3] += corr_offsets
+    corr_offsets = pred_frame_0
+    corr_offsets[:, :7] = np_file[frame_mask_0][:, 9:-1]
+
     pred_frame_kitti_offsets = convert_pred_to_kitti_format(
         corr_offsets, sample_name_0, dataset, threshold)
 

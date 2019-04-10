@@ -44,7 +44,7 @@ class DtEvaluator:
                  skip_evaluated_checkpoints=True,
                  eval_wait_interval=30,
                  do_kitti_native_eval=True,
-                 do_kitti_native_tracking_eval=False):
+                 do_kitti_native_tracking_eval=True):
         """Evaluator class for evaluating model's detection output.
 
         Args:
@@ -1167,7 +1167,12 @@ class DtEvaluator:
             # Predicted orientation from layers
             final_pred_orientations = predictions[DtAvodModel.PRED_TOP_ORIENTATIONS]
 
-            final_pred_all_boxes_3d = final_pred_boxes_3d + final_pred_corr_boxes_3d
+            final_pred_all_boxes_3d = [final_pred_boxes_3d[0],
+                                       final_pred_boxes_3d[1],
+                                       final_pred_corr_boxes_3d]
+            final_pred_orientations = [final_pred_orientations[0],
+                                       final_pred_orientations[1],
+                                       final_pred_orientations[0]]
 
             size = len(final_pred_all_boxes_3d)
 
@@ -1353,6 +1358,7 @@ class DtEvaluator:
         video_frames = self.video_frames
         dataset = self.model.dataset
         # flag for the exist of vaild trajectory
+        os.makedirs(output_dir,exist_ok=True)
         is_empty = True
         for (video_id, frames) in video_frames.items():
             dets_for_track, dets_for_ious = encoder_tracking_dets(

@@ -81,23 +81,23 @@ def evaluate(model_config, eval_config, dataset_config):
 
         if evaluate_repeatedly:
             model_evaluator.repeated_checkpoint_run()
-            # checkpoint_name = 'pyramid_cars_with_aug_dt_tracking_2'
-            # root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
-            #             '/predictions/final_predictions_and_scores/val/1000/'
-            # output_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
-            #             '/predictions/kitti_tracking_native_eval/results/1000/data/'
-            # model_evaluator.run_kitti_native_tracking_eval(root_dir, output_dir, 1000)
         else:
             model_evaluator.run_latest_checkpoints()
+            # checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking'
+            # root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
+            #            '/predictions/final_predictions_and_scores/val/63000/'
+            # output_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
+            #              '/predictions/kitti_tracking_native_eval/results/63000/data/'
+            # model_evaluator.run_kitti_native_tracking_eval(root_dir, output_dir, 63000)
 
 
 def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_10_tracking_2.config'
+        '/configs/pyramid_cars_with_aug_dt_5_tracking_pretrained.config'
 
-    default_device = '3'
+    default_device = '0'
 
     parser.add_argument('--pipeline_config',
                         type=str,
