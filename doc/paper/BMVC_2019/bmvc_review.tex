@@ -73,31 +73,18 @@ More and more work has been done in 3D object tracking based on tracking by dete
 %-------------------------------------------------------------------------
 \section{Methodology}
 \label{sec:method}
-In this section we first present the problem statement of point cloud flow detection and tracking (Sec. 3.1), then we will give an overview of the Bi-AVOD approach (Sec. 3.2) that generates detections and tracklets give two adjacent key frames as input. We then introduce the correlation module (Sec. 3.3) that aid the network in the tracking process. Sec. 3.4 shows how we link detections to trajectories and Sec. 3.5 simply introduces evaluation metrics in multiple object tracking.
+In this section we first give an overview of the Bi-AVOD approach (Sec. 3.1) that generates detections and tracklets given two adjacent key frames as input. We then introduce the correlation module (Sec. 3.2) that aiding the network in the tracking process. Sec. 3.3 shows the multi-task objective function and Sec. 3.4 shows how we implement 3D streaming detection and tracking using prediction results of Bi-AVOD.
 
 \begin{figure}
 	\rule{0pt}{1ex}
 	\setlength{\abovecaptionskip}{-1.0cm}
 	\begin{center}
-		\includegraphics[width=\textwidth]{images/Bi-AVOD}
+		\includegraphics[trim={0cm, 10cm, 3cm, 1cm}, clip, width=\textwidth]{images/Bi-AVOD.pdf}
 	\end{center}
 	\caption{Bi-AVOD architecture}
 	\label{fig:bi-avod}
 	\vspace{-0.4cm}
 \end{figure}
-
-\subsection{Problem formulation}
-Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the stream object detection task needs to predict a set of detections $D_f$ for each frame $I_f$. Each detection set $D_f$ consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$). Note that $D_f$ can also be an empty set when no object is detected in a frame. In 3D object detection, Each detection $D^i_f$ is parametrized as $D^i_f = (x^i_f, y^i_f, z^i_f, w^i_f, h^i_f, l^i_f, \theta^i_f, s^i_f)$, where $(x^i_f, y^i_f, z^i_f)$ corresponds to the center (bottom center in KITTI\cite{geiger2013vision} Datasets) of the detection box in point cloud, $(w^i_f, h^i_f, l^i_f)$ corresponds to width, height, length of the detection box, $\theta^i_f$ is the rotation angle in yaw axis and $s^i_f$ is the detectors confidence in the bounding box.
-
-Because of the redundant features in streaming, we can only compute the object detections in key frames, while the detections in intermediate frames can be calculated using the detections in adjacent two key frames. Support we have two predicted object detections set $(D_f, D_{f+\tau})$ in two consecutive key frames $(I_f, I_{f+\tau})$ where $\tau$ is temporal stride, the detection results $\{D^i_{f+t}\}$ $(t \in \{1, \tau-1\})$ in intermediate frame $D_{f+t}$ can be obtained by:
-
-\begin{equation}
-D^i_{f+t} = \mathcal{F}(W_f D^i_f, W_{f+\tau} D^i_{f+\tau})
-\end{equation}
-
-where $W$ is corresponding weight and $\mathcal{F}$ is generation function to produce $D^i_{f+t}$, in this paper we use quadratic interpolation function. Note that we can utilize (1) to generate $D^i_{f+t}$ only when the target exists in $D_f$ and $D_{f+\tau}$ simultaneously. if the target is emerged or end in intermediate frames, this method would be failed. Though we can develop the key frames selection function carefully to handle this situation, it is beyond the scope of this article. In this paper we focus on the targets that always exist between two key frames.
-
-With object detections in each frame, multi-object tracking can be implemented by tracking-by-detection paradigm. For each bounding box in each frame, MOT try to associate it to a unique target trajectory $T_k = \{D^k_{f_1}, D^k_{f_2}, ..., D^k_{f_{N_k}}\}$, where $k$ is trajectory id and $N_k$ is the length of $T_k$, $\{f_1, f_2, ..., f_{N_k}\}$ are corresponding frames id.
 
 \subsection{Bi-AVOD model structure}
 
@@ -105,13 +92,13 @@ With object detections in each frame, multi-object tracking can be implemented b
 	\setlength{\abovecaptionskip}{-0.5cm}
 	\begin{minipage}[t]{0.5\linewidth}
 		\centering
-		\includegraphics[width=2.2in]{images/AVOD}
+		\includegraphics[trim={0cm, 8cm, 2cm, 0cm}, clip, width=2.2in]{images/AVOD.pdf}
 		\caption{AVOD architecture}
 		\label{fig:avod}
 	\end{minipage}%
 	\begin{minipage}[t]{0.5\linewidth}
 		\centering
-		\includegraphics[width=2.2in]{images/Correlation}
+		\includegraphics[trim={0cm, 9cm, 2cm, 0cm}, clip, width=2.2in]{images/Correlation.pdf}
 		\caption{Correlation module}
 		\label{fig:correlation}
 	\end{minipage}
@@ -149,26 +136,32 @@ L(\{p_i\}, \{b_i\}, \{\Delta_i\}) = \frac{1}{N} \sum^N_{i=1} L_{cls}(p_{i, c^*})
 
 where $c^*_i$ is the ground truth class label of an RoI and $p_{i, c^*_i}$ is corresponding predicted softmax score. $b^*_i$ is the ground truth bounding box regression target, and $\Delta^{*, t+\tau}_i$ is the displacement regression target. The indicator function $ [c^*_i > 0]$ is 1 for foreground RoIs and 0 for background RoIs. $L_{cls})$ is cross-entropy loss, and $L_{reg}$, $L_{corr}$ are smooth L1 loss \cite{girshick2015fast}. $\alpha$ and $\beta$ are weight for $L_{reg}$ and $L_{corr}$. Note that we only consider the $N_{fg}$ foreground RoIs loss for $L_{reg}$, and $L_{corr}$ is active only for foreground RoIs which have a track correspondence across two key frames. Additionally, For a single target $D_t = (D^{x,y,z}_t, D^{w,h,l}_t, D^r_t) \in \mathbb{R}^7$ in frame $t$ and its track correspondence $D_{t+\tau}$ in frame $t+\tau$, the displacement regression values for the target $ \Delta^{*, t+\tau}_i$ are encoded just like the 3D bounding box in \cite{ku2018joint}.
 
-\subsection{Video detection and tracking}
+\subsection{3D streaming detection and tracking}
+Give a streaming point cloud of $N$ frames $\{I_f\}$ for $f \in \{1, ... N\}$, the streaming object detection task needs to predict a set of detections $D_f$ for each frame $I_f$. Each detection set $D_f$ consists of object detections $\{D^i_f\}$ while $i \in \{1,...N_f\}$ ($N_f$ is the number of detections in frame $f$). Note that $D_f$ can also be an empty set when no object is detected in a frame. In 3D object detection, Each detection $D^i_f$ is parametrized as $D^i_f = (x^i_f, y^i_f, z^i_f, w^i_f, h^i_f, l^i_f, \theta^i_f, s^i_f)$, where $(x^i_f, y^i_f, z^i_f)$ corresponds to the center (bottom center in KITTI\cite{geiger2013vision} Datasets) of the detection box in point cloud, $(w^i_f, h^i_f, l^i_f)$ corresponds to width, height, length of the detection box, $\theta^i_f$ is the rotation angle in yaw axis and $s^i_f$ is the detectors confidence in the bounding box.
 
+Because of the redundant features in streaming, we can only compute the object detections in key frames, while the detections in intermediate frames can be calculated using the detections in adjacent two key frames. Support we have two predicted object detections set $(D_f, D_{f+\tau})$ in two consecutive key frames $(I_f, I_{f+\tau})$ where $\tau$ is temporal stride, the detection results $\{D^i_{f+t}\}$ $(t \in \{1, \tau-1\})$ in intermediate frame $D_{f+t}$ can be obtained by:
+
+\begin{equation}
+D^i_{f+t} = \mathcal{F}(W_f D^i_f, W_{f+\tau} D^i_{f+\tau})
+\end{equation}
+
+where $W$ is corresponding weight and $\mathcal{F}$ is generation function to produce $D^i_{f+t}$, in this paper we use quadratic interpolation function. Note that we can utilize (1) to generate $D^i_{f+t}$ only when the target exists in $D_f$ and $D_{f+\tau}$ simultaneously. if the target is emerged or end in intermediate frames, this method would be failed. Though we can develop the key frames selection function carefully to handle this situation, it is beyond the scope of this article. In this paper we focus on the targets that always exist between two key frames.
+
+With object detections in each frame, multi-object tracking can be implemented by tracking-by-detection paradigm. For each bounding box in each frame, MOT try to associate it to a unique target trajectory $T_k = \{D^k_{f_1}, D^k_{f_2}, ..., D^k_{f_{N_k}}\}$, where $k$ is trajectory id and $N_k$ is the length of $T_k$, $\{f_1, f_2, ..., f_{N_k}\}$ are corresponding frames id.
 
 %-------------------------------------------------------------------------
-\section{Experiments}
+\section{Experimental evaluation}
 \label{sec:experiments}
 
-\subsection{KITTI tracking datasets}
+\subsection{Datasets}
+We use the KITTI object tracking Benchmark \cite{geiger2013vision} for evaluation. It consists of 21 training sequences and 29 test sequences with vehicles annotated in 3D. Each sequence includes hundreds of point clouds frames captured by Velodyne HDL-64E rotating 3D laser scanner and corresponding RGB images. We split 21 training sequences into two parts based on the parity of the sequence number, odd number for training and even number for evaluation. For testing ,we train our model in all 21 training sequences.
 
+\subsection{Experiments}
 
-\subsection{Data preprocessing}
-
-
-\subsection{Training and testing}
-
-\subsection{Results}
 
 %-------------------------------------------------------------------------
-\section{Conclusion}
-\label{sec:conclusion}
+\section{Conclusions}
+\label{sec:conclusions}
 
 
 %-------------------------------------------------------------------------
