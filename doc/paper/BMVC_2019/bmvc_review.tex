@@ -3,6 +3,14 @@
 %% Enter your paper number here for the review copy
 \bmvcreviewcopy{??}
 
+\usepackage{amsfonts,amssymb} 
+\usepackage{subfigure}
+\usepackage{booktabs}
+\usepackage{diagbox}
+\usepackage{graphicx}
+\usepackage{multirow}
+
+
 \title{3D Object Detection and tracking in Point Cloud Flow}
 
 % Enter the paper's authors in order
@@ -29,8 +37,6 @@
 \def\eg{\emph{e.g}\bmvaOneDot}
 \def\Eg{\emph{E.g}\bmvaOneDot}
 \def\etal{\emph{et al}\bmvaOneDot}
-
-\usepackage{amsfonts,amssymb} 
 
 %-------------------------------------------------------------------------
 % Document starts here
@@ -154,9 +160,79 @@ With object detections in each frame, multi-object tracking can be implemented b
 \label{sec:experiments}
 
 \subsection{Datasets}
-We use the KITTI object tracking Benchmark \cite{geiger2013vision} for evaluation. It consists of 21 training sequences and 29 test sequences with vehicles annotated in 3D. Each sequence includes hundreds of point clouds frames captured by Velodyne HDL-64E rotating 3D laser scanner and corresponding RGB images. We split 21 training sequences into two parts based on the parity of the sequence number, odd number for training and even number for evaluation. For testing ,we train our model in all 21 training sequences.
+We use the KITTI object tracking Benchmark \cite{geiger2013vision} for evaluation. It consists of 21 training sequences and 29 test sequences with vehicles annotated in 3D. Each sequence includes hundreds of point clouds frames captured by Velodyne HDL-64E rotating 3D laser scanner and corresponding RGB images. We split 21 training sequences into two parts based on the parity of the sequence number, odd number for training and even number for evaluation. For multi-object tracking evaluation, we train our model in all 21 training sequences.
 
-\subsection{Experiments}
+\subsection{Training}
+
+\textbf{Datasets preprocessing.} Like other works based on KITTI, the point cloud is cropped at $[-40, 40] \times [0, 70] \times [0, 2.5]$ meters along $Y, X, Z$ axis respectively to contain points within the field of view of the camera. In KITTI tracking datasets, the observer is an autonomous vehicle, thus the coordinate system between two subsequent frames would be shifted due to the moving of the observer over time. Since the location and velocity information of each frame are available from the IMU data, one can calculate the displacement of the observer between different frames and translate the coordinates accordingly. By this way both point clouds and object labels are on the exact same coordinate system. Note that this approach is important to make the system invariant to the speed of the ego-car.
+
+\textbf{Training and testing.} We train two networks, one for the \textit{Car} class and another for both \textit{Pedestrian} and \textit{Cyclist} classes. We follow most of the super-parameter settings in AVOD\cite{ku2018joint} during training and testing. To be more specific, the network is trained for 120K iterations using an ADAM\cite{kingma2014adam} optimizer with an initial learning rate of 0.0001 that is decayed exponentially every 30K iterations with a decay factor of 0.8. During proposal generation, anchors with IoU less than 0.3 are considered background and greater than 0.5 are object anchors for \textit{Car}. For \textit{Pedestrian} and \textit{Cyclist} classes, the IoU thresholds are 0.3 and 0.45 respectively. To remove redundant proposals, we perform 2D non-maximum suppression(NMS) at an IoU threshold of 0.8 in BEV to keep the top 1024 proposals during training, while at inference time, top 300 proposals are used for \textit{Car} class and top 1024 proposals are kept for \textit{Pedestrian} and \textit{Cyclist} class.
+
+\subsection{Results}
+
+\textbf{3D object detection.} Our work mainly based on 3D object detection, either streaming level detection or multi-object tracking. We train our Bi-AVOD on KITTI tracking datasets, and results are evaluated using KITTI object detection metrics. Since there is no way for us to get object detection performance on KITTI tracking testing datasets, we evaluate our Bi-AVOD on tracking evaluation datasets (described in Sec 4.1) instead. To explore the effectiveness of dual-way structure on object detection performance, we train original AVOD model on tracking datasets for comparison, the results are shown in \tablename .\ref{table:result_detection}. Our Bi-AVOD model is shown to have comparable ability for \textit{easy, moderate, hard} setting on all three classes. This means that the introduces of dual-way model and correlation operation do not reduce model performance on 3D object detection. In pursuit of better network performance, we pre-trained original AVOD model on KITTI object detection datasets, and then migrated relevant parameters to our Bi-AVOD model for further fine-tuned learning on KITTI tracking datasets. By this way a better network is obtained, the results are shown in \tablename .\ref{table:result_detection} where Bi-AVOD* is the fine-tuned model. Compared to Bi-AVOD which trained from scratch, the fine-tuned model outperform by 5.20\% AP on the \textit{moderate} setting and 4.05\% on the \textit{hard} setting respectively.   
+
+\begin{table}[]\centering
+	\small
+	\begin{tabular}{ccccccccc}
+				 &   		   &  											& \multicolumn{3}{c}{$AP_{3D}(\%)$}  		 & \multicolumn{3}{c}{$AP_{BEV}(\%)$} \\ \hline
+		Method   & Runtime (s) & \multicolumn{1}{c|}{Class}  				& Easy & Moderate & \multicolumn{1}{c|}{Hard} & Easy    & Moderate    & Hard    \\ \hline
+		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Car}}  & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Ped.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Cyc.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+	\end{tabular}
+	\setlength{\abovecaptionskip}{1pt}
+	\caption{A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets.}
+	\label{table:result_detection}
+	\vspace{-0.4cm}
+\end{table}
+
+
+\textbf{Streaming level detection.} 
+
+\textbf{Multi-object tracking.}
+
+\begin{table}[]\centering
+	\small
+	\begin{tabular}{ccccccc}
+		\hline
+		Method        & MOTA(\%) & MOTP(\%) & MT(\%) & ML(\%) & IDS & FRAG \\ \hline
+		CEM           & 51.94    & 77.11    & 20.00  & 31.54  & 125 & 396  \\
+		RMOT          & 52.42    & 75.18    & 21.69  & 31.85  & 50  & 376  \\
+		TBD           & 55.07    & 78.35    & 20.46  & 32.62  & 31  & 529  \\
+		mbodSSP       & 56.03    & 77.52    & 23.23  & 27.23  & 0   & 699  \\
+		SCEA          & 57.03    & 78.84    & 26.92  & 26.62  & 17  & 461  \\
+		SSP           & 57.85    & 77.64    & 29.38  & 24.31  & 7   & 704  \\
+		ODAMOT        & 59.23    & 75.45    & 27.08  & 15.54  & 389 & 1274 \\
+		NOMT-HM       & 61.17    & 78.65    & 33.85  & 28.00  & 28  & 241  \\
+		LP-SSVM       & 61.77    & 76.93    & 35.54  & 21.69  & 16  & 422  \\
+		RMOT*         & 65.83    & 75.42    & 40.15  & 9.69   & 209 & 727  \\
+		NOMT          & 66.60    & 78.17    & 41.08  & 25.23  & 13  & 150  \\
+		DCO-X*        & 68.11    & 78.85    & 37.54  & 14.15  & 318 & 959  \\
+		mbodSSP*      & 72.69    & 78.75    & 48.77  & 8.77   & 114 & 858  \\
+		SSP*          & 72.72    & 78.55    & 53.85  & 8.00   & 185 & 932  \\
+		NOMT-HM*      & 75.20    & 80.02    & 50.00  & 13.54  & 105 & 351  \\
+		SCEA*         & 75.58    & 79.39    & 53.08  & 11.54  & 104 & 448  \\
+		MDP           & 76.59    & 82.10    & 52.15  & 13.38  & 130 & 387  \\
+		LP-SSVM*      & 77.63    & 77.80    & 56.31  & 8.46   & 62  & 539  \\
+		NOMT*         & 78.15    & 79.46    & 57.23  & 13.23  & 31  & 207  \\
+		MCMOT-CPD     & 78.90    & 82.13    & 52.31  & 11.69  & 228 & 536  \\
+		DSM           & 76.15    & 83.42    & 60.00  & 8.31   & 296 & 868  \\ \hline
+		Bi-AVOD(ours) & 80.00    & 90.00    & 70.00  & 8.00   & 200 & 500  \\ \hline
+	\end{tabular}
+	\setlength{\abovecaptionskip}{1pt}
+	\caption{Tracking result}
+	\label{label:result_tracking}
+\end{table}
+
+\textbf{Ablation studies.}
+
 
 
 %-------------------------------------------------------------------------

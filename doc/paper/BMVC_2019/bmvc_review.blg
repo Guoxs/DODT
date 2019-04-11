@@ -31,45 +31,45 @@ Repeated entry---line 311 of file egbib.bib
  : @inproceedings{girshick2015fast
  :                                ,
 I'm skipping whatever remains of this entry
-You've used 27 entries,
+You've used 28 entries,
             2773 wiz_defined-function locations,
-            729 strings with 9922 characters,
-and the built_in function-call counts, 17321 in all, are:
-= -- 1590
-> -- 1004
-< -- 26
-+ -- 336
-- -- 309
-* -- 1335
-:= -- 2424
-add.period$ -- 87
-call.type$ -- 27
-change.case$ -- 184
-chr.to.int$ -- 27
-cite$ -- 54
-duplicate$ -- 830
-empty$ -- 1370
-format.name$ -- 342
-if$ -- 3835
+            733 strings with 10040 characters,
+and the built_in function-call counts, 17684 in all, are:
+= -- 1622
+> -- 1025
+< -- 27
++ -- 343
+- -- 315
+* -- 1358
+:= -- 2482
+add.period$ -- 90
+call.type$ -- 28
+change.case$ -- 189
+chr.to.int$ -- 28
+cite$ -- 56
+duplicate$ -- 849
+empty$ -- 1400
+format.name$ -- 351
+if$ -- 3911
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 27
-newline$ -- 144
-num.names$ -- 108
-pop$ -- 428
+missing$ -- 28
+newline$ -- 149
+num.names$ -- 112
+pop$ -- 438
 preamble$ -- 1
-purify$ -- 157
+purify$ -- 161
 quote$ -- 0
-skip$ -- 726
+skip$ -- 742
 stack$ -- 0
-substring$ -- 864
-swap$ -- 258
+substring$ -- 866
+swap$ -- 259
 text.length$ -- 21
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 297
+type$ -- 308
 warning$ -- 0
-while$ -- 147
+while$ -- 150
 width$ -- 0
-write$ -- 361
+write$ -- 373
 (There were 7 error messages)
