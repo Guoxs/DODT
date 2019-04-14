@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.12)  11 APR 2019 23:26
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.12)  14 APR 2019 21:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -681,12 +681,12 @@ BMVC cite {Feichtenhofer, Pinz, and Zisserman} 2017
 BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
 BMVC cite {Lenz, Geiger, and Urtasun} 2015
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 67.
+(Font)              Font shape `T1/ptm/b/n' tried instead on input line 65.
 
 BMVC cite {Zhu, Wang, Dai, Yuan, and Wei} 2017
 BMVC cite {Zhu, Wang, Dai, Yuan, and Wei} 2017
 BMVC cite {Zhu, Dai, Yuan, and Wei} 2018
-Overfull \hbox (1.60434pt too wide) in paragraph at lines 68--69
+Overfull \hbox (1.60434pt too wide) in paragraph at lines 66--67
 \T1/ptm/m/n/10 Video ob-ject de-tec-tion in im-age has re-ceived in-creased at-
 ten-tion since Im-a-geNet VID datasets
  []
@@ -697,79 +697,80 @@ BMVC cite {Chen, Kundu, Zhu, Ma, Fidler, and Urtasun} 2018 BMVC cite {Li} 2017
 BMVC cite {Engelcke, Rao, Wang, Tong, and Posner} 2017
 BMVC cite {Zhou and Tuzel} 2018 BMVC cite {Yang, Luo, and Urtasun} 2018
 BMVC cite {Luo, Yang, and Urtasun} 2018
-BMVC cite {Simon, Milz, Amende, and Gross} 2018
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [2]
+BMVC cite {Simon, Milz, Amende, and Gross} 2018 [2]
 BMVC cite {Qi, Liu, Wu, Su, and Guibas} 2018
 BMVC cite {Chen, Ma, Wan, Li, and Xia} 2017
 BMVC cite {Ren, He, Girshick, and Sun} 2015
 BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
 BMVC cite {Luo, Yang, and Urtasun} 2018 BMVC cite {Frossard and Urtasun} 2018
 BMVC cite {Bochinski, Senst, and Sikora} 2018
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [3]
-<images/Bi-AVOD.pdf, id=126, 910.40125pt x 679.53876pt>
+<images/Bi-AVOD.pdf, id=120, 910.40125pt x 679.53876pt>
 File: images/Bi-AVOD.pdf Graphic file (type pdf)
 
 <use images/Bi-AVOD.pdf>
-Package pdftex.def Info: images/Bi-AVOD.pdf used on input line 88.
+Package pdftex.def Info: images/Bi-AVOD.pdf used on input line 86.
 (pdftex.def)             Requested size: 367.32089pt x 163.19351pt.
- <images/AVOD.pdf, id=128, 660.4675pt x 679.53876pt>
+ <images/AVOD.pdf, id=122, 660.4675pt x 679.53876pt>
 File: images/AVOD.pdf Graphic file (type pdf)
 
 <use images/AVOD.pdf>
-Package pdftex.def Info: images/AVOD.pdf used on input line 101.
+Package pdftex.def Info: images/AVOD.pdf used on input line 99.
 (pdftex.def)             Requested size: 158.99377pt x 119.0471pt.
 
-<images/Correlation.pdf, id=130, 558.085pt x 679.53876pt>
+<images/Correlation.pdf, id=124, 558.085pt x 679.53876pt>
 File: images/Correlation.pdf Graphic file (type pdf)
 
 <use images/Correlation.pdf>
-Package pdftex.def Info: images/Correlation.pdf used on input line 107.
+Package pdftex.def Info: images/Correlation.pdf used on input line 105.
 (pdftex.def)             Requested size: 158.99377pt x 134.33524pt.
-
+ [3]
+BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
 BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018 [4 <./images/Bi-AVOD
 .pdf> <./images/AVOD.pdf> <./images/Correlation.pdf>]
-BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
 BMVC cite {Chen, Ma, Wan, Li, and Xia} 2017
 BMVC cite {Dosovitskiy, Fischer, Ilg, Hausser, Hazirbas, Golkov, Van Der\protec
-t \unhbox \voidb@x \penalty \@M \ {}Smagt, Cremers, and Brox} 2015 [5]
+t \unhbox \voidb@x \penalty \@M \ {}Smagt, Cremers, and Brox} 2015
+Underfull \vbox (badness 2073) has occurred while \output is active []
+
+ [5]
 BMVC cite {Girshick} 2015
 BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
-BMVC cite {Geiger, Lenz, Stiller, and Urtasun} 2013 [6]
 BMVC cite {Geiger, Lenz, Stiller, and Urtasun} 2013
+BMVC cite {Geiger, Lenz, Stiller, and Urtasun} 2013 [6]
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <10> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 167.
+(Font)              Font shape `T1/ptm/b/n' tried instead on input line 165.
 
 BMVC cite {Ku, Mozifian, Lee, Harakeh, and Waslander} 2018
 BMVC cite {Kingma and Ba} 2014 [7]
 
 LaTeX Warning: No positions in optional float specifier.
-               Default added (so using `tbp') on input line 175.
+               Default added (so using `tbp') on input line 173.
 
 
 LaTeX Warning: No positions in optional float specifier.
-               Default added (so using `tbp') on input line 201.
+               Default added (so using `tbp') on input line 194.
 
-(./bmvc_review.bbl [8] [9] [10])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 245.
- [11]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 245.
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `tbp') on input line 221.
+
+[8] (./bmvc_review.bbl [9] [10] [11])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 262.
+ [12]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 262.
  (./bmvc_review.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 245.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 245.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 245.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 262.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 262.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 262.
  ) 
 Here is how much of TeX's memory you used:
- 8656 strings out of 493029
- 120310 string characters out of 6136233
- 249382 words of memory out of 5000000
- 11892 multiletter control sequences out of 15000+600000
- 87300 words of font info for 138 fonts, out of 8000000 for 9000
+ 8653 strings out of 493029
+ 120315 string characters out of 6136233
+ 255550 words of memory out of 5000000
+ 11893 multiletter control sequences out of 15000+600000
+ 83728 words of font info for 132 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,16n,32p,1654b,477s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,16n,32p,1654b,483s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
 e/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist
@@ -783,10 +784,10 @@ texlive/texmf-dist/fonts/type1/urw/symbol/usyr.pfb></usr/share/texlive/texmf-di
 st/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/
 urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8
 a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on bmvc_review.pdf (11 pages, 221378 bytes).
+Output written on bmvc_review.pdf (12 pages, 224072 bytes).
 PDF statistics:
- 365 PDF objects out of 1000 (max. 8388607)
- 275 compressed objects within 3 object streams
- 64 named destinations out of 1000 (max. 500000)
+ 372 PDF objects out of 1000 (max. 8388607)
+ 281 compressed objects within 3 object streams
+ 66 named destinations out of 1000 (max. 500000)
  286 words of extra memory for PDF output out of 10000 (max. 10000000)
 

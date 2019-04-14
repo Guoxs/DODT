@@ -47,6 +47,7 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}}
 \newlabel{sec:related work}{{2}{2}{Related Work}{section.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Video object detection}{2}{subsection.2.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}3D object detection}{2}{subsection.2.2}}
 \citation{qi2018frustum}
 \citation{chen2017multi}
 \citation{ren2015faster}
@@ -54,8 +55,10 @@
 \citation{luo2018fast}
 \citation{frossard2018end}
 \citation{bochinski2018extending}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}3D object detection}{3}{subsection.2.2}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}3D object tracking}{3}{subsection.2.3}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Methodology}{3}{section.3}}
+\newlabel{sec:method}{{3}{3}{Methodology}{section.3}{}}
+\citation{ku2018joint}
 \citation{ku2018joint}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Bi-AVOD architecture}}{4}{figure.1}}
 \newlabel{fig:bi-avod}{{1}{4}{Bi-AVOD architecture}{figure.1}{}}
@@ -63,10 +66,7 @@
 \newlabel{fig:avod}{{2}{4}{AVOD architecture}{figure.2}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Correlation module}}{4}{figure.3}}
 \newlabel{fig:correlation}{{3}{4}{Correlation module}{figure.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Methodology}{4}{section.3}}
-\newlabel{sec:method}{{3}{4}{Methodology}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Bi-AVOD model structure}{4}{subsection.3.1}}
-\citation{ku2018joint}
 \citation{chen2017multi}
 \citation{dosovitskiy2015flownet}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Correlation module}{5}{subsection.3.2}}
@@ -74,8 +74,8 @@
 \citation{girshick2015fast}
 \citation{ku2018joint}
 \citation{geiger2013vision}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}3D streaming detection and tracking}{6}{subsection.3.4}}
 \citation{geiger2013vision}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}3D streaming detection and tracking}{6}{subsection.3.4}}
 \citation{ku2018joint}
 \citation{kingma2014adam}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Experimental evaluation}{7}{section.4}}
@@ -83,24 +83,26 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Datasets}{7}{subsection.4.1}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Training}{7}{subsection.4.2}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Results}{7}{subsection.4.3}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets.}}{8}{table.1}}
+\newlabel{table:result_detection}{{1}{8}{A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Performance comparison of different temporally strides $\tau $ during testing.}}{8}{table.2}}
+\newlabel{table:result_streaming}{{2}{8}{Performance comparison of different temporally strides $\tau $ during testing}{table.2}{}}
 \bibdata{egbib}
 \bibcite{behl2018pointflownet}{{1}{2018}{{Behl et~al.}}{{Behl, Paschalidou, Donn{\'e}, and Geiger}}}
 \bibcite{bochinski2018extending}{{2}{2018}{{Bochinski et~al.}}{{Bochinski, Senst, and Sikora}}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Tracking performance comparison of publicly available methods in the KITTI Tracking Benchmark.}}{9}{table.3}}
+\newlabel{label:result_tracking}{{3}{9}{Tracking performance comparison of publicly available methods in the KITTI Tracking Benchmark}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusions}{9}{section.5}}
+\newlabel{sec:conclusions}{{5}{9}{Conclusions}{section.5}{}}
 \bibcite{7780605}{{3}{2016}{{{Chen} et~al.}}{{{Chen}, {Kundu}, {Zhang}, {Ma}, {Fidler}, and {Urtasun}}}}
 \bibcite{chen2017multi}{{4}{2017}{{Chen et~al.}}{{Chen, Ma, Wan, Li, and Xia}}}
 \bibcite{chen20183d}{{5}{2018}{{Chen et~al.}}{{Chen, Kundu, Zhu, Ma, Fidler, and Urtasun}}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets.}}{8}{table.1}}
-\newlabel{table:result_detection}{{1}{8}{A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusions}{8}{section.5}}
-\newlabel{sec:conclusions}{{5}{8}{Conclusions}{section.5}{}}
 \bibcite{dai2016r}{{6}{2016}{{Dai et~al.}}{{Dai, Li, He, and Sun}}}
 \bibcite{dosovitskiy2015flownet}{{7}{2015}{{Dosovitskiy et~al.}}{{Dosovitskiy, Fischer, Ilg, Hausser, Hazirbas, Golkov, Van Der~Smagt, Cremers, and Brox}}}
 \bibcite{engelcke2017vote3deep}{{8}{2017}{{Engelcke et~al.}}{{Engelcke, Rao, Wang, Tong, and Posner}}}
 \bibcite{feichtenhofer2017detect}{{9}{2017}{{Feichtenhofer et~al.}}{{Feichtenhofer, Pinz, and Zisserman}}}
 \bibcite{frossard2018end}{{10}{2018}{{Frossard and Urtasun}}{{}}}
 \bibcite{geiger2013vision}{{11}{2013}{{Geiger et~al.}}{{Geiger, Lenz, Stiller, and Urtasun}}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Tracking result}}{9}{table.2}}
-\newlabel{label:result_tracking}{{2}{9}{Tracking result}{table.2}{}}
 \bibcite{girshick2015fast}{{12}{2015}{{Girshick}}{{}}}
 \bibcite{he2016deep}{{13}{2016}{{He et~al.}}{{He, Zhang, Ren, and Sun}}}
 \bibcite{kingma2014adam}{{14}{2014}{{Kingma and Ba}}{{}}}
@@ -118,4 +120,4 @@
 \bibcite{zhou2018voxelnet}{{26}{2018}{{Zhou and Tuzel}}{{}}}
 \bibcite{zhu2017flow}{{27}{2017}{{Zhu et~al.}}{{Zhu, Wang, Dai, Yuan, and Wei}}}
 \bibcite{zhu2018towards}{{28}{2018}{{Zhu et~al.}}{{Zhu, Dai, Yuan, and Wei}}}
-\gdef \BMVA@LastPage{11}
+\gdef \BMVA@LastPage{12}

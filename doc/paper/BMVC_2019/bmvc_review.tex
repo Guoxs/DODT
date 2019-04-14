@@ -11,7 +11,7 @@
 \usepackage{multirow}
 
 
-\title{3D Object Detection and tracking in Point Cloud Flow}
+\title{3D Object Detection and Tracking in Streaming Data}
 
 % Enter the paper's authors in order
 % \addauthor{Name}{email/homepage}{INSTITUTION_CODE}
@@ -27,7 +27,7 @@
 	University, GuangZhou, China
 }
 
-\runninghead{XuSen Guo, KaiHuang, SYSU}{3D Object Detection and tracking in Point Cloud Flow}
+\runninghead{XuSen Guo, KaiHuang, SYSU}{3D Object Detection and Tracking in Streaming Data}
 
 % Any macro definitions you would like to include
 % These are not defined in the style file, because they don't begin
@@ -43,24 +43,22 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Recent approaches for 3D object detection has made great progresses due to the evolution in deep learning. However, previous works are mostly based on single frame point cloud or image, information between point cloud frames is almost not utilized. In this paper, we try to leverage the temporal information in point cloud flow and explore 3D object detection and tracking based on 3D data flow. Towards this goal, we set up a ConvNet architecture that can associate multi-frame image and LiDAR data to produce accurate 3D detection boxes and trajectories. Notably, a correlation module is introduced to capture object co-occurrences across time, and a multi-task objective for frame-based object detection and across-frame track regression is used, therefore, the network can performs detection and tracking simultaneously. Our proposed architecture is shown to produce competitive results on the KITTI Object tracking datasets. Code and models will be available soon.
+Recent approaches for 3D object detection have made great progresses due to the evolution in deep learning. However, previous works are mostly based on single frame point cloud or image, information between frames is scarcely explored. In this paper, we try to leverage the temporal information in streaming data and explore 3D object detection and tracking based on multi-frame. Towards this goal, we set up a ConvNet architecture that can associate multi-frame image and LiDAR data to produce accurate 3D detection boxes and trajectories in an end-to-end form. Specially, a correlation module is introduced to capture objects co-occurrences across time, and a multi-task objective for frame-based object detection and across-frame track regression is used. Therefore, the network can perform 3D object detection and tracking simultaneously. Our proposed architecture is shown to produce competitive results on the KITTI Object tracking datasets. Code and models will be available soon.
 \end{abstract}
 
 %-------------------------------------------------------------------------
 \section{Introduction}
-\label{sec:intro}
-A lot of attention has been paid to 3D object detection because of the rapid development of  autonomous driving industry in recent years. Although object detection in images has made tremendous progress due to the emergence of deep learning \cite{krizhevsky2012imagenet, simonyan2014very, he2016deep} and their region based descendants \cite{dai2016r, girshick2015fast, ren2015faster}, extending 2D approaches to 3D scene is extremely hard. This is mainly because of the curse of dimensionality and the sparsity of 3D data. 
+\label{sec:intro} 
+Object detection in 2D images has made tremendous progress due to the emergence of deep learning \cite{krizhevsky2012imagenet, simonyan2014very, he2016deep} and their region based descendants \cite{dai2016r, girshick2015fast, ren2015faster} recently. However, extending 2D approaches to 3D scenes is extremely hard because of the increased computational cost and the difficulties in acquiring 3D data. Even though, many work has been carried out inspired by the rapid development of autonomous driving industry. 
 
-In spite of the difficulty in 3D object detection, many works have been carried out. Recent approaches are usually done in three fronts: image based, point cloud based and fusion of image and point cloud. These methods have achieved remarkable performance but are limited to single frame input, applying existing detection networks on individual frames will loss the consistency and difference between frame and introduce unaffordable computational cost for most applications.
+Recent approaches in 3D object detection are usually done in three fronts: image based, point cloud based and fusion of image and point cloud. These methods have achieved decent performance but are limited to single frame input. Note that streaming data is more natural and straightforward for most driving scenarios, thus fast and accurate 3D object detection in streaming data is crucial for autonomous driving. However, applying existing single frame based approaches directly to streaming data will inevitably loss the consistency and diversity between frames, and also introduce unaffordable computational cost and time for most applications. Therefore, exploring 3D object detection network specifically for streaming data is valuable and important.
 
-Compare to single point cloud frame, point cloud flow data is more natural and straightforward for most situation. Thus Fast and accurate point cloud flow object detection is crucial for autonomous driving. Similar to extend 2D object detection methods to 3D situation, we also can extend video object detection approaches to 3D point cloud flow object detection. 
-
-Most modern computer vision approaches to video object detection require flow estimation, which is a fundamental task in video analysis. For example, a series work in \cite{zhu2017flow,zhu2018towards} associate vision feature and optical flow to build an accurate and end-to-end learning framework for video object detection. However, applying video object detection framework to autonomous driving is hard, because video object detection suffers from motion blur and partial occlusion, which are conventional in driving scenarios. While another choice is to utilize LiDAR data, since point cloud provides an accurate spatial representation of the world allowing for precise positioning of objects of interest, motion blur and occlusion problem can be avoided in 3D object detection. However, LiDAR does not capture appearance well when compared to the richness of images, moreover, accurate 3D scene flow estimation from point clouds is tremendously tough. Although some approaches such as \cite{liu2018learning, behl2018pointflownet} have been presented to learn 3D motion field in the world, it is hard to implementation in large scenes. Thus the challenge is, can we propose an approach that accurately do 3D object detection in point cloud flow without 3D scene flow?
+Similar to extend 2D object detection methods to 3D scenes, we can also try to extend video-based object detection approaches to streaming-based 3D object detection. Most modern computer vision approaches to video object detection based on image and require flow estimation, for example, a series work in \cite{zhu2017flow,zhu2018towards} associates vision feature and optical flow to build an accurate end-to-end learning framework for video object detection. However, performing video-based approach for 3D streaming object detection in autonomous driving will be awful, since video suffers from motion blur and partial occlusion, which are conventional in driving scenarios. While another choice is to use LiDAR data, since point cloud provides an accurate spatial representation of the world allowing for precise positioning of objects of interest, thus motion blur and occlusion problem can be avoided in three-dimensional perspective. However, LiDAR does not capture appearance well when compared to the richness of images, additionally, accurate 3D scene flow estimation from point cloud is tremendously tough. Although some approaches such as \cite{liu2018learning, behl2018pointflownet} have been presented to learn 3D motion field in the world, their performance are limited for large and complex scenes. 
 
 Inspired by \cite{feichtenhofer2017detect}, we transform AVOD \cite{ku2018joint} structure into 
-a two stream network embedding with a correlation module, named Bi-AVOD, which takes two adjacent key frames as input and predicts location and orientation of object as well as their local displacement. Noting that Bi-AVOD is an aggregate view object detection architecture capable of fusing different features in image and point cloud, thus its input includes two adjacent images in front view and two adjacent BEV (bird eye view) from LIDAR data. While the correlation module compute convolutional cross-correlation between the feature responses of adjacent key frames to estimate displacement of the same objects. With local displacement and object orientation, object location in intermediate frames can be calculated by interpolation. Moreover, detections can be linked between frames with the help of local displacement and multiple object tracking can be performed through \textit{tracking by detection} \cite{lenz2015followme}. 
+a dual-way network embedding with a correlation module, named Bi-AVOD, which takes two adjacent key frames as input and predicts location and orientation of object as well as their local displacement. Note that Bi-AVOD is an aggregate view object detection architecture capable of fusing different features in image and point cloud, thus its input includes two adjacent images in front view and two adjacent BEV (bird eye view) from LIDAR data. While the correlation module compute convolutional cross-correlation between the features response of adjacent key frames to estimate displacement of the same objects. With local displacement and object orientation, object location in intermediate frames can be calculated by interpolation. Moreover, object detection boxes can be linked between frames with the help of local displacement, then multiple object tracking can be performed through \textit{tracking by detection} \cite{lenz2015followme}. 
 
-In summary, our contributions are threefold: \textit{(i)} we set up a two stream architecture based on AVOD for simultaneous 3D object detection and tracking; \textit{(ii)} we introduce correlation features to capture object co-occurrences across time and perform frame-level detections in a high speed through interpolation; \textit{(iii)} we utilize tracking result to improve detection performance and preliminary explore the algorithm for key frame selection. 
+In summary, our contributions are threefold: \textit{(i)} we set up a two stream architecture based on AVOD for simultaneous 3D streaming object detection and tracking; \textit{(ii)} we introduce correlation module to capture object co-occurrences across time and perform frame-level 3D object detection in a high speed through interpolation; \textit{(iii)} we utilize tracking result to improve detection performance and preliminary explore the scheme of key frame selection. 
 %-------------------------------------------------------------------------
 \section{Related Work}
 \label{sec:related work}
@@ -170,39 +168,61 @@ We use the KITTI object tracking Benchmark \cite{geiger2013vision} for evaluatio
 
 \subsection{Results}
 
-\textbf{3D object detection.} Our work mainly based on 3D object detection, either streaming level detection or multi-object tracking. We train our Bi-AVOD on KITTI tracking datasets, and results are evaluated using KITTI object detection metrics. Since there is no way for us to get object detection performance on KITTI tracking testing datasets, we evaluate our Bi-AVOD on tracking evaluation datasets (described in Sec 4.1) instead. To explore the effectiveness of dual-way structure on object detection performance, we train original AVOD model on tracking datasets for comparison, the results are shown in \tablename .\ref{table:result_detection}. Our Bi-AVOD model is shown to have comparable ability for \textit{easy, moderate, hard} setting on all three classes. This means that the introduces of dual-way model and correlation operation do not reduce model performance on 3D object detection. In pursuit of better network performance, we pre-trained original AVOD model on KITTI object detection datasets, and then migrated relevant parameters to our Bi-AVOD model for further fine-tuned learning on KITTI tracking datasets. By this way a better network is obtained, the results are shown in \tablename .\ref{table:result_detection} where Bi-AVOD* is the fine-tuned model. Compared to Bi-AVOD which trained from scratch, the fine-tuned model outperform by 5.20\% AP on the \textit{moderate} setting and 4.05\% on the \textit{hard} setting respectively.   
+\textbf{3D object detection.} Our work mainly based on 3D object detection, either streaming level detection or multi-object tracking, thus the network performance on 3D object detection is significant important. We train our Bi-AVOD on KITTI tracking datasets, and results are evaluated using KITTI object detection metrics. Since there is no way for us to get object detection performance on KITTI tracking testing datasets, we evaluate our Bi-AVOD on tracking evaluation datasets (described in Sec 4.1) instead. To explore the effectiveness of dual-way structure on object detection, we train original AVOD model on tracking datasets for comparison, results are shown in \tablename \, \ref{table:result_detection}. Our Bi-AVOD model is shown to have comparable ability for \textit{easy, moderate, hard} setting on all three classes. This means that the introduction of dual-way model and correlation operation do not reduce model performance on 3D object detection. In pursuit of better network performance, we pre-trained original AVOD model on KITTI object detection datasets, and then migrated relevant parameters to our Bi-AVOD model for further fine-tuned learning on KITTI tracking datasets. By this way a better network is obtained, results are shown in \tablename \, \ref{table:result_detection} where Bi-AVOD* is the fine-tuned model. Compared to Bi-AVOD which trained from scratch, the fine-tuned model outperform by 5.20\% AP on the \textit{moderate} setting and 4.05\% on the \textit{hard} setting respectively. 
 
 \begin{table}[]\centering
-	\small
+	\footnotesize
 	\begin{tabular}{ccccccccc}
-				 &   		   &  											& \multicolumn{3}{c}{$AP_{3D}(\%)$}  		 & \multicolumn{3}{c}{$AP_{BEV}(\%)$} \\ \hline
-		Method   & Runtime (s) & \multicolumn{1}{c|}{Class}  				& Easy & Moderate & \multicolumn{1}{c|}{Hard} & Easy    & Moderate    & Hard    \\ \hline
+				 &   		   &  											& \multicolumn{3}{c}{$AP_{3D}(\%)$}  		 & \multicolumn{3}{c}{$AP_{BEV}(\%)$} \\ \toprule[1.5pt]
+		Method   & Runtime (s) & \multicolumn{1}{c|}{Class}  				& Easy & Moderate & \multicolumn{1}{c|}{Hard} & Easy    & Moderate    & Hard    \\ \midrule
 		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Car}}  & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
 		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
-		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \midrule
 		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Ped.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
 		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
-		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \midrule
 		AVOD     & 0.01        & \multicolumn{1}{c|}{\multirow{3}{*}{Cyc.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
 		Bi-AVOD  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
-		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \hline
+		Bi-AVOD* & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		\bottomrule[1.5pt]
 	\end{tabular}
 	\setlength{\abovecaptionskip}{1pt}
 	\caption{A comparison of the performance between original AVOD, our Bi-AVOD and fine-tuned Bi-AVOD* on KITTI tracking evaluation datasets.}
 	\label{table:result_detection}
-	\vspace{-0.4cm}
 \end{table}
 
-
-\textbf{Streaming level detection.} 
-
-\textbf{Multi-object tracking.}
-
 \begin{table}[]\centering
-	\small
+	\footnotesize
+	\begin{tabular}{ccccccccc}
+		&   		   &  											& \multicolumn{3}{c}{$AP_{3D}(\%)$}  		 & \multicolumn{3}{c}{$AP_{BEV}(\%)$} \\ \toprule[1.5pt]
+		Method                & Runtime (s) & \multicolumn{1}{c|}{Class}  				& Easy & Moderate & \multicolumn{1}{c|}{Hard} & Easy    & Moderate    & Hard    \\ \midrule
+		AVOD                  & 0.01        & \multicolumn{1}{c|}{\multirow{4}{*}{Car}}  & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 1)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 3)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 5)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \midrule
+		AVOD                  & 0.01        & \multicolumn{1}{c|}{\multirow{4}{*}{Ped.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 1)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 3)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 5)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\ \midrule
+		AVOD                  & 0.01        & \multicolumn{1}{c|}{\multirow{4}{*}{Cyc.}} & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 1)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 3)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		Bi-AVOD ($\tau$ = 5)  & 0.01        & \multicolumn{1}{c|}{}                      & 0.90 & 0.80     & \multicolumn{1}{c|}{0.70} & 0.80    & 0.70        & 0.60    \\
+		\bottomrule[1.5pt]
+	\end{tabular}
+	\setlength{\abovecaptionskip}{1pt}
+	\caption{Performance comparison of different temporally strides $\tau$ during testing.}
+	\label{table:result_streaming}
+\end{table}
+
+\textbf{Streaming level detection.} Leveraging accurate 3D object detection results of adjacent key frames and corresponding targets displacements, we can perform streaming level 3D object detection on autonomous driving scenarios. This part we investigate the effect of multi-frame input during testing, specifically, we focus on the influence on time and precise of different temporally strides $\tau$. In \tablename \, \ref{table:result_streaming} we see that linking detections to tubes based on corresponding targets displacements results in speed and precision improvements more or less. This gain is mostly for the following reason: if a bounding box is false negative in intermediate frame but is true positive in its two adjacent frames, it will be corrected during linking; on the other hand, a false positive detection will be modified to true positive if it considers as true bounding box in its adjacent frames. Note that a large $\tau$ will leads to a remarkable speed but accuracy decay in detection, there is a treat-off between runtime and precision. Our experiments show that $\tau = 3$ is the best choice on KITTI tracking datasets.
+
+\textbf{Multi-object tracking.} We finally validate the efficacy of our Bi-AVOD network on multi-object tracking task. We compare our model to publicly available methods in the KITTI Tracking Benchmark, the results are listed in \tablename \, \ref{label:result_tracking}. It's shown that our approach is competitive with the start-of-the-art, outperforming all other methods in some of the metrics(best for MOTP and MT, second best for ML) by a large margin. Note that KITTI only evaluates the metrics in 2D, which does not fully represent the performance of our 3D approach. Also we refer the reader to Figure 5 for an visualization example of the multi-object tracking results, more examples are available in Supplementary material.
+\begin{table}[]\centering
+	\footnotesize
 	\begin{tabular}{ccccccc}
-		\hline
-		Method        & MOTA(\%) & MOTP(\%) & MT(\%) & ML(\%) & IDS & FRAG \\ \hline
+		\toprule[1.5pt]
+		Method        & MOTA(\%) & MOTP(\%) & MT(\%) & ML(\%) & IDS & FRAG \\ \midrule
 		CEM           & 51.94    & 77.11    & 20.00  & 31.54  & 125 & 396  \\
 		RMOT          & 52.42    & 75.18    & 21.69  & 31.85  & 50  & 376  \\
 		TBD           & 55.07    & 78.35    & 20.46  & 32.62  & 31  & 529  \\
@@ -223,22 +243,19 @@ We use the KITTI object tracking Benchmark \cite{geiger2013vision} for evaluatio
 		LP-SSVM*      & 77.63    & 77.80    & 56.31  & 8.46   & 62  & 539  \\
 		NOMT*         & 78.15    & 79.46    & 57.23  & 13.23  & 31  & 207  \\
 		MCMOT-CPD     & 78.90    & 82.13    & 52.31  & 11.69  & 228 & 536  \\
-		DSM           & 76.15    & 83.42    & 60.00  & 8.31   & 296 & 868  \\ \hline
-		Bi-AVOD(ours) & 80.00    & 90.00    & 70.00  & 8.00   & 200 & 500  \\ \hline
+		DSM           & 76.15    & 83.42    & 60.00  & 8.31   & 296 & 868  \\ \midrule
+		Bi-AVOD(ours) & 80.00    & 90.00    & 70.00  & 8.00   & 200 & 500  \\ 
+		\bottomrule[1.5pt]
 	\end{tabular}
 	\setlength{\abovecaptionskip}{1pt}
-	\caption{Tracking result}
+	\caption{Tracking performance comparison of publicly available methods in the KITTI Tracking Benchmark.}
 	\label{label:result_tracking}
 \end{table}
-
-\textbf{Ablation studies.}
-
 
 
 %-------------------------------------------------------------------------
 \section{Conclusions}
-\label{sec:conclusions}
-
+\label{sec:conclusions} In this work we proposed Bi-AVOD, a unified framework for simultaneous 3D object detection and tracking in point cloud streaming. The network is a dual-way structure and can  process two frames at a same time, which makes multi-frame detection possible. Meanwhile, embedding with a correlation module to encode the similarity and diversity of adjacent frames, our network can do object detection and tracking in a very efficient way. In multi-object tracking evaluation, our approach achieves accuracy competitive state-of-the-art methods while with a higher speed. In the future, we plan to improve our approach with an adaptive key frame selection algorithm.
 
 %-------------------------------------------------------------------------
 \bibliography{egbib}
