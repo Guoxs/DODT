@@ -609,11 +609,11 @@ class KittiTrackingDataset:
                 d_obj_id = d_label[-1]
                 if obj_id == d_obj_id:
                     match_flag = True
-                    corr_offsets[i] = d_label
+                    corr_offsets[i] = d_label - label
 
             # object does not exist in frame 2
             if not match_flag:
-                corr_offsets[i] = label
+                corr_offsets[i] = - label
         return corr_offsets
 
 

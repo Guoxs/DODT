@@ -36,7 +36,7 @@ def build(layers_config,input_rois, input_weights,
         elif fc_layers_type == 'fusion_fc_layers':
             corr_layers_config = layers_config.fusion_fc_layers
 
-            corr_out = basic_corr_layers(
+            corr_out = fusion_corr_layers(
                 corr_layers_config=corr_layers_config,
                 input_rois=input_rois,
                 input_weights=input_weights,
@@ -178,6 +178,9 @@ def _early_fusion_fc_layers(num_layers, layer_sizes,
             # Use conv2d instead of fully_connected layers.
             fc_layer = slim.fully_connected(fc_drop, layer_sizes[layer_idx],
                                             scope='fc{}'.format(fc_name_idx))
+
+            # fc_layer = slim.conv2d(fc_drop, layer_sizes[layer_idx],
+            #                         [1, 1], scope='fc{}'.format(fc_name_idx))
 
             fc_drop = slim.dropout(
                 fc_layer,

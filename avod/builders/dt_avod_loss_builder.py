@@ -313,7 +313,6 @@ def _get_correlation_loss(model, corr_offsets, corr_offsets_gt,
 
     if model._train_val_test == 'train':
         tf.summary.scalar('correlation_total', corr_loss)
-        tf.summary.scalar('mb_num_positives', num_positives)
 
     return corr_loss
 

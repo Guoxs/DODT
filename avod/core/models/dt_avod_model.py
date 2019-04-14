@@ -431,7 +431,7 @@ class DtAvodModel(model.DetectionModel):
                         mb_anchors, mb_anchors_gt[i])
 
                     if i == 0:
-                        mb_corr_offsets_gt = mb_corr_anchors_gt - mb_anchors_gt[i]
+                        mb_corr_offsets_gt = mb_corr_anchors_gt # - mb_anchors_gt[i]
 
                     # Gather corresponding ground truth orientation for each
                     # mb sample
@@ -474,19 +474,19 @@ class DtAvodModel(model.DetectionModel):
 
                         # Convert proposals: anchors -> box_3d -> box8c
                         corr_proposal_boxes_3d = \
-                            box_3d_encoder.anchors_to_box_3d(top_anchors[i], fix_lw=True)
+                            box_3d_encoder.anchors_to_box_3d(top_anchors[0], fix_lw=True)
                         corr_proposal_boxes_8c = \
                             box_8c_encoder.tf_box_3d_to_box_8c(corr_proposal_boxes_3d)
 
                         # Get mini batch offsets
-                        mb_corr_boxes_8c = tf.boolean_mask(corr_proposal_boxes_8c, mb_mask[i])
+                        mb_corr_boxes_8c = tf.boolean_mask(corr_proposal_boxes_8c, mb_mask[0])
                         mb_corr_offsets_gt = box_8c_encoder.tf_box_8c_to_offsets(
                             mb_corr_boxes_8c, mb_corr_boxes_8c_gt)
 
                         # Flatten the offsets to a (N x 24) vector
                         mb_corr_offsets_gt = tf.reshape(mb_corr_offsets_gt, [-1, 24])
 
-                        mb_corr_offsets_gt = mb_corr_offsets_gt - mb_offsets_gt[i]
+                        # mb_corr_offsets_gt = mb_corr_offsets_gt - mb_offsets_gt[0]
 
 
                 elif self._box_rep in ['box_4c', 'box_4ca']:
@@ -520,33 +520,30 @@ class DtAvodModel(model.DetectionModel):
 
                         # Convert proposals: anchors -> box_3d -> box_4c
                         corr_proposal_boxes_3d = \
-                            box_3d_encoder.anchors_to_box_3d(top_anchors[i], fix_lw=True)
+                            box_3d_encoder.anchors_to_box_3d(top_anchors[0], fix_lw=True)
                         corr_proposal_boxes_4c = \
                             box_4c_encoder.tf_box_3d_to_box_4c(corr_proposal_boxes_3d,
                                                                ground_plane)
 
-                        mb_corr_boxes_4c = tf.boolean_mask(corr_proposal_boxes_4c, mb_mask[i])
+                        mb_corr_boxes_4c = tf.boolean_mask(corr_proposal_boxes_4c, mb_mask[0])
                         mb_corr_offsets_gt = box_4c_encoder.tf_box_4c_to_offsets(
                             mb_corr_boxes_4c, mb_corr_boxes_4c_gt)
 
-                        # mb_ccorr_offsets_gt = tf.log1p(tf.div(mb_corr_offsets_gt,
-                        #                                       mb_offsets_gt[i]))
-
-                        mb_corr_offsets_gt = mb_corr_offsets_gt - mb_offsets_gt[i]
-
+                        # mb_corr_offsets_gt = mb_corr_offsets_gt - mb_offsets_gt[i]
+                        #
                         # norm
-                        mb_w = tf.slice(corr_proposal_boxes_3d, [0, 4], [-1, 1])
-                        mb_l = tf.slice(corr_proposal_boxes_3d, [0, 3], [-1, 1])
-                        mb_h = tf.slice(corr_proposal_boxes_3d, [0, 5], [-1, 1])
-
-                        mb_w = tf.tile(mb_w, tf.constant([1, 4], dtype=tf.int32))
-                        mb_l = tf.tile(mb_l, tf.constant([1, 4], dtype=tf.int32))
-                        mb_h = tf.tile(mb_h, tf.constant([1, 2], dtype=tf.int32))
-
-                        corr_norm = tf.concat([mb_w, mb_l, mb_h], axis=1)
-                        mb_corr_norm = tf.boolean_mask(corr_norm, mb_mask[i])
-
-                        mb_corr_offsets_gt = tf.div(mb_corr_offsets_gt, mb_corr_norm)
+                        # mb_w = tf.slice(corr_proposal_boxes_3d, [0, 4], [-1, 1])
+                        # mb_l = tf.slice(corr_proposal_boxes_3d, [0, 3], [-1, 1])
+                        # mb_h = tf.slice(corr_proposal_boxes_3d, [0, 5], [-1, 1])
+                        #
+                        # mb_w = tf.tile(mb_w, tf.constant([1, 4], dtype=tf.int32))
+                        # mb_l = tf.tile(mb_l, tf.constant([1, 4], dtype=tf.int32))
+                        # mb_h = tf.tile(mb_h, tf.constant([1, 2], dtype=tf.int32))
+                        #
+                        # corr_norm = tf.concat([mb_w, mb_l, mb_h], axis=1)
+                        # mb_corr_norm = tf.boolean_mask(corr_norm, mb_mask[i])
+                        # #
+                        # mb_corr_offsets_gt = tf.div(mb_corr_offsets_gt, mb_corr_norm)
 
                     if self._box_rep == 'box_4ca':
                         # Gather corresponding ground truth orientation for each
@@ -676,8 +673,7 @@ class DtAvodModel(model.DetectionModel):
                         box_3d_encoder.tf_box_3d_to_anchor(prediction_boxes_3d)
 
                     if i == 0:
-
-                        all_corr_offsets = tf.multiply(all_corr_offsets, corr_norm)
+                        # all_corr_offsets = tf.multiply(all_corr_offsets, corr_norm)
                         prediction_corr_boxes_4c = \
                             box_4c_encoder.tf_offsets_to_box_4c(corr_proposal_boxes_4c,
                                                     all_corr_offsets + all_offsets[0])
@@ -880,6 +876,11 @@ class DtAvodModel(model.DetectionModel):
         loss_dict.update({self.LOSS_FINAL_CLASSIFICATION: classification_loss})
         loss_dict.update({self.LOSS_FINAL_REGRESSION: final_reg_loss})
         loss_dict.update({self.LOSS_FINAL_CORRELATION: corr_offsets_loss})
+
+        # add correlation gt
+        loss_dict.update({self.PRED_MB_CORR_OFFSETS_GT:
+                                prediction_dict[self.PRED_MB_CORR_OFFSETS_GT]})
+        loss_dict.update({self.PRED_MB_OFFSETS_GT: prediction_dict[self.PRED_MB_OFFSETS_GT]})
 
         # Add localization and orientation losses to loss dict for plotting
         loss_dict.update({self.LOSS_FINAL_LOCALIZATION: offset_loss_norm})
