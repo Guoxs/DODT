@@ -613,7 +613,8 @@ class KittiTrackingDataset:
 
             # object does not exist in frame 2
             if not match_flag:
-                corr_offsets[i] = - label
+                #corr_offsets[i] = - label
+                corr_offsets[i][-1] = obj_id
         return corr_offsets
 
 
