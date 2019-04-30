@@ -1,4 +1,4 @@
-\begin{thebibliography}{31}
+\begin{thebibliography}{40}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -41,6 +41,12 @@ Xiaozhi Chen, Kaustav Kundu, Yukun Zhu, Huimin Ma, Sanja Fidler, and Raquel
 \newblock \emph{IEEE transactions on pattern analysis and machine
   intelligence}, 40\penalty0 (5):\penalty0 1259--1272, 2018.
 
+\bibitem[Choi(2015)]{Choi2015ICCV}
+Wongun Choi.
+\newblock Near-online multi-target tracking with aggregated local flow
+  descriptor.
+\newblock \emph{ICCV}, 2015.
+
 \bibitem[Dai et~al.(2016)Dai, Li, He, and Sun]{dai2016r}
 Jifeng Dai, Yi~Li, Kaiming He, and Jian Sun.
 \newblock R-fcn: Object detection via region-based fully convolutional
@@ -78,12 +84,24 @@ Davi Frossard and Raquel Urtasun.
 \newblock In \emph{2018 IEEE International Conference on Robotics and
   Automation (ICRA)}, pages 635--642. IEEE, 2018.
 
+\bibitem[Gaidon and Vig(2015)]{Gaidon2015BMVC}
+A.~Gaidon and E.~Vig.
+\newblock {Online Domain Adaptation for Multi-Object Tracking}.
+\newblock In \emph{British Machine Vision Conference (BMVC)}, 2015.
+
 \bibitem[Geiger et~al.(2013)Geiger, Lenz, Stiller, and
   Urtasun]{geiger2013vision}
 Andreas Geiger, Philip Lenz, Christoph Stiller, and Raquel Urtasun.
 \newblock Vision meets robotics: The kitti dataset.
 \newblock \emph{The International Journal of Robotics Research}, 32\penalty0
   (11):\penalty0 1231--1237, 2013.
+
+\bibitem[Geiger et~al.(2014)Geiger, Lauer, Wojek, Stiller, and
+  Urtasun]{Geiger2014PAMI}
+Andreas Geiger, Martin Lauer, Christian Wojek, Christoph Stiller, and Raquel
+  Urtasun.
+\newblock 3d traffic scene understanding from movable platforms.
+\newblock \emph{Pattern Analysis and Machine Intelligence (PAMI)}, 2014.
 
 \bibitem[Girshick(2015)]{girshick2015fast}
 Ross Girshick.
@@ -97,12 +115,6 @@ Wei Han, Pooya Khorrami, Tom~Le Paine, Prajit Ramachandran, Mohammad
   Babaeizadeh, Honghui Shi, Jianan Li, Shuicheng Yan, and Thomas~S Huang.
 \newblock Seq-nms for video object detection.
 \newblock \emph{arXiv preprint arXiv:1602.08465}, 2016.
-
-\bibitem[He et~al.(2016)He, Zhang, Ren, and Sun]{he2016deep}
-Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
-\newblock Deep residual learning for image recognition.
-\newblock In \emph{Proceedings of the IEEE conference on computer vision and
-  pattern recognition}, pages 770--778, 2016.
 
 \bibitem[Kang et~al.(2016)Kang, Ouyang, Li, and Wang]{kang2016object}
 Kai Kang, Wanli Ouyang, Hongsheng Li, and Xiaogang Wang.
@@ -125,13 +137,6 @@ Diederik~P Kingma and Jimmy Ba.
 \newblock Adam: A method for stochastic optimization.
 \newblock \emph{arXiv preprint arXiv:1412.6980}, 2014.
 
-\bibitem[Krizhevsky et~al.(2012)Krizhevsky, Sutskever, and
-  Hinton]{krizhevsky2012imagenet}
-Alex Krizhevsky, Ilya Sutskever, and Geoffrey~E Hinton.
-\newblock Imagenet classification with deep convolutional neural networks.
-\newblock In \emph{Advances in neural information processing systems}, pages
-  1097--1105, 2012.
-
 \bibitem[Ku et~al.(2018)Ku, Mozifian, Lee, Harakeh, and Waslander]{ku2018joint}
 Jason Ku, Melissa Mozifian, Jungwook Lee, Ali Harakeh, and Steven~L Waslander.
 \newblock Joint 3d proposal generation and object detection from view
@@ -139,18 +144,35 @@ Jason Ku, Melissa Mozifian, Jungwook Lee, Ali Harakeh, and Steven~L Waslander.
 \newblock In \emph{2018 IEEE/RSJ International Conference on Intelligent Robots
   and Systems (IROS)}, pages 1--8. IEEE, 2018.
 
-\bibitem[Lenz et~al.(2015)Lenz, Geiger, and Urtasun]{lenz2015followme}
+\bibitem[Lenz et~al.(2015{\natexlab{a}})Lenz, Geiger, and
+  Urtasun]{Lenz2015ICCV}
+Philip Lenz, Andreas Geiger, and Raquel Urtasun.
+\newblock Followme: Efficient online min-cost flow tracking with bounded memory
+  and computation.
+\newblock In \emph{International Conference on Computer Vision (ICCV)},
+  2015{\natexlab{a}}.
+
+\bibitem[Lenz et~al.(2015{\natexlab{b}})Lenz, Geiger, and
+  Urtasun]{lenz2015followme}
 Philip Lenz, Andreas Geiger, and Raquel Urtasun.
 \newblock Followme: Efficient online min-cost flow tracking with bounded memory
   and computation.
 \newblock In \emph{Proceedings of the IEEE International Conference on Computer
-  Vision}, pages 4364--4372, 2015.
+  Vision}, pages 4364--4372, 2015{\natexlab{b}}.
 
 \bibitem[Li(2017)]{li20173d}
 Bo~Li.
 \newblock 3d fully convolutional network for vehicle detection in point cloud.
 \newblock In \emph{2017 IEEE/RSJ International Conference on Intelligent Robots
   and Systems (IROS)}, pages 1513--1518. IEEE, 2017.
+
+\bibitem[Liu et~al.(2016)Liu, Anguelov, Erhan, Szegedy, Reed, Fu, and
+  Berg]{liu2016ssd}
+Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy, Scott Reed,
+  Cheng-Yang Fu, and Alexander~C Berg.
+\newblock Ssd: Single shot multibox detector.
+\newblock In \emph{European conference on computer vision}, pages 21--37.
+  Springer, 2016.
 
 \bibitem[Liu et~al.(2018)Liu, Qi, and Guibas]{liu2018learning}
 Xingyu Liu, Charles~R Qi, and Leonidas~J Guibas.
@@ -164,11 +186,31 @@ Wenjie Luo, Bin Yang, and Raquel Urtasun.
 \newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
   Pattern Recognition}, pages 3569--3577, 2018.
 
+\bibitem[Milan et~al.(2014)Milan, Roth, and Schindler]{Milan2014PAMI}
+A.~Milan, S.~Roth, and K.~Schindler.
+\newblock Continuous energy minimization for multitarget tracking.
+\newblock \emph{IEEE TPAMI}, 36\penalty0 (1):\penalty0 58--72, 2014.
+\newblock ISSN 0162-8828.
+\newblock \doi{10.1109/TPAMI.2013.103}.
+
+\bibitem[Milan et~al.(2013)Milan, Schindler, and Roth]{Milan2013CVPR}
+Anton Milan, Konrad Schindler, and Stefan Roth.
+\newblock Detection- and trajectory-level exclusion in multiple object
+  tracking.
+\newblock In \emph{CVPR}, 2013.
+
 \bibitem[Qi et~al.(2018)Qi, Liu, Wu, Su, and Guibas]{qi2018frustum}
 Charles~R Qi, Wei Liu, Chenxia Wu, Hao Su, and Leonidas~J Guibas.
 \newblock Frustum pointnets for 3d object detection from rgb-d data.
 \newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
   Pattern Recognition}, pages 918--927, 2018.
+
+\bibitem[Redmon et~al.(2016)Redmon, Divvala, Girshick, and
+  Farhadi]{redmon2016you}
+Joseph Redmon, Santosh Divvala, Ross Girshick, and Ali Farhadi.
+\newblock You only look once: Unified, real-time object detection.
+\newblock In \emph{Proceedings of the IEEE conference on computer vision and
+  pattern recognition}, pages 779--788, 2016.
 
 \bibitem[Ren et~al.(2015)Ren, He, Girshick, and Sun]{ren2015faster}
 Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
@@ -184,16 +226,41 @@ Martin Simon, Stefan Milz, Karl Amende, and Horst-Michael Gross.
 \newblock In \emph{European Conference on Computer Vision}, pages 197--209.
   Springer, 2018.
 
-\bibitem[Simonyan and Zisserman(2014)]{simonyan2014very}
-Karen Simonyan and Andrew Zisserman.
-\newblock Very deep convolutional networks for large-scale image recognition.
-\newblock \emph{arXiv preprint arXiv:1409.1556}, 2014.
+\bibitem[Wang and Fowlkes(2016)]{Wang2016IJCV}
+S.~Wang and C.~Fowlkes.
+\newblock Learning optimal parameters for multi-target tracking with contextual
+  interactions.
+\newblock \emph{International Journal of Computer Vision}, 2016.
+\newblock ISSN 1573-1405.
+\newblock \doi{10.1007/s11263-016-0960-z}.
+
+\bibitem[Xiang et~al.(2017)Xiang, Choi, Lin, and
+  Savarese]{xiang2017subcategory}
+Yu~Xiang, Wongun Choi, Yuanqing Lin, and Silvio Savarese.
+\newblock Subcategory-aware convolutional neural networks for object proposals
+  and detection.
+\newblock In \emph{IEEE Winter Conference on Applications of Computer Vision
+  (WACV)}, 2017.
 
 \bibitem[Yang et~al.(2018)Yang, Luo, and Urtasun]{yang2018pixor}
 Bin Yang, Wenjie Luo, and Raquel Urtasun.
 \newblock Pixor: Real-time 3d object detection from point clouds.
 \newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
   Pattern Recognition}, pages 7652--7660, 2018.
+
+\bibitem[Yoon et~al.(2015)Yoon, Yang, Lim, and Yoon]{Yoon2015WACV}
+Ju~Hong Yoon, Ming-Hsuan Yang, Jongwoo Lim, and Kuk-Jin Yoon.
+\newblock Bayesian multi-object tracking using motion context from multiple
+  objects.
+\newblock In \emph{IEEE Winter Conference on Applications of Computer Vision
+  (WACV)}, 2015.
+
+\bibitem[Yoon et~al.(2016)Yoon, Lee, Yang, and Yoon]{Yoon2016CVPR}
+Ju~Hong Yoon, Chang-Ryeol Lee, Ming-Hsuan Yang, and Kuk-Jin Yoon.
+\newblock Online multi-object tracking via structural constraint event
+  aggregation.
+\newblock In \emph{IEEE International Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2016.
 
 \bibitem[Zhou and Tuzel(2018)]{zhou2018voxelnet}
 Yin Zhou and Oncel Tuzel.
