@@ -8,7 +8,7 @@ from multiprocessing import Process
 
 import tensorflow as tf
 
-from avod.core import box_3d_encoder
+from avod.core import box_3d_encoder, box_8c_encoder, box_4c_encoder
 from avod.core import evaluator_utils
 from avod.core import summary_utils
 from avod.core import trainer_utils
@@ -1143,7 +1143,6 @@ class DtEvaluator:
             # Convert anchors + orientation to box_3d
             final_pred_anchors = predictions[DtAvodModel.PRED_TOP_PREDICTION_ANCHORS]
             final_pred_orientations = predictions[DtAvodModel.PRED_TOP_ORIENTATIONS]
-            final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
 
             size = len(final_pred_anchors)
 
@@ -1153,32 +1152,21 @@ class DtEvaluator:
                     final_pred_anchors[i], fix_lw=True)
                 final_pred_boxes_3d[i][:, 6] = final_pred_orientations[i]
 
-            final_pred_corr_boxes_3d = box_3d_encoder.anchors_to_box_3d(
-                final_corr_offsets, fix_lw=True)
-
         elif box_rep in ['box_8c', 'box_8co', 'box_4c']:
             # Predictions are in box_3d format already
             final_pred_boxes_3d = predictions[DtAvodModel.PRED_TOP_PREDICTION_BOXES_3D]
-            final_pred_corr_boxes_3d = predictions[DtAvodModel.PRED_TOP_CORR_PREDICTION_BOXES_3D]
+
         elif box_rep == 'box_4ca':
             # boxes_3d from boxes_4c
             final_pred_boxes_3d = predictions[DtAvodModel.PRED_TOP_PREDICTION_BOXES_3D]
-            final_pred_corr_boxes_3d = predictions[DtAvodModel.PRED_TOP_CORR_PREDICTION_BOXES_3D]
             # Predicted orientation from layers
             final_pred_orientations = predictions[DtAvodModel.PRED_TOP_ORIENTATIONS]
 
-            final_pred_all_boxes_3d = [final_pred_boxes_3d[0],
-                                       final_pred_boxes_3d[1],
-                                       final_pred_corr_boxes_3d]
-            final_pred_orientations = [final_pred_orientations[0],
-                                       final_pred_orientations[1],
-                                       final_pred_orientations[0]]
-
-            size = len(final_pred_all_boxes_3d)
+            size = len(final_pred_boxes_3d)
 
             for i in range(size):
                 # Calculate difference between box_3d and predicted angle
-                ang_diff = final_pred_all_boxes_3d[i][:, 6] - final_pred_orientations[i]
+                ang_diff = final_pred_boxes_3d[i][:, 6] - final_pred_orientations[i]
 
                 # Wrap differences between -pi and pi
                 two_pi = 2 * np.pi
@@ -1198,36 +1186,36 @@ class DtEvaluator:
                 # Rotate 90 degrees if difference between pi/4 and 3/4 pi
                 rot_pos_90_indices = np.logical_and(pi_0_25 < ang_diff,
                                                     ang_diff < pi_0_75)
-                final_pred_all_boxes_3d[i][rot_pos_90_indices] = \
-                    swap_boxes_3d_lw(final_pred_all_boxes_3d[i][rot_pos_90_indices])
-                final_pred_all_boxes_3d[i][rot_pos_90_indices, 6] += pi_0_50
+                final_pred_boxes_3d[i][rot_pos_90_indices] = \
+                    swap_boxes_3d_lw(final_pred_boxes_3d[i][rot_pos_90_indices])
+                final_pred_boxes_3d[i][rot_pos_90_indices, 6] += pi_0_50
 
                 # Rotate -90 degrees if difference between -pi/4 and -3/4 pi
                 rot_neg_90_indices = np.logical_and(-pi_0_25 > ang_diff,
                                                     ang_diff > -pi_0_75)
-                final_pred_all_boxes_3d[i][rot_neg_90_indices] = \
-                    swap_boxes_3d_lw(final_pred_all_boxes_3d[i][rot_neg_90_indices])
-                final_pred_all_boxes_3d[i][rot_neg_90_indices, 6] -= pi_0_50
+                final_pred_boxes_3d[i][rot_neg_90_indices] = \
+                    swap_boxes_3d_lw(final_pred_boxes_3d[i][rot_neg_90_indices])
+                final_pred_boxes_3d[i][rot_neg_90_indices, 6] -= pi_0_50
 
                 # Flip angles if abs difference if greater than or equal to 135
                 # degrees
                 swap_indices = np.abs(ang_diff) >= pi_0_75
-                final_pred_all_boxes_3d[i][swap_indices, 6] += np.pi
+                final_pred_boxes_3d[i][swap_indices, 6] += np.pi
 
                 # Wrap to -pi, pi
-                above_pi_indices = final_pred_all_boxes_3d[i][:, 6] > np.pi
-                final_pred_all_boxes_3d[i][above_pi_indices, 6] -= two_pi
-
-            final_pred_boxes_3d = final_pred_all_boxes_3d[:2]
-            final_pred_corr_boxes_3d = final_pred_all_boxes_3d[-1]
-
+                above_pi_indices = final_pred_boxes_3d[i][:, 6] > np.pi
+                final_pred_boxes_3d[i][above_pi_indices, 6] -= two_pi
         else:
-            raise NotImplementedError('Parse predictions not implemented for',
-                                      box_rep)
+            raise NotImplementedError('Parse predictions not implemented for', box_rep)
+
+        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
+
+        final_pred_corr_boxes_3d = final_pred_boxes_3d[0]
+        final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
+        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
-
 
         corr_mark = np.zeros((final_pred_softmax[1].shape[0],
                               final_pred_corr_boxes_3d.shape[1]))
@@ -1265,20 +1253,32 @@ class DtEvaluator:
 
     def get_avod_predicted_box_corners_and_scores(self, predictions, box_rep):
 
+        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
+        final_pred_boxes_3d = predictions[DtAvodModel.PRED_TOP_PREDICTION_BOXES_3D][0]
+        final_pred_corr_boxes_3d = final_pred_boxes_3d
+        final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
+        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
+
         if box_rep in ['box_8c', 'box_8co']:
             final_pred_box_corners = predictions[DtAvodModel.PRED_TOP_BOXES_8C]
-            final_pred_corr_box_corners = predictions[DtAvodModel.PRED_TOP_CORR_BOXES_8C]
+            #
+            # final_pred_corr_box_corners = box_8c_encoder.tf_box_3d_to_box_8co(
+            #                                 final_pred_corr_boxes_3d)
+
         elif box_rep in ['box_4c', 'box_4ca']:
             final_pred_box_corners = predictions[DtAvodModel.PRED_TOP_BOXES_4C]
-            final_pred_corr_box_corners = predictions[DtAvodModel.PRED_TOP_CORR_BOXES_4C]
+            #
+            # ground_plane = np.array([0, -1, 0, 1.65])
+            # final_pred_corr_box_corners = box_4c_encoder.tf_box_3d_to_box_4c(
+            #                                 final_pred_corr_boxes_3d, ground_plane)
 
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
         # get top correlation offsets
         corr_mark = np.zeros((final_pred_softmax[1].shape[0],
-                              final_pred_corr_box_corners.shape[1]))
-        final_pred_corr_box_corners = [final_pred_corr_box_corners, corr_mark]
+                              final_pred_corr_boxes_3d.shape[1]))
+        final_pred_corr_box_corners = [final_pred_corr_boxes_3d, corr_mark]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]

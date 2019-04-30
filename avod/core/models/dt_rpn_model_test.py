@@ -9,7 +9,7 @@ from avod.builders.dataset_builder import DatasetBuilder
 from avod.core.models.dt_rpn_model  import DtRpnModel
 from avod.protos import pipeline_pb2
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 class DtRpnModelTest(tf.test.TestCase):

@@ -20,7 +20,7 @@ class DatasetBuilder(object):
         data_split="train",
         data_split_dir="training",
         has_labels=True,
-        video_train_id = [0],
+        video_train_id = [1],
         cluster_split="train",
         classes=["Car", "Pedestrian", "Cyclist"],
         num_clusters=[2, 1, 1],

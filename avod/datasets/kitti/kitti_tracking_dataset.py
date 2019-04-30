@@ -528,6 +528,10 @@ class KittiTrackingDataset:
             bev_input = [np.dstack((*height_maps[i], density_map[i]))
                          for i in range(len(bev_images))]
 
+            #bev_input = [np.sum(bev, axis=2)for bev in bev_input]
+            bev_input = np.asarray(bev_input)
+            #bev_input = np.expand_dims(bev_input, axis=2)
+
             # calculate correlation offsets
             label_corr_boxes_3d = self.calculate_corr_offsets(label_boxes_3d)
             label_corr_anchors = self.calculate_corr_offsets(label_anchors)
@@ -558,7 +562,7 @@ class KittiTrackingDataset:
                 constants.KEY_LABEL_CORR_ANCHORS: label_corr_anchors,
 
                 constants.KEY_IMAGE_INPUT: np.asarray(image_input),
-                constants.KEY_BEV_INPUT: np.asarray(bev_input),
+                constants.KEY_BEV_INPUT: bev_input,
 
                 constants.KEY_ANCHORS_INFO: aligned_anchors_info,
                 constants.KEY_ANCHORS_INFO_MASK: anchors_info_mask,
@@ -610,6 +614,7 @@ class KittiTrackingDataset:
                 if obj_id == d_obj_id:
                     match_flag = True
                     corr_offsets[i] = d_label - label
+                    corr_offsets[i][-1] = obj_id
 
             # object does not exist in frame 2
             if not match_flag:

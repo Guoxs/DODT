@@ -279,17 +279,20 @@ def get_road_plane(img_idx, planes_dir):
 
     plane_file = planes_dir + '/%06d.txt' % img_idx
 
-    with open(plane_file, 'r') as input_file:
-        lines = input_file.readlines()
-        input_file.close()
+    if not os.path.exists(plane_file):
+        plane = np.asarray([0, -1, 0, 1.65])
+    else:
+        with open(plane_file, 'r') as input_file:
+            lines = input_file.readlines()
+            input_file.close()
 
-    # Plane coefficients stored in 4th row
-    lines = lines[3].split()
+        # Plane coefficients stored in 4th row
+        lines = lines[3].split()
 
-    # Convert str to float
-    lines = [float(i) for i in lines]
+        # Convert str to float
+        lines = [float(i) for i in lines]
 
-    plane = np.asarray(lines)
+        plane = np.asarray(lines)
 
     #######################################
     # fixed the plane for tracking datasets

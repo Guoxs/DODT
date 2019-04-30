@@ -168,6 +168,7 @@ class BevVggPyr(bev_feature_extractor.BevFeatureExtractor):
                     # Slice off padded area
                     sliced = pyramid_fusion1[:, 4:]
 
+                # feature_maps_out = [sliced, concat3, concat2, concat1]
                 feature_maps_out = sliced
 
                 # Convert end_points_collection into a end_point dict.

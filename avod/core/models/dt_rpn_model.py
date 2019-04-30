@@ -22,7 +22,6 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
-
     # PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
     PL_ANCHORS = 'anchors_pl'
@@ -38,7 +37,7 @@ class DtRpnModel(model.DetectionModel):
     PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
     PL_LABEL_CLASSES = 'label_classes_pl'
     PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
-    PL_LABEL_CORR_ANCHORS = 'corr_label_corr_anchors_pl'
+    PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
 
     PL_LABEL_MASK_A = 'label_mask_a_pl'
     PL_LABEL_MASK_B = 'label_mask_b_pl'
@@ -219,11 +218,8 @@ class DtRpnModel(model.DetectionModel):
             self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES)
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_A)
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_B)
-
-        with tf.variable_scope('correlation_label'):
-            # self._add_placeholder(tf.float32, [None, 6], self.PL_CORR_ANCHORS_OFFSETS)
-            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_CORR_BOXES_3D)
-            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_CORR_ANCHORS)
+            self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
+            self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
@@ -276,6 +272,7 @@ class DtRpnModel(model.DetectionModel):
 
                 scope.reuse_variables()
 
+
         with tf.variable_scope('bev_bottleneck') as scope:
             self.bev_bottleneck = []
             for bev_feature_map in self.bev_feature_maps:
@@ -313,18 +310,90 @@ class DtRpnModel(model.DetectionModel):
         #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
         #                                                  feature_map[0])
 
-    def _correlation_layer(self, bev_feature_maps, img_feature_maps):
+    # def _correlation_layer_v2(self):
+    #     corr_config = self._config.layers_config.correlation_config
+    #     bev_vgg_config = self._config.layers_config.bev_feature_extractor.bev_vgg_pyr
+    #     img_vgg_config = self._config.layers_config.img_feature_extractor.img_vgg_pyr
+    #
+    #     bev_feature_map_0, bev_feature_map_1 = self.bev_pyramid_feature_maps
+    #     img_feature_map_0, img_feature_map_1 = self.img_pyramid_feature_maps
+    #     size = len(bev_feature_map_0)
+    #     with tf.variable_scope('bev_correlation'):
+    #         bev_corr = [None] * size
+    #         for i in range(size):
+    #             bev_corr[i] = correlation(bev_feature_map_0[i], bev_feature_map_1[i],
+    #                                   max_displacement=corr_config.max_displacement,
+    #                                   padding=corr_config.padding)
+    #
+    #         bev_upcorr3 = slim.conv2d_transpose(bev_corr[0], bev_vgg_config.vgg_conv3[1],
+    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
+    #                                             normalizer_params={'is_training': self._is_training},
+    #                                             scope='bev_upcorr3')
+    #
+    #         bev_concat_corr3 = tf.concat((bev_upcorr3, bev_corr[1]), axis=3, name='bev_concat_corr_3')
+    #
+    #         bev_pyramid_fusion2 = slim.conv2d(bev_concat_corr3, bev_vgg_config.vgg_conv2[1],
+    #                                           [3, 3], normalizer_fn=slim.batch_norm,
+    #                                           normalizer_params={'is_training': self._is_training},
+    #                                           scope='bev_pyramid_fusion2')
+    #
+    #         bev_upcorr2 = slim.conv2d_transpose(bev_pyramid_fusion2, bev_vgg_config.vgg_conv2[1],
+    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
+    #                                             normalizer_params={'is_training': self._is_training},
+    #                                             scope='bev_upcorr2')
+    #
+    #         bev_concat_corr2 = tf.concat((bev_upcorr2, bev_corr[2]), axis=3, name='bev_concat_corr_2')
+    #
+    #         bev_pyramid_fusion =  slim.conv2d(bev_concat_corr2, bev_vgg_config.vgg_conv1[1],
+    #                                           [3, 3], normalizer_fn=slim.batch_norm,
+    #                                           normalizer_params={'is_training': self._is_training},
+    #                                           scope='bev_pyramid_fusion')
+    #
+    #         self.bev_corr_feature_maps = bev_pyramid_fusion[:, 4:]
+    #
+    #     with tf.variable_scope('img_correlation'):
+    #         img_corr = [None] * size
+    #         for i in range(size):
+    #             img_corr[i] = correlation(img_feature_map_0[i], img_feature_map_1[i],
+    #                                       max_displacement=corr_config.max_displacement,
+    #                                       padding=corr_config.padding)
+    #
+    #         img_upcorr3 = slim.conv2d_transpose(img_corr[0], img_vgg_config.vgg_conv3[1],
+    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
+    #                                             normalizer_params={'is_training': self._is_training},
+    #                                             scope='img_upcorr3')
+    #
+    #         img_concat_corr3 = tf.concat((img_upcorr3, img_corr[1]), axis=3, name='img_concat_corr_3')
+    #
+    #         img_pyramid_fusion2 = slim.conv2d(img_concat_corr3, img_vgg_config.vgg_conv2[1],
+    #                                           [3, 3], normalizer_fn=slim.batch_norm,
+    #                                           normalizer_params={'is_training': self._is_training},
+    #                                           scope='img_pyramid_fusion2')
+    #
+    #         img_upcorr2 = slim.conv2d_transpose(img_pyramid_fusion2, img_vgg_config.vgg_conv2[1],
+    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
+    #                                             normalizer_params={'is_training': self._is_training},
+    #                                             scope='img_upcorr2')
+    #
+    #         img_concat_corr2 = tf.concat((img_upcorr2, img_corr[2]), axis=3, name='img_concat_corr_2')
+    #
+    #         self.img_corr_feature_maps = slim.conv2d(img_concat_corr2, img_vgg_config.vgg_conv1[1],
+    #                                          [3, 3], normalizer_fn=slim.batch_norm,
+    #                                          normalizer_params={'is_training': self._is_training},
+    #                                          scope='img_pyramid_fusion')
+
+    def _correlation_layer(self):
         corr_config = self._config.layers_config.correlation_config
 
         with tf.variable_scope('bev_correlation'):
             self.bev_corr_feature_maps = correlation(
-                bev_feature_maps[0], bev_feature_maps[1],
+                self.bev_feature_maps[0], self.bev_feature_maps[1],
                 max_displacement=corr_config.max_displacement,
                 padding=corr_config.padding)
 
         with tf.variable_scope('img_correlation'):
             self.img_corr_feature_maps = correlation(
-                img_feature_maps[0],img_feature_maps[1],
+                self.img_feature_maps[0],self.img_feature_maps[1],
                 max_displacement=corr_config.max_displacement,
                 padding=corr_config.padding)
 
@@ -350,7 +419,7 @@ class DtRpnModel(model.DetectionModel):
                                     for i in range(SAMPLE_SIZE)]
 
         # get correlation feature
-        self._correlation_layer(self.bev_feature_maps, self.img_feature_maps)
+        self._correlation_layer()
 
         fusion_mean_div_factor = 2.0
 
@@ -686,6 +755,12 @@ class DtRpnModel(model.DetectionModel):
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
 
+            # debug
+            predictions['bev_corr_map'] = self.bev_corr_feature_maps
+            predictions['img_corr_map'] = self.img_corr_feature_maps
+            # predictions['bev_pyramid_feature_maps'] = self.bev_pyramid_feature_maps
+            # predictions['img_pyramid_feature_maps'] = self.img_pyramid_feature_maps
+
         else:
             # self._train_val_test == 'test'
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
@@ -775,7 +850,6 @@ class DtRpnModel(model.DetectionModel):
         # Network input data
         image_input = couple_sample.get(constants.KEY_IMAGE_INPUT)
         bev_input = couple_sample.get(constants.KEY_BEV_INPUT)
-
         # Image shape (h, w)
         image_shape = [[image.shape[0], image.shape[1]] for image in image_input]
 
@@ -802,8 +876,8 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d[:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
 
-        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, :-1]
-        self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :-1]
+        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
+        self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
 
         self._placeholder_inputs[self.PL_LABEL_MASK_A] = np.where(label_mask == 0)[0]
         self._placeholder_inputs[self.PL_LABEL_MASK_B] = np.where(label_mask == 1)[0]
@@ -997,29 +1071,6 @@ class DtRpnModel(model.DetectionModel):
             raise ValueError('Got run mode {}, and non-empty anchor info'.
                                     format(self._train_val_test))
 
-
-        # if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
-        #     # select the anchors that its box_id exist in both frames
-        #     self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
-        #         np.zeros([len(bev_anchors_all[0]), 6], dtype=np.float32)
-        #
-        #     anchor_idx_a = anchors_info[0][anchors_mask[0]]
-        #     anchor_idx_b = anchors_info[0][anchors_mask[1]]
-        #
-        #
-        #     common_rois_ids = list(set(anchor_idx_a).intersection(set(anchor_idx_b)))
-        #     common_rois_ids.sort()
-        #     common_rois_ids_a = np.searchsorted(anchor_idx_a, common_rois_ids)
-        #     common_rois_ids_b = np.searchsorted(anchor_idx_b, common_rois_ids)
-        #
-        #
-        #     self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS][common_rois_ids_a] = \
-        #         anchor_offsets[anchors_mask[1]][common_rois_ids_b] - \
-        #         anchor_offsets[anchors_mask[0]][common_rois_ids_a]
-        # else:
-        #     self._placeholder_inputs[self.PL_CORR_ANCHORS_OFFSETS] = \
-        #         np.zeros([len(bev_anchors_all[0]), 6], dtype=np.float32)
-
         self._placeholder_inputs[self.PL_ANCHORS_MASK_A] = anchors_mask[0]
         self._placeholder_inputs[self.PL_ANCHORS_MASK_B] = anchors_mask[1]
 
@@ -1086,6 +1137,10 @@ class DtRpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
+            "bev_corr_map": prediction_dict["bev_corr_map"],
+            "img_corr_map": prediction_dict["img_corr_map"],
+            # 'bev_pyramid_feature_maps' : prediction_dict["bev_pyramid_feature_maps"],
+            # 'img_pyramid_feature_maps' : prediction_dict["img_pyramid_feature_maps"]
         }
 
         return loss_dict, total_loss

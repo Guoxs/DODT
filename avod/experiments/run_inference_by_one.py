@@ -1,4 +1,6 @@
 import os
+import time
+
 import numpy as np
 import tensorflow as tf
 
@@ -14,7 +16,7 @@ from avod.core.dt_inference_utils import get_avod_pred, \
 from wavedata.tools.obj_detection.evaluation import three_d_iou
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 def build_dataset(dataset_config, dataset_name='tracking'):
     # Overwrite the defaults
@@ -100,7 +102,7 @@ def get_config(checkpoint_name):
     return model_config, dataset_config
 
 
-checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking'
+checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_test'
 # checkpoint_name = 'pyramid_cars_with_aug_example'
 dataset_name = 'tracking'
 model_config, dataset_config = get_config(checkpoint_name)
@@ -110,21 +112,18 @@ box_rep = model_config.avod_config.avod_box_representation
 with tf.Graph().as_default():
     model = model_setup(model_config, dataset, dataset_name)
     prediction_dict = model.build()
-    sess = create_sesson(model_config, cpkt_idx=70)
-    all_vars = tf.global_variables()
-    for var in all_vars:
-        print(var.eval())
+    sess = create_sesson(model_config, cpkt_idx=10)
+    times = []
+    for i in range(200):
+        feed_dict = model.create_feed_dict(sample_index=i)
+        start = time.time()
+        predictions = sess.run(prediction_dict, feed_dict=feed_dict)
+        end = time.time()
+        times.append(end-start)
+        # pred_frame_kitti_0, pred_frame_kitti_1, corr_offset = \
+        #     get_kitti_pred(predictions, i, dataset, box_rep)
+        # iou_3d = cal_iou_mat(pred_frame_kitti_0, pred_frame_kitti_1, corr_offset)
+        # print(iou_3d)
+    print(np.min(times))
 
-
-
-
-
-
-    # for i in range(200):
-    #     feed_dict = model.create_feed_dict(sample_index=i)
-    #     predictions = sess.run(prediction_dict, feed_dict=feed_dict)
-    #     pred_frame_kitti_0, pred_frame_kitti_1, corr_offset = \
-    #         get_kitti_pred(predictions, i, dataset, box_rep)
-    #     iou_3d = cal_iou_mat(pred_frame_kitti_0, pred_frame_kitti_1, corr_offset)
-    #     print(iou_3d)
 

@@ -95,7 +95,7 @@ def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_5_tracking_pretrained.config'
+        '/configs/pyramid_cars_with_aug_dt_10_tracking_test.config'
 
     default_device = '0'
 

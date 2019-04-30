@@ -87,7 +87,7 @@ def anim(point_clouds, labels, boxes_id, plt):
             yield
 
 
-config_name = 'pyramid_cars_with_aug_dt_tracking_2'
+config_name = 'pyramid_cars_with_aug_dt_5_tracking_test'
 # Read the config from the config folder
 experiment_config_path = avod.root_dir() + '/configs/' + \
                          config_name + '.config'

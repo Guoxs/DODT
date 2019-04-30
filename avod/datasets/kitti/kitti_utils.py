@@ -43,7 +43,7 @@ class KittiUtils(object):
 
         self._density_threshold = self.config.density_threshold
 
-        # Check that depth maps folder exists
+        # Check that depth maps folder existslabel_class
         if self.bev_source == 'depth' and \
                 not os.path.exists(self.dataset.depth_dir):
             raise FileNotFoundError(

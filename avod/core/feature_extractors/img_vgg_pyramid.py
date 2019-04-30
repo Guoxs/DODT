@@ -167,6 +167,7 @@ class ImgVggPyr(img_feature_extractor.ImgFeatureExtractor):
                             'is_training': is_training},
                         scope='pyramid_fusion1')
 
+                # feature_maps_out = [pyramid_fusion1, concat3, concat2, concat1]
                 feature_maps_out = pyramid_fusion1
 
                 # Convert end_points_collection into a end_point dict.

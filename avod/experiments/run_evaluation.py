@@ -79,6 +79,8 @@ def evaluate(model_config, eval_config, dataset_config):
                                     dataset_config,
                                     eval_config)
 
+        # model_evaluator.run_kitti_native_eval(120000)
+
         if evaluate_repeatedly:
             model_evaluator.repeated_checkpoint_run()
         else:
@@ -89,7 +91,9 @@ def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/avod_cars_example.config'
+        '/configs/pyramid_cars_with_aug_tracking_trainval.config'
+
+    default_device = '0'
 
     parser.add_argument('--pipeline_config',
                         type=str,
@@ -100,13 +104,13 @@ def main(_):
     parser.add_argument('--data_split',
                         type=str,
                         dest='data_split',
-                        default='val',
+                        default='test',
                         help='Data split for evaluation')
 
     parser.add_argument('--device',
                         type=str,
                         dest='device',
-                        default='0',
+                        default=default_device,
                         help='CUDA device id')
 
     args = parser.parse_args()

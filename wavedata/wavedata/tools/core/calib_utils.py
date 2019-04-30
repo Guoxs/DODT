@@ -119,6 +119,7 @@ def read_calibration(calib_dir, img_idx):
     data = []
 
     for row in data_reader:
+        row = [i for i in row if i != '']
         data.append(row)
 
     data_file.close()

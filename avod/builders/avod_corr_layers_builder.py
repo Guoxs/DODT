@@ -4,8 +4,7 @@ from tensorflow.contrib import slim
 from avod.core.avod_fc_layers import avod_fc_layer_utils
 
 
-def build(layers_config,input_rois, input_weights,
-          box_rep, is_training):
+def build(layers_config,input_rois, input_weights, is_training):
     """Builds second stage fully connected layers
 
     Args:
@@ -29,7 +28,6 @@ def build(layers_config,input_rois, input_weights,
                     corr_layers_config=corr_layers_config,
                     input_rois=input_rois,
                     input_weights=input_weights,
-                    box_rep=box_rep,
                     is_training=is_training)
 
 
@@ -40,7 +38,6 @@ def build(layers_config,input_rois, input_weights,
                 corr_layers_config=corr_layers_config,
                 input_rois=input_rois,
                 input_weights=input_weights,
-                box_rep=box_rep,
                 is_training=is_training)
         else:
             raise ValueError('Invalid fc layers config')
@@ -48,8 +45,8 @@ def build(layers_config,input_rois, input_weights,
     return corr_out
 
 
-def basic_corr_layers(corr_layers_config, input_rois,
-                      input_weights, box_rep, is_training):
+def basic_corr_layers(corr_layers_config, input_rois, input_weights, is_training):
+
     fusion_method = corr_layers_config.fusion_method
     num_layers = corr_layers_config.num_layers
     layer_sizes = corr_layers_config.layer_sizes
@@ -85,21 +82,17 @@ def basic_corr_layers(corr_layers_config, input_rois,
 
             fc_name_idx += 1
 
-        corr_out_size = avod_fc_layer_utils.OFFSETS_OUTPUT_SIZE[box_rep]
-        if corr_out_size > 0:
-            corr_out = slim.fully_connected(fc_drop,
-                                             corr_out_size,
-                                             activation_fn=None,
-                                             scope='off_out')
-        else:
-            corr_out = None
-
+        # [delta_x, delta_y, delta_z, delta_ry]
+        corr_out_size = 4
+        corr_out = slim.fully_connected(fc_drop,
+                                            corr_out_size,
+                                            activation_fn=None,
+                                            scope='off_out')
     return corr_out
 
 
 
-def fusion_corr_layers(corr_layers_config, input_rois,
-                      input_weights, box_rep, is_training):
+def fusion_corr_layers(corr_layers_config, input_rois, input_weights, is_training):
     # Parse configs
     fusion_type = corr_layers_config.fusion_type
     fusion_method = corr_layers_config.fusion_method
@@ -124,7 +117,6 @@ def fusion_corr_layers(corr_layers_config, input_rois,
                                     fusion_method=fusion_method,
                                     l2_weight_decay=l2_weight_decay,
                                     keep_prob=keep_prob,
-                                    box_rep=box_rep,
                                     is_training=is_training)
     elif fusion_type == 'late':
         corr_out = _late_fusion_fc_layers(num_layers=num_layers,
@@ -134,7 +126,6 @@ def fusion_corr_layers(corr_layers_config, input_rois,
                                            fusion_method=fusion_method,
                                            l2_weight_decay=l2_weight_decay,
                                            keep_prob=keep_prob,
-                                           box_rep=box_rep,
                                            is_training=is_training)
     elif fusion_type == 'deep':
         corr_out = _deep_fusion_fc_layers(num_layers=num_layers,
@@ -144,7 +135,6 @@ def fusion_corr_layers(corr_layers_config, input_rois,
                                            fusion_method=fusion_method,
                                            l2_weight_decay=l2_weight_decay,
                                            keep_prob=keep_prob,
-                                           box_rep=box_rep,
                                            is_training=is_training)
     else:
         raise ValueError('Invalid fusion type {}'.format(fusion_type))
@@ -154,7 +144,7 @@ def fusion_corr_layers(corr_layers_config, input_rois,
 
 def _early_fusion_fc_layers(num_layers, layer_sizes,
                             input_rois, input_weights, fusion_method,
-                            l2_weight_decay, keep_prob, box_rep, is_training):
+                            l2_weight_decay, keep_prob, is_training):
     if not num_layers == len(layer_sizes):
         raise ValueError('num_layers does not match length of layer_sizes')
 
@@ -191,20 +181,17 @@ def _early_fusion_fc_layers(num_layers, layer_sizes,
             fc_name_idx += 1
 
         # correlation out
-        corr_out_size = avod_fc_layer_utils.OFFSETS_OUTPUT_SIZE[box_rep]
-        if corr_out_size > 0:
-            corr_out = slim.fully_connected(fc_drop,
-                                           corr_out_size,
-                                           activation_fn=None,
-                                           scope='off_out')
-        else:
-            corr_out = None
-
+        # [delta_x, delta_y, delta_z, delta_ry]
+        corr_out_size = 4
+        corr_out = slim.fully_connected(fc_drop,
+                                        corr_out_size,
+                                        activation_fn=None,
+                                        scope='off_out')
     return corr_out
 
 def _late_fusion_fc_layers(num_layers, layer_sizes,
                            input_rois, input_weights, fusion_method,
-                           l2_weight_decay, keep_prob, box_rep, is_training):
+                           l2_weight_decay, keep_prob, is_training):
     if l2_weight_decay > 0:
         weights_regularizer = slim.l2_regularizer(l2_weight_decay)
     else:
@@ -246,21 +233,18 @@ def _late_fusion_fc_layers(num_layers, layer_sizes,
                                                             input_weights)
 
         # correlation out
-        corr_out_size = avod_fc_layer_utils.OFFSETS_OUTPUT_SIZE[box_rep]
-        if corr_out_size > 0:
-            corr_out = slim.fully_connected(fused_features,
-                                            corr_out_size,
-                                            activation_fn=None,
-                                            scope='off_out')
-        else:
-            corr_out = None
-
+        # [delta_x, delta_y, delta_z, delta_ry]
+        corr_out_size = 4
+        corr_out = slim.fully_connected(fused_features,
+                                        corr_out_size,
+                                        activation_fn=None,
+                                        scope='off_out')
     return corr_out
 
 
 def _deep_fusion_fc_layers(num_layers, layer_sizes,
                            input_rois, input_weights, fusion_method,
-                           l2_weight_decay, keep_prob, box_rep, is_training):
+                           l2_weight_decay, keep_prob, is_training):
 
     if l2_weight_decay > 0:
         weights_regularizer = slim.l2_regularizer(l2_weight_decay)
@@ -299,13 +283,10 @@ def _deep_fusion_fc_layers(num_layers, layer_sizes,
                                                               input_weights)
 
         # correlation out
-        corr_out_size = avod_fc_layer_utils.OFFSETS_OUTPUT_SIZE[box_rep]
-        if corr_out_size > 0:
-            corr_out = slim.fully_connected(fusion_layer,
-                                            corr_out_size,
-                                            activation_fn=None,
-                                            scope='off_out')
-        else:
-            corr_out = None
-
+        # [delta_x, delta_y, delta_z, delta_ry]
+        corr_out_size = 4
+        corr_out = slim.fully_connected(fusion_layer,
+                                        corr_out_size,
+                                        activation_fn=None,
+                                        scope='off_out')
     return corr_out
