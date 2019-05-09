@@ -45,7 +45,7 @@ def main(_):
 
     # Defaults
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_5_tracking_pretrained_final.config'
+        '/configs/pyramid_cars_with_aug_dt_5_tracking_pretrained.config'
     default_data_split = 'train'
     default_device = '0'
 

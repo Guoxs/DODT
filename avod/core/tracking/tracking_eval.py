@@ -12,7 +12,7 @@ from wavedata.tools.obj_detection.evaluation import three_d_iou
 
 def config_setting(checkpoint_name, ckpt_indices):
     root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
-               '/predictions/kitti_native_eval/0.1_test/' + ckpt_indices + '/data/'
+               '/predictions/kitti_native_eval/0.1/' + ckpt_indices + '/data/'
 
     # Read the config from the experiment folder
     experiment_config_path = avod.root_dir() + '/data/outputs/' + \
@@ -36,10 +36,10 @@ def config_setting(checkpoint_name, ckpt_indices):
 def build_dataset(dataset_config):
     # Overwrite the defaults
     dataset_config = config_builder.proto_to_obj(dataset_config)
-    # dataset_config.data_split = 'val'
-    # dataset_config.data_split_dir = 'training'
-    dataset_config.data_split = 'test'
-    dataset_config.data_split_dir = 'testing'
+    dataset_config.data_split = 'val'
+    dataset_config.data_split_dir = 'training'
+    # dataset_config.data_split = 'test'
+    # dataset_config.data_split_dir = 'testing'
     dataset_config.has_labels = False
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
@@ -275,7 +275,7 @@ if __name__ == '__main__':
 
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
-    # copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
+    copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
 
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
@@ -291,4 +291,4 @@ if __name__ == '__main__':
         print('store prediction results:', video_result_path)
 
     # run eval script for evaluation
-    # run_kitti_tracking_script(checkpoint_name, ckpt_indices)
+    run_kitti_tracking_script(checkpoint_name, ckpt_indices)
