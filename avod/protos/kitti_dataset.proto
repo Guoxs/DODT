@@ -42,6 +42,9 @@ message KittiDatasetConfig {
     // video id for training
     repeated int32 video_train_id = 12;
 
+    // if final train
+    optional bool is_final_train = 13 [default = false];
+
     // KittiUtils configuration
     optional KittiUtilsConfig kitti_utils_config = 20;
 }

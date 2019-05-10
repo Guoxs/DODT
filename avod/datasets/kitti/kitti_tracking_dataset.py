@@ -3,6 +3,7 @@
 import itertools
 import fnmatch
 import os
+import random
 
 import numpy as np
 import cv2
@@ -54,6 +55,8 @@ class KittiTrackingDataset:
 
         self.bev_source = self.config.bev_source
         self.aug_list = self.config.aug_list
+
+        self.is_final_train = self.config.is_final_train
 
         # 2 image a samples
         self.sample_num = 2
@@ -132,6 +135,12 @@ class KittiTrackingDataset:
                     aug_sample_list.append(Sample(sample_name, augmentation))
 
         self.sample_list = np.asarray(aug_sample_list)
+
+        # sample mini-batch for superpameters searching
+        if not self.is_final_train:
+            mini_ids = random.sample(list(range(len(self.sample_list))), 200)
+            self.sample_list = self.sample_list[mini_ids]
+
         self.num_samples = len(self.sample_list)
 
         self._set_up_directories()
