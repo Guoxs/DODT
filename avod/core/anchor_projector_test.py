@@ -1,4 +1,5 @@
 import unittest
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -9,6 +10,7 @@ import avod.tests as tests
 from avod.builders.dataset_builder import DatasetBuilder
 from avod.core import anchor_projector
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 class AnchorProjectorTest(unittest.TestCase):
     def test_project_to_bev(self):

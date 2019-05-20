@@ -1,10 +1,12 @@
 import numpy as np
 import tensorflow as tf
+import os
 
 from avod.core import box_list
 from avod.core import box_list_ops
 from avod.builders.dataset_builder import DatasetBuilder
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 class MiniBatchUtilsTest(tf.test.TestCase):
 

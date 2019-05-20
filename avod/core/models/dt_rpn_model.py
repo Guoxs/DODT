@@ -36,8 +36,8 @@ class DtRpnModel(model.DetectionModel):
     PL_LABEL_ANCHORS = 'label_anchors_pl'
     PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
     PL_LABEL_CLASSES = 'label_classes_pl'
-    PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
-    PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
+    # PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
+    # PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
 
     PL_LABEL_MASK_A = 'label_mask_a_pl'
     PL_LABEL_MASK_B = 'label_mask_b_pl'
@@ -218,8 +218,9 @@ class DtRpnModel(model.DetectionModel):
             self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES)
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_A)
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_B)
-            self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
-            self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
+
+            # self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
+            # self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
@@ -419,7 +420,7 @@ class DtRpnModel(model.DetectionModel):
                                     for i in range(SAMPLE_SIZE)]
 
         # get correlation feature
-        self._correlation_layer()
+        # self._correlation_layer()
 
         fusion_mean_div_factor = 2.0
 
@@ -756,8 +757,8 @@ class DtRpnModel(model.DetectionModel):
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
 
             # debug
-            predictions['bev_corr_map'] = self.bev_corr_feature_maps
-            predictions['img_corr_map'] = self.img_corr_feature_maps
+            # predictions['bev_corr_map'] = self.bev_corr_feature_maps
+            # predictions['img_corr_map'] = self.img_corr_feature_maps
             # predictions['bev_pyramid_feature_maps'] = self.bev_pyramid_feature_maps
             # predictions['img_pyramid_feature_maps'] = self.img_pyramid_feature_maps
 
@@ -876,8 +877,8 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d[:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
 
-        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
-        self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
+        # self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
+        # self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
 
         self._placeholder_inputs[self.PL_LABEL_MASK_A] = np.where(label_mask == 0)[0]
         self._placeholder_inputs[self.PL_LABEL_MASK_B] = np.where(label_mask == 1)[0]
@@ -1137,10 +1138,6 @@ class DtRpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
-            "bev_corr_map": prediction_dict["bev_corr_map"],
-            "img_corr_map": prediction_dict["img_corr_map"],
-            # 'bev_pyramid_feature_maps' : prediction_dict["bev_pyramid_feature_maps"],
-            # 'img_pyramid_feature_maps' : prediction_dict["img_pyramid_feature_maps"]
         }
 
         return loss_dict, total_loss
