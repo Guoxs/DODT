@@ -147,7 +147,7 @@ def tracking_box_3d_to_anchor(boxes_3d, ortho_rotate=False):
             onto the x and z axes
 
     Returns:
-        N x 6 ndarray of anchors in 'anchor' form
+        N x 7 ndarray of anchors in 'anchor' form
     """
 
     boxes_3d = np.asarray(boxes_3d).reshape(-1, 8)

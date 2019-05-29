@@ -38,8 +38,9 @@ class RpnModelTest(tf.test.TestCase):
         with self.test_session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
-            loss_dict_out = sess.run(loss, feed_dict=feed_dict)
-            print('Losses ', loss_dict_out)
+            for i in range(10):
+                loss_dict_out = sess.run(loss, feed_dict=feed_dict)
+                print('Losses ', loss_dict_out)
 
     def test_create_path_drop_masks(self):
         # Tests creating path drop choices

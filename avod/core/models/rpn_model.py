@@ -922,6 +922,8 @@ class RpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
+            # "offsets": offsets,
+            # "offsets_gt": offsets_gt
         }
 
         return loss_dict, total_loss

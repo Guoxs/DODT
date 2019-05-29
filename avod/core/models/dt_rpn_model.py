@@ -14,7 +14,6 @@ from avod.core import summary_utils
 from avod.core.anchor_generators import grid_anchor_3d_generator
 from avod.datasets.kitti import kitti_aug
 
-from avod.core.corr_layers.correlation import correlation
 
 class DtRpnModel(model.DetectionModel):
     ##############################
@@ -22,30 +21,34 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
-    # PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
-    PL_ANCHORS = 'anchors_pl'
-    PL_ANCHORS_MASK_A = 'anchors_mask_a_pl'
-    PL_ANCHORS_MASK_B = 'anchors_mask_b_pl'
+    PL_ANCHORS_A = 'anchors_pl_0'
 
-    PL_BEV_ANCHORS = 'bev_anchors_pl'
-    PL_BEV_ANCHORS_NORM = 'bev_anchors_norm_pl'
-    PL_IMG_ANCHORS = 'img_anchors_pl'
-    PL_IMG_ANCHORS_NORM = 'img_anchors_norm_pl'
+    PL_BEV_ANCHORS_A = 'bev_anchors_pl_0'
+    PL_BEV_ANCHORS_NORM_A = 'bev_anchors_norm_pl_0'
+    PL_IMG_ANCHORS_A = 'img_anchors_pl_0'
+    PL_IMG_ANCHORS_NORM_A = 'img_anchors_norm_pl_0'
+    PL_LABEL_ANCHORS_A = 'label_anchors_pl_0'
+    PL_LABEL_BOXES_3D_A = 'label_boxes_3d_pl_0'
+    PL_LABEL_CLASSES_A = 'label_classes_pl_0'
 
-    PL_LABEL_ANCHORS = 'label_anchors_pl'
-    PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
-    PL_LABEL_CLASSES = 'label_classes_pl'
-    # PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
-    # PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
+    PL_ANCHOR_IOUS_A = 'anchor_ious_pl_0'
+    PL_ANCHOR_OFFSETS_A = 'anchor_offsets_pl_0'
+    PL_ANCHOR_CLASSES_A = 'anchor_classes_pl_0'
 
-    PL_LABEL_MASK_A = 'label_mask_a_pl'
-    PL_LABEL_MASK_B = 'label_mask_b_pl'
+    PL_ANCHORS_B = 'anchors_pl_1'
 
-    PL_ANCHOR_IOUS = 'anchor_ious_pl'
-    PL_ANCHOR_OFFSETS = 'anchor_offsets_pl'
-    PL_ANCHOR_CLASSES = 'anchor_classes_pl'
+    PL_BEV_ANCHORS_B = 'bev_anchors_pl_1'
+    PL_BEV_ANCHORS_NORM_B = 'bev_anchors_norm_pl_1'
+    PL_IMG_ANCHORS_B = 'img_anchors_pl_1'
+    PL_IMG_ANCHORS_NORM_B = 'img_anchors_norm_pl_1'
+    PL_LABEL_ANCHORS_B = 'label_anchors_pl_1'
+    PL_LABEL_BOXES_3D_B = 'label_boxes_3d_pl_1'
+    PL_LABEL_CLASSES_B = 'label_classes_pl_1'
 
+    PL_ANCHOR_IOUS_B = 'anchor_ious_pl_1'
+    PL_ANCHOR_OFFSETS_B = 'anchor_offsets_pl_1'
+    PL_ANCHOR_CLASSES_B = 'anchor_classes_pl_1'
 
     # Sample info, including keys for projection to image space
     # (e.g. camera matrix, image index, etc.)
@@ -140,7 +143,8 @@ class DtRpnModel(model.DetectionModel):
         self._bev_extents = self.dataset.kitti_utils.bev_extents
         self._cluster_sizes, _ = self.dataset.get_cluster_info()
         self._anchor_strides = self.dataset.kitti_utils.anchor_strides
-        self._anchor_generator = grid_anchor_3d_generator.GridAnchor3dGenerator()
+        self._anchor_generator = \
+            grid_anchor_3d_generator.GridAnchor3dGenerator()
 
         self._path_drop_probabilities = self._config.path_drop_probabilities
         self._train_on_all_samples = self._config.train_on_all_samples
@@ -171,7 +175,7 @@ class DtRpnModel(model.DetectionModel):
         with tf.variable_scope('bev_input'):
             # Placeholder for BEV image input, to be filled in with feed_dict
             bev_input_placeholder_couple = self._add_placeholder(tf.float32, bev_dims,
-                                                                self.PL_BEV_INPUT)
+                                                          self.PL_BEV_INPUT)
             self._bev_input_batches = []
             self._bev_preprocessed = []
             for i in range(N):
@@ -186,16 +190,16 @@ class DtRpnModel(model.DetectionModel):
             bev_summary_images_0 = tf.split(
                 bev_input_placeholder_couple[0], self._bev_depth, axis=2)
             tf.summary.image("bev_maps_0", bev_summary_images_0,
-                                            max_outputs=self._bev_depth)
-
+                                max_outputs=self._bev_depth)
             bev_summary_images_1 = tf.split(
                 bev_input_placeholder_couple[1], self._bev_depth, axis=2)
             tf.summary.image("bev_maps_1", bev_summary_images_1,
-                                            max_outputs=self._bev_depth)
+                             max_outputs=self._bev_depth)
 
         with tf.variable_scope('img_input'):
             # Take variable size input images
-            img_input_placeholder_couple = self._add_placeholder(tf.float32,
+            img_input_placeholder_couple = self._add_placeholder(
+                                                tf.float32,
                                                 [N, None, None, self._img_depth],
                                                 self.PL_IMG_INPUT)
             self._img_input_batches = []
@@ -213,33 +217,43 @@ class DtRpnModel(model.DetectionModel):
             tf.summary.image("rgb_image_1", self._img_preprocessed[1], max_outputs=2)
 
         with tf.variable_scope('pl_labels'):
-            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS)
-            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D)
-            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES)
-            self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_A)
-            self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_B)
-
-            # self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
-            # self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_A)
+            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_B)
+            self._add_placeholder(tf.float32, [None, ], self.PL_LABEL_CLASSES_B)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
-            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS)
-            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS)
-            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS)
-            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES)
-            self._add_placeholder(tf.int32, [None], self.PL_ANCHORS_MASK_A)
-            self._add_placeholder(tf.int32, [None], self.PL_ANCHORS_MASK_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_A)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_A)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_IOUS_B)
+            self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHOR_OFFSETS_B)
+            self._add_placeholder(tf.float32, [None], self.PL_ANCHOR_CLASSES_B)
 
             with tf.variable_scope('bev_anchor_projections'):
-                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS)
-                self._bev_anchors_norm_pl = self._add_placeholder(tf.float32, [None, 4],
-                                                                  self.PL_BEV_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_A)
+                self._bev_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                  self.PL_BEV_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_BEV_ANCHORS_B)
+                self._bev_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                    self.PL_BEV_ANCHORS_NORM_B)
+
+                self._bev_anchors_norm_pl = [self._bev_anchors_norm_pl_0, self._bev_anchors_norm_pl_1]
 
             with tf.variable_scope('img_anchor_projections'):
-                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS)
-                self._img_anchors_norm_pl = self._add_placeholder(tf.float32, [None, 4],
-                                                                         self.PL_IMG_ANCHORS_NORM)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_A)
+                self._img_anchors_norm_pl_0 = self._add_placeholder(tf.float32, [None, 4],
+                                                                         self.PL_IMG_ANCHORS_NORM_A)
+                self._add_placeholder(tf.float32, [None, 4], self.PL_IMG_ANCHORS_B)
+                self._img_anchors_norm_pl_1 = self._add_placeholder(tf.float32, [None, 4],
+                                                                           self.PL_IMG_ANCHORS_NORM_B)
+
+                self._img_anchors_norm_pl = [self._img_anchors_norm_pl_0, self._img_anchors_norm_pl_1]
 
             with tf.variable_scope('sample_info'):
                 # the calib matrix shape is (3 x 4)
@@ -272,7 +286,6 @@ class DtRpnModel(model.DetectionModel):
                         self._is_training)
 
                 scope.reuse_variables()
-
 
         with tf.variable_scope('bev_bottleneck') as scope:
             self.bev_bottleneck = []
@@ -311,94 +324,6 @@ class DtRpnModel(model.DetectionModel):
         #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
         #                                                  feature_map[0])
 
-    # def _correlation_layer_v2(self):
-    #     corr_config = self._config.layers_config.correlation_config
-    #     bev_vgg_config = self._config.layers_config.bev_feature_extractor.bev_vgg_pyr
-    #     img_vgg_config = self._config.layers_config.img_feature_extractor.img_vgg_pyr
-    #
-    #     bev_feature_map_0, bev_feature_map_1 = self.bev_pyramid_feature_maps
-    #     img_feature_map_0, img_feature_map_1 = self.img_pyramid_feature_maps
-    #     size = len(bev_feature_map_0)
-    #     with tf.variable_scope('bev_correlation'):
-    #         bev_corr = [None] * size
-    #         for i in range(size):
-    #             bev_corr[i] = correlation(bev_feature_map_0[i], bev_feature_map_1[i],
-    #                                   max_displacement=corr_config.max_displacement,
-    #                                   padding=corr_config.padding)
-    #
-    #         bev_upcorr3 = slim.conv2d_transpose(bev_corr[0], bev_vgg_config.vgg_conv3[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='bev_upcorr3')
-    #
-    #         bev_concat_corr3 = tf.concat((bev_upcorr3, bev_corr[1]), axis=3, name='bev_concat_corr_3')
-    #
-    #         bev_pyramid_fusion2 = slim.conv2d(bev_concat_corr3, bev_vgg_config.vgg_conv2[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='bev_pyramid_fusion2')
-    #
-    #         bev_upcorr2 = slim.conv2d_transpose(bev_pyramid_fusion2, bev_vgg_config.vgg_conv2[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='bev_upcorr2')
-    #
-    #         bev_concat_corr2 = tf.concat((bev_upcorr2, bev_corr[2]), axis=3, name='bev_concat_corr_2')
-    #
-    #         bev_pyramid_fusion =  slim.conv2d(bev_concat_corr2, bev_vgg_config.vgg_conv1[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='bev_pyramid_fusion')
-    #
-    #         self.bev_corr_feature_maps = bev_pyramid_fusion[:, 4:]
-    #
-    #     with tf.variable_scope('img_correlation'):
-    #         img_corr = [None] * size
-    #         for i in range(size):
-    #             img_corr[i] = correlation(img_feature_map_0[i], img_feature_map_1[i],
-    #                                       max_displacement=corr_config.max_displacement,
-    #                                       padding=corr_config.padding)
-    #
-    #         img_upcorr3 = slim.conv2d_transpose(img_corr[0], img_vgg_config.vgg_conv3[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='img_upcorr3')
-    #
-    #         img_concat_corr3 = tf.concat((img_upcorr3, img_corr[1]), axis=3, name='img_concat_corr_3')
-    #
-    #         img_pyramid_fusion2 = slim.conv2d(img_concat_corr3, img_vgg_config.vgg_conv2[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='img_pyramid_fusion2')
-    #
-    #         img_upcorr2 = slim.conv2d_transpose(img_pyramid_fusion2, img_vgg_config.vgg_conv2[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='img_upcorr2')
-    #
-    #         img_concat_corr2 = tf.concat((img_upcorr2, img_corr[2]), axis=3, name='img_concat_corr_2')
-    #
-    #         self.img_corr_feature_maps = slim.conv2d(img_concat_corr2, img_vgg_config.vgg_conv1[1],
-    #                                          [3, 3], normalizer_fn=slim.batch_norm,
-    #                                          normalizer_params={'is_training': self._is_training},
-    #                                          scope='img_pyramid_fusion')
-
-    def _correlation_layer(self):
-        corr_config = self._config.layers_config.correlation_config
-
-        with tf.variable_scope('bev_correlation'):
-            self.bev_corr_feature_maps = correlation(
-                self.bev_feature_maps[0], self.bev_feature_maps[1],
-                max_displacement=corr_config.max_displacement,
-                padding=corr_config.padding)
-
-        with tf.variable_scope('img_correlation'):
-            self.img_corr_feature_maps = correlation(
-                self.img_feature_maps[0],self.img_feature_maps[1],
-                max_displacement=corr_config.max_displacement,
-                padding=corr_config.padding)
-
-
     def build(self):
         SAMPLE_SIZE = self.dataset.sample_num
         # Setup input placeholders
@@ -409,18 +334,6 @@ class DtRpnModel(model.DetectionModel):
 
         bev_proposal_input = self.bev_bottleneck
         img_proposal_input = self.img_bottleneck
-
-        self.anchors_mask = [self.placeholders[self.PL_ANCHORS_MASK_A],
-                             self.placeholders[self.PL_ANCHORS_MASK_B]]
-
-        self.bev_anchors_norm_pl = [tf.gather(self._bev_anchors_norm_pl, self.anchors_mask[i])
-                                    for i in range(SAMPLE_SIZE)]
-
-        self.img_anchors_norm_pl = [tf.gather(self._img_anchors_norm_pl, self.anchors_mask[i])
-                                    for i in range(SAMPLE_SIZE)]
-
-        # get correlation feature
-        # self._correlation_layer()
 
         fusion_mean_div_factor = 2.0
 
@@ -452,18 +365,19 @@ class DtRpnModel(model.DetectionModel):
                 fusion_mean_div_factor = img_mask + bev_mask
 
         with tf.variable_scope('proposal_roi_pooling'):
+
             with tf.variable_scope('box_indices'):
                 def get_box_indices(boxes):
                     proposals_shape = boxes.get_shape().as_list()
                     if any(dim is None for dim in proposals_shape):
                         proposals_shape = tf.shape(boxes)
                     ones_mat = tf.ones(proposals_shape[:2], dtype=tf.int32)
-                    multiplier = tf.expand_dims(tf.range(start=0, limit=proposals_shape[0]), 1)
+                    multiplier = tf.expand_dims(
+                        tf.range(start=0, limit=proposals_shape[0]), 1)
                     return tf.reshape(ones_mat * multiplier, [-1])
 
                 bev_boxes_norm_batches = [tf.expand_dims(
-                    self.bev_anchors_norm_pl[i], axis=0)
-                    for i in range(SAMPLE_SIZE)]
+                    self._bev_anchors_norm_pl[i], axis=0) for i in range(SAMPLE_SIZE)]
 
                 # These should be all 0's since there is only 1 image
                 tf_box_indices = [get_box_indices(bev_boxes_norm_batches[i])
@@ -472,14 +386,13 @@ class DtRpnModel(model.DetectionModel):
             # Do ROI Pooling on BEV
             bev_proposal_rois = [tf.image.crop_and_resize(
                 bev_proposal_input[i],
-                self.bev_anchors_norm_pl[i],
+                self._bev_anchors_norm_pl[i],
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
-
             # Do ROI Pooling on image
             img_proposal_rois = [tf.image.crop_and_resize(
                 img_proposal_input[i],
-                self.img_anchors_norm_pl[i],
+                self._img_anchors_norm_pl[i],
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
 
@@ -524,49 +437,70 @@ class DtRpnModel(model.DetectionModel):
             offsets = [None] * 2
             with slim.arg_scope([slim.conv2d],
                                 weights_regularizer=weights_regularizer):
+
                 for i in range(SAMPLE_SIZE):
                     # Use conv2d instead of fully_connected layers.
-                    cls_fc6[i] = slim.conv2d(tensor_in[i], layers_config.cls_fc6,
+                    cls_fc6[i] = slim.conv2d(tensor_in[i],
+                                          layers_config.cls_fc6,
                                           self._proposal_roi_crop_size,
-                                          padding='VALID', scope='cls_fc6')
+                                          padding='VALID',
+                                          scope='cls_fc6')
 
-                    cls_fc6_drop[i] = slim.dropout(cls_fc6[i], layers_config.keep_prob,
+                    cls_fc6_drop[i] = slim.dropout(cls_fc6[i],
+                                                layers_config.keep_prob,
                                                 is_training=self._is_training,
                                                 scope='cls_fc6_drop')
 
-                    cls_fc7[i] = slim.conv2d(cls_fc6_drop[i], layers_config.cls_fc7,
-                                          [1, 1], scope='cls_fc7')
+                    cls_fc7[i] = slim.conv2d(cls_fc6_drop[i],
+                                          layers_config.cls_fc7,
+                                          [1, 1],
+                                          scope='cls_fc7')
 
-                    cls_fc7_drop[i] = slim.dropout(cls_fc7[i], layers_config.keep_prob,
+                    cls_fc7_drop[i] = slim.dropout(cls_fc7[i],
+                                                layers_config.keep_prob,
                                                 is_training=self._is_training,
                                                 scope='cls_fc7_drop')
 
-                    cls_fc8[i] = slim.conv2d(cls_fc7_drop[i], 2, [1, 1],
-                                          activation_fn=None, scope='cls_fc8')
+                    cls_fc8[i] = slim.conv2d(cls_fc7_drop[i],
+                                          2,
+                                          [1, 1],
+                                          activation_fn=None,
+                                          scope='cls_fc8')
 
-                    objectness[i] = tf.squeeze(cls_fc8[i], [1, 2],
+                    objectness[i] = tf.squeeze(
+                                            cls_fc8[i], [1, 2],
                                             name='cls_fc8/squeezed')
 
                     # Use conv2d instead of fully_connected layers.
-                    reg_fc6[i] = slim.conv2d(tensor_in[i], layers_config.reg_fc6,
+                    reg_fc6[i] = slim.conv2d(tensor_in[i],
+                                          layers_config.reg_fc6,
                                           self._proposal_roi_crop_size,
-                                          padding='VALID', scope='reg_fc6')
+                                          padding='VALID',
+                                          scope='reg_fc6')
 
-                    reg_fc6_drop[i] = slim.dropout(reg_fc6[i], layers_config.keep_prob,
+                    reg_fc6_drop[i] = slim.dropout(reg_fc6[i],
+                                                layers_config.keep_prob,
                                                 is_training=self._is_training,
                                                 scope='reg_fc6_drop')
 
-                    reg_fc7[i] = slim.conv2d(reg_fc6_drop[i], layers_config.reg_fc7,
-                                          [1, 1], scope='reg_fc7')
+                    reg_fc7[i] = slim.conv2d(reg_fc6_drop[i],
+                                          layers_config.reg_fc7,
+                                          [1, 1],
+                                          scope='reg_fc7')
 
-                    reg_fc7_drop[i] = slim.dropout(reg_fc7[i], layers_config.keep_prob,
+                    reg_fc7_drop[i] = slim.dropout(reg_fc7[i],
+                                                layers_config.keep_prob,
                                                 is_training=self._is_training,
                                                 scope='reg_fc7_drop')
 
-                    reg_fc8[i] = slim.conv2d(reg_fc7_drop[i], 6, [1, 1],
-                                          activation_fn=None, scope='reg_fc8')
+                    reg_fc8[i] = slim.conv2d(reg_fc7_drop[i],
+                                          6,
+                                          [1, 1],
+                                          activation_fn=None,
+                                          scope='reg_fc8')
 
-                    offsets[i] = tf.squeeze(reg_fc8[i], [1, 2],
+                    offsets[i] = tf.squeeze(
+                                        reg_fc8[i], [1, 2],
                                         name='reg_fc8/squeezed')
 
                     scope.reuse_variables()
@@ -592,12 +526,13 @@ class DtRpnModel(model.DetectionModel):
                                  reg_fc6[i], reg_fc7[i], reg_fc8[i], offsets[i]]
                     for fc_layer in fc_layers:
                         # fix the name to avoid tf warnings
-                        tf.summary.histogram(fc_layer.name.replace(':', '_'), fc_layer)
+                        tf.summary.histogram(fc_layer.name.replace(':', '_'),
+                                             fc_layer)
 
         # Return the proposals
         with tf.variable_scope('proposals'):
-            anchors = [tf.gather(self.placeholders[self.PL_ANCHORS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
+            anchors = [self.placeholders[self.PL_ANCHORS_A],
+                       self.placeholders[self.PL_ANCHORS_B]]
 
             # Decode anchor regression offsets
             with tf.variable_scope('decoding'):
@@ -629,17 +564,16 @@ class DtRpnModel(model.DetectionModel):
 
                 top_objectness_softmax = [tf.gather(objectness_scores[i], top_indices[i])
                                           for i in range(SAMPLE_SIZE)]
-
                 # top_offsets = tf.gather(offsets, top_indices)
                 # top_objectness = tf.gather(objectness, top_indices)
 
         # Get mini batch
-        all_ious_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_IOUS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
-        all_offsets_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_OFFSETS], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
-        all_classes_gt = [tf.gather(self.placeholders[self.PL_ANCHOR_CLASSES], self.anchors_mask[i])
-                       for i in range(SAMPLE_SIZE)]
+        all_ious_gt = [self.placeholders[self.PL_ANCHOR_IOUS_A],
+                       self.placeholders[self.PL_ANCHOR_IOUS_B]]
+        all_offsets_gt = [self.placeholders[self.PL_ANCHOR_OFFSETS_A],
+                          self.placeholders[self.PL_ANCHOR_OFFSETS_B]]
+        all_classes_gt = [self.placeholders[self.PL_ANCHOR_CLASSES_A],
+                          self.placeholders[self.PL_ANCHOR_CLASSES_B]]
 
         with tf.variable_scope('mini_batch'):
             mini_batch_utils = self.dataset.kitti_utils.mini_batch_utils
@@ -650,7 +584,7 @@ class DtRpnModel(model.DetectionModel):
         rpn_mini_batch_size = \
             self.dataset.kitti_utils.mini_batch_utils.rpn_mini_batch_size
         with tf.variable_scope('bev_rpn_rois'):
-            mb_bev_anchors_norm = [tf.boolean_mask(self.bev_anchors_norm_pl[i],
+            mb_bev_anchors_norm = [tf.boolean_mask(self._bev_anchors_norm_pl[i],
                                                   mini_batch_mask[i])
                                    for i in range(SAMPLE_SIZE)]
             mb_bev_box_indices = [tf.zeros_like(
@@ -669,16 +603,16 @@ class DtRpnModel(model.DetectionModel):
             bev_input_roi_summary_images = [tf.split(
                 bev_input_rois[i], self._bev_depth, axis=3)
                 for i in range(SAMPLE_SIZE)]
-            tf.summary.image('bev_rpn_rois_0',
+            tf.summary.image('bev_rpn_rois',
                              bev_input_roi_summary_images[0][-1],
                              max_outputs=rpn_mini_batch_size)
-            tf.summary.image('bev_rpn_rois_1',
+            tf.summary.image('bev_rpn_rois',
                              bev_input_roi_summary_images[1][-1],
                              max_outputs=rpn_mini_batch_size)
 
         with tf.variable_scope('img_rpn_rois'):
             # ROIs on image input
-            mb_img_anchors_norm = [tf.boolean_mask(self.img_anchors_norm_pl[i],
+            mb_img_anchors_norm = [tf.boolean_mask(self._img_anchors_norm_pl[i],
                                                   mini_batch_mask[i])
                                    for i in range(SAMPLE_SIZE)]
             mb_img_box_indices = [tf.zeros_like(
@@ -692,10 +626,10 @@ class DtRpnModel(model.DetectionModel):
                 mb_img_box_indices[i],
                 (32, 32)) for i in range(SAMPLE_SIZE)]
 
-            tf.summary.image('img_rpn_rois_0',
+            tf.summary.image('img_rpn_rois',
                              img_input_rois[0],
                              max_outputs=rpn_mini_batch_size)
-            tf.summary.image('img_rpn_rois_1',
+            tf.summary.image('img_rpn_rois',
                              img_input_rois[1],
                              max_outputs=rpn_mini_batch_size)
 
@@ -754,13 +688,8 @@ class DtRpnModel(model.DetectionModel):
             # Proposals after nms
             predictions[self.PRED_TOP_INDICES] = top_indices
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
-            predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
-
-            # debug
-            # predictions['bev_corr_map'] = self.bev_corr_feature_maps
-            # predictions['img_corr_map'] = self.img_corr_feature_maps
-            # predictions['bev_pyramid_feature_maps'] = self.bev_pyramid_feature_maps
-            # predictions['img_pyramid_feature_maps'] = self.img_pyramid_feature_maps
+            predictions[
+                self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
 
         else:
             # self._train_val_test == 'test'
@@ -820,7 +749,8 @@ class DtRpnModel(model.DetectionModel):
                 eval_cond = (self._train_val_test == "val" and
                              self._eval_all_samples)
 
-                if anchors_info or train_cond or eval_cond:
+                anchors_valid = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
+                if anchors_valid or train_cond or eval_cond:
                     valid_sample = True
         else:
             # For testing, any sample should work
@@ -833,24 +763,19 @@ class DtRpnModel(model.DetectionModel):
             couple_sample = couple_samples[0]
             anchors_info = couple_sample.get(constants.KEY_ANCHORS_INFO)
 
-        anchors_info_mask = couple_sample.get(constants.KEY_ANCHORS_INFO_MASK)
         sample_name = couple_sample.get(constants.KEY_SAMPLE_NAME)
         sample_augs = couple_sample.get(constants.KEY_SAMPLE_AUGS)
 
         # Get ground truth data
-        label_mask = couple_sample.get(constants.KEY_LABEL_MASK)
         label_anchors = couple_sample.get(constants.KEY_LABEL_ANCHORS)
         label_classes = couple_sample.get(constants.KEY_LABEL_CLASSES)
         # We only need orientation from box_3d
         label_boxes_3d = couple_sample.get(constants.KEY_LABEL_BOXES_3D)
 
-        # correlation gt offsets
-        label_corr_boxes_3d = couple_sample.get(constants.KEY_LABEL_CORR_BOXES_3D)
-        label_corr_anchors = couple_sample.get(constants.KEY_LABEL_CORR_ANCHORS)
-
         # Network input data
         image_input = couple_sample.get(constants.KEY_IMAGE_INPUT)
         bev_input = couple_sample.get(constants.KEY_BEV_INPUT)
+
         # Image shape (h, w)
         image_shape = [[image.shape[0], image.shape[1]] for image in image_input]
 
@@ -861,7 +786,6 @@ class DtRpnModel(model.DetectionModel):
 
         # Fill the placeholders for anchor information
         self._fill_anchor_pl_inputs(anchors_info=anchors_info,
-                                    anchors_info_mask=anchors_info_mask,
                                     ground_plane=ground_plane,
                                     image_shape=image_shape,
                                     stereo_calib_p2=stereo_calib_p2,
@@ -873,15 +797,13 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_BEV_INPUT] = bev_input
         self._placeholder_inputs[self.PL_IMG_INPUT] = image_input
 
-        self._placeholder_inputs[self.PL_LABEL_ANCHORS] = label_anchors[:, :-1]
-        self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d[:, :-1]
-        self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_A] = label_anchors[0]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_A] = label_boxes_3d[0]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_A] = label_classes[0]
 
-        # self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
-        # self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
-
-        self._placeholder_inputs[self.PL_LABEL_MASK_A] = np.where(label_mask == 0)[0]
-        self._placeholder_inputs[self.PL_LABEL_MASK_B] = np.where(label_mask == 1)[0]
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[1]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1]
+        self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[1]
 
         # Sample Info
         # img_idx is a list to match the placeholder shape
@@ -903,7 +825,6 @@ class DtRpnModel(model.DetectionModel):
 
     def _fill_anchor_pl_inputs(self,
                                anchors_info,
-                               anchors_info_mask,
                                ground_plane,
                                image_shape,
                                stereo_calib_p2,
@@ -914,7 +835,6 @@ class DtRpnModel(model.DetectionModel):
 
         Args:
             anchors_info: anchor info from mini_batch_utils
-            anchors_info_mask: anchor mask for two frames
             ground_plane: ground plane coefficients
             image_shape: image shape (h, w), used for projecting anchors
             sample_name: name of the sample, e.g. "000001"
@@ -922,15 +842,21 @@ class DtRpnModel(model.DetectionModel):
         """
         self._bev_anchors_norm = []
         self._img_anchors_norm = []
+        self._placeholder_inputs["PL_ANCHORS"] = []
+        self._placeholder_inputs["PL_ANCHOR_IOUS"] = []
+        self._placeholder_inputs["PL_ANCHOR_OFFSETS"] = []
+        self._placeholder_inputs["PL_ANCHOR_CLASSES"] = []
+        self._placeholder_inputs["PL_BEV_ANCHORS"] = []
+        self._placeholder_inputs["PL_IMG_ANCHORS"] = []
 
-        all_anchor_boxes_3ds = []
-        anchors_ious = []
-        anchor_offsets = []
-        anchor_classes = []
-
-        # unpack anchors_info, Create anchors for each class
-        for i in range(2):
+        # unpack anchors_info
+        for i in range(len(sample_name)):
+            # Lists for merging anchors info
             all_anchor_boxes_3d = []
+            anchors_ious = []
+            anchor_offsets = []
+            anchor_classes = []
+
             # Create anchors for each class
             if len(self.dataset.classes) > 1:
                 for class_idx in range(len(self.dataset.classes)):
@@ -952,129 +878,129 @@ class DtRpnModel(model.DetectionModel):
                     ground_plane=ground_plane[i])
                 all_anchor_boxes_3d = grid_anchor_boxes_3d
 
-            all_anchor_boxes_3ds.append(all_anchor_boxes_3d)
+            # Filter empty anchors
+            # Skip if anchors_info is []
+            sample_has_labels = True
+            if self._train_val_test in ['train', 'val']:
+                # Read in anchor info during training / validation
+                if anchors_info[i]:
+                    anchor_indices, anchors_ious, anchor_offsets, \
+                        anchor_classes = anchors_info[i]
 
-        # Filter empty anchors
-        # Skip if anchors_info is []
-        sample_has_labels = True
-        anchor_boxes_3d_to_use = []
-        anchors_mask = [[]] * 2
-        if self._train_val_test in ['train', 'val']:
-            # Read in anchor info during training / validation
-            if anchors_info:
-                anchors_mask[0] = np.where(anchors_info_mask == 0)[0]
-                anchors_mask[1] = np.where(anchors_info_mask == 1)[0]
-
-                anchor_indices, anchors_ious, anchor_offsets, \
-                anchor_classes, anchor_box_id = anchors_info
-                for i in range(2):
-                    idx = anchor_indices[anchors_mask[i]]
-                    anchor_boxes_3d_to_use.append(all_anchor_boxes_3ds[i][idx])
+                    anchor_boxes_3d_to_use = all_anchor_boxes_3d[anchor_indices]
+                else:
+                    train_cond = (self._train_val_test == "train" and
+                                  self._train_on_all_samples)
+                    eval_cond = (self._train_val_test == "val" and
+                                 self._eval_all_samples)
+                    if train_cond or eval_cond:
+                        sample_has_labels = False
             else:
-                train_cond = (self._train_val_test == "train" and
-                              self._train_on_all_samples)
-                eval_cond = (self._train_val_test == "val" and
-                             self._eval_all_samples)
-                if train_cond or eval_cond:
-                    sample_has_labels = False
-        else:
-            sample_has_labels = False
+                sample_has_labels = False
 
-        if not sample_has_labels:
-            # During testing, or validation with no anchor info, manually
-            # filter empty anchors
-            # TODO: share voxel_grid_2d with BEV generation if possible
-            temp_mask = []
-            for i in range(2):
-                voxel_grid_2d = self.dataset.kitti_utils.create_sliced_voxel_grid_2d(
-                                    sample_name[i], self.dataset.bev_source,
-                                    image_shape=image_shape[i])
+            if not sample_has_labels:
+                # During testing, or validation with no anchor info, manually
+                # filter empty anchors
+                # TODO: share voxel_grid_2d with BEV generation if possible
+                voxel_grid_2d = \
+                    self.dataset.kitti_utils.create_sliced_voxel_grid_2d(
+                        sample_name[i], self.dataset.bev_source,
+                        image_shape=image_shape[i])
+
                 # Convert to anchors and filter
                 anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                                                all_anchor_boxes_3ds[i])
+                    all_anchor_boxes_3d)
                 empty_filter = anchor_filter.get_empty_anchor_filter_2d(
                     anchors_to_use, voxel_grid_2d, density_threshold=1)
 
-                temp = all_anchor_boxes_3ds[i][empty_filter]
-                anchor_boxes_3d_to_use.append(temp)
+                anchor_boxes_3d_to_use = all_anchor_boxes_3d[empty_filter]
 
-                temp_mask.append([i] * len(temp))
+            # Convert lists to ndarrays
+            anchor_boxes_3d_to_use = np.asarray(anchor_boxes_3d_to_use)
+            anchors_ious = np.asarray(anchors_ious)
+            anchor_offsets = np.asarray(anchor_offsets)
+            anchor_classes = np.asarray(anchor_classes)
 
-            temp_mask = np.concatenate(temp_mask, axis=0)
-            anchors_mask[0] = np.where(temp_mask == 0)[0]
-            anchors_mask[1] = np.where(temp_mask == 1)[0]
+            # Flip anchors and centroid x offsets for augmented samples
+            if kitti_aug.AUG_FLIPPING in sample_augs:
+                anchor_boxes_3d_to_use = kitti_aug.flip_boxes_3d(
+                    anchor_boxes_3d_to_use, flip_ry=False)
+                if anchors_info[i]:
+                    anchor_offsets[:, 0] = -anchor_offsets[:, 0]
 
-        # Convert lists to ndarrays
-        anchor_boxes_3d_to_use = [np.asarray(anchor_boxes_3d_to_use[i]) for i in range(2)]
-        anchors_ious = np.asarray(anchors_ious)
-        anchor_offsets = np.asarray(anchor_offsets)
-        anchor_classes = np.asarray(anchor_classes)
-
-        # Flip anchors and centroid x offsets for augmented samples
-        if kitti_aug.AUG_FLIPPING in sample_augs:
-            anchor_boxes_3d_to_use = [kitti_aug.flip_boxes_3d(
-                anchor_boxes_3d_to_use[i], flip_ry=False) for i in range(2)]
-            if anchors_info:
-                anchor_offsets[:, 0] = -anchor_offsets[:, 0]
-
-        anchors_to_use_all = []
-        bev_anchors_all = []
-        img_anchors_all = []
-        num_anchors_all = 0
-        for i in range(2):
             # Convert to anchors
-            anchors_to_use = box_3d_encoder.box_3d_to_anchor(
-                                            anchor_boxes_3d_to_use[i])
+            anchors_to_use = box_3d_encoder.box_3d_to_anchor(anchor_boxes_3d_to_use)
             num_anchors = len(anchors_to_use)
-            num_anchors_all += num_anchors
 
             # Project anchors into bev
             bev_anchors, bev_anchors_norm = anchor_projector.project_to_bev(
-                                            anchors_to_use, self._bev_extents)
+                anchors_to_use, self._bev_extents)
 
             # Project box_3d anchors into image space
-            img_anchors, img_anchors_norm = anchor_projector.project_to_image_space(
-                                            anchors_to_use, stereo_calib_p2, image_shape[i])
+            img_anchors, img_anchors_norm = \
+                anchor_projector.project_to_image_space(
+                    anchors_to_use, stereo_calib_p2, image_shape[i])
 
             # Reorder into [y1, x1, y2, x2] for tf.crop_and_resize op
             self._bev_anchors_norm.append(bev_anchors_norm[:, [1, 0, 3, 2]])
             self._img_anchors_norm.append(img_anchors_norm[:, [1, 0, 3, 2]])
 
-            anchors_to_use_all.append(anchors_to_use)
-            bev_anchors_all.append(bev_anchors)
-            img_anchors_all.append(img_anchors)
+            # Fill in placeholder inputs
+            if i == 0:
+                self._placeholder_inputs[self.PL_ANCHORS_A] = anchors_to_use
 
-        # Fill in placeholder inputs
-        self._placeholder_inputs[self.PL_ANCHORS] = np.concatenate(anchors_to_use_all, axis=0)
-        self._placeholder_inputs[self.PL_BEV_ANCHORS] = np.concatenate(bev_anchors_all, axis=0)
-        self._placeholder_inputs[self.PL_IMG_ANCHORS] = np.concatenate(img_anchors_all, axis=0)
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = anchor_classes
 
-        self._bev_anchors_norm = np.concatenate(self._bev_anchors_norm, axis=0)
-        self._img_anchors_norm = np.concatenate(self._img_anchors_norm, axis=0)
-        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM] = self._bev_anchors_norm
-        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM] = self._img_anchors_norm
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_A] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_A] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_A] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                        format(self._train_val_test))
 
-        # If we are in train/validation mode, and the anchor infos
-        # are not empty, store them. Checking for just anchors_ious
-        # to be non-empty should be enough.
-        if self._train_val_test in ['train', 'val'] and len(anchors_ious) > 0:
-            self._placeholder_inputs[self.PL_ANCHOR_IOUS] = anchors_ious
-            self._placeholder_inputs[self.PL_ANCHOR_OFFSETS] = anchor_offsets
-            self._placeholder_inputs[self.PL_ANCHOR_CLASSES] = anchor_classes
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_A] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_A] = img_anchors
+            else:
+                self._placeholder_inputs[self.PL_ANCHORS_B] = anchors_to_use
 
-        # During test, or val when there is no anchor info
-        elif self._train_val_test in ['test'] or len(anchors_ious) == 0:
-            # During testing, or validation with no gt, fill these in with 0s
-            self._placeholder_inputs[self.PL_ANCHOR_IOUS] = np.zeros(num_anchors_all)
-            self._placeholder_inputs[self.PL_ANCHOR_OFFSETS] = np.zeros([num_anchors_all, 6])
-            self._placeholder_inputs[self.PL_ANCHOR_CLASSES] = np.zeros(num_anchors_all)
-        else:
-            raise ValueError('Got run mode {}, and non-empty anchor info'.
-                                    format(self._train_val_test))
+                # If we are in train/validation mode, and the anchor infos
+                # are not empty, store them. Checking for just anchors_ious
+                # to be non-empty should be enough.
+                if self._train_val_test in ['train', 'val'] and \
+                        len(anchors_ious) > 0:
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = anchors_ious
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = anchor_offsets
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = anchor_classes
 
-        self._placeholder_inputs[self.PL_ANCHORS_MASK_A] = anchors_mask[0]
-        self._placeholder_inputs[self.PL_ANCHORS_MASK_B] = anchors_mask[1]
+                # During test, or val when there is no anchor info
+                elif self._train_val_test in ['test'] or \
+                        len(anchors_ious) == 0:
+                    # During testing, or validation with no gt, fill these in with 0s
+                    self._placeholder_inputs[self.PL_ANCHOR_IOUS_B] = np.zeros(num_anchors)
+                    self._placeholder_inputs[self.PL_ANCHOR_OFFSETS_B] = np.zeros([num_anchors, 6])
+                    self._placeholder_inputs[self.PL_ANCHOR_CLASSES_B] = np.zeros(num_anchors)
+                else:
+                    raise ValueError('Got run mode {}, and non-empty anchor info'.
+                                     format(self._train_val_test))
 
+                self._placeholder_inputs[self.PL_BEV_ANCHORS_B] = bev_anchors
+                self._placeholder_inputs[self.PL_IMG_ANCHORS_B] = img_anchors
+
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_A] = self._bev_anchors_norm[0]
+        self._placeholder_inputs[self.PL_BEV_ANCHORS_NORM_B] = self._bev_anchors_norm[1]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_A] = self._img_anchors_norm[0]
+        self._placeholder_inputs[self.PL_IMG_ANCHORS_NORM_B] = self._img_anchors_norm[1]
 
     def loss(self, prediction_dict):
         SAMPLE_SIZE = 2
@@ -1102,8 +1028,8 @@ class DtRpnModel(model.DetectionModel):
                                         tf.shape(objectness_gt[i])[0], dtype=tf.float32)
                                        for i in range(SAMPLE_SIZE)]
 
-                    tf.summary.scalar('objectness_0', objectness_loss[0])
-                    tf.summary.scalar('objectness_1', objectness_loss[1])
+                    tf.summary.scalar('objectness', objectness_loss[0])
+                    tf.summary.scalar('objectness', objectness_loss[1])
 
             with tf.variable_scope('regression'):
                 reg_loss = losses.WeightedSmoothL1Loss()
@@ -1125,10 +1051,10 @@ class DtRpnModel(model.DetectionModel):
                                      for i in range(SAMPLE_SIZE)]
                     # Assert the condition `num_positives > 0`
                     for i in range(SAMPLE_SIZE):
-                        with tf.control_dependencies([tf.assert_positive(num_positives[i])]):
+                        with tf.control_dependencies(
+                                [tf.assert_positive(num_positives[i])]):
                             localization_loss[i] = localization_loss[i] / num_positives[i]
-                            name = 'regression_' + str(i)
-                            tf.summary.scalar(name, localization_loss[i])
+                            tf.summary.scalar('regression', localization_loss[i])
 
             objectness_loss = tf.reduce_sum(objectness_loss)
             localization_loss = tf.reduce_sum(localization_loss)
@@ -1138,6 +1064,9 @@ class DtRpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
+            # "offsets": offsets,
+            # "offsets_gt": offsets_gt,
+            # "objectness_gt": objectness_gt
         }
 
         return loss_dict, total_loss

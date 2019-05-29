@@ -13,6 +13,8 @@ KEY_SAMPLE_IDX = 'sample_idx'
 KEY_SAMPLE_NAME = 'sample_name'
 KEY_SAMPLE_AUGS = 'sample_augs'
 
+KEY_OBJECT_IDS = 'object_ids'
+
 KEY_ANCHORS_INFO = 'anchors_info'
 KEY_ANCHORS_INFO_MASK = 'anchors_info_mask'
 

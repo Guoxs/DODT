@@ -6,7 +6,7 @@ from scripts.preprocessing import gen_label_clusters
 
 def main():
 
-    dataset_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_UNITTEST)
+    dataset_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_TRACKING_UNITTEST)
     dataset_config.data_split = "trainval"
     unittest_dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
 
