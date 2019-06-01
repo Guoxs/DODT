@@ -51,7 +51,7 @@ def build_dataset(dataset_config):
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
-    box3d[1:4] = 3 * box3d[1:4]
+    box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-2, 0, 2, 1, 3, 4, 5]]
     else:
@@ -280,8 +280,8 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
-        tracks_finished = track_iou_v2(dets_for_track, sigma_l=0.1, sigma_h=0.5,
-                                                    sigma_iou=0.00, t_min=3, ttl=3)
+        tracks_finished = track_iou(dets_for_track, sigma_l=0.1, sigma_h=0.5,
+                                                    sigma_iou=0.00, t_min=3)
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
         # store final result
