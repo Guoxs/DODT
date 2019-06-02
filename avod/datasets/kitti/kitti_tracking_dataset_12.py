@@ -3,7 +3,6 @@
 import itertools
 import fnmatch
 import os
-import random
 
 import numpy as np
 import cv2
@@ -56,12 +55,10 @@ class KittiTrackingDataset:
         self.bev_source = self.config.bev_source
         self.aug_list = self.config.aug_list
 
-        self.is_final_train = self.config.is_final_train
-
         # 2 image a samples
         self.sample_num = 2
 
-        # stride for couple data, default is 1
+        # stride for couple data, default is 2
         self.data_stride = self.config.data_stride
 
         # video id for training split
@@ -135,12 +132,6 @@ class KittiTrackingDataset:
                     aug_sample_list.append(Sample(sample_name, augmentation))
 
         self.sample_list = np.asarray(aug_sample_list)
-
-        # sample mini-batch for superpameters searching
-        # if not self.is_final_train:
-        #     mini_ids = random.sample(list(range(len(self.sample_list))), 200)
-        #     self.sample_list = self.sample_list[mini_ids]
-
         self.num_samples = len(self.sample_list)
 
         self._set_up_directories()
@@ -192,6 +183,8 @@ class KittiTrackingDataset:
         if self.num_classes > 1:
             if self.classes == ['Pedestrian', 'Cyclist']:
                 self.classes_name = 'People'
+            if self.classes == ['Car', 'Van']:
+                self.classes_name = 'Car'
             elif self.classes == ['Car', 'Pedestrian', 'Cyclist']:
                 self.classes_name = 'All'
             else:
@@ -236,30 +229,12 @@ class KittiTrackingDataset:
     def get_anchors_info(self, sample_names):
         anchors_info = []
         for sample_name in sample_names:
-            anchor_info = self.kitti_utils.get_tracking_anchors_info(
+            anchor_info = self.kitti_utils.get_anchors_info(
                                             self.classes_name,
                                             self.kitti_utils.anchor_strides,
                                             sample_name)
             anchors_info.append(anchor_info)
         return anchors_info
-
-    def get_video_frames(self, video_id):
-        set_file = self.dataset_dir + '/' + self.data_split + '.txt'
-        data_list = []
-        with open(set_file, 'r') as f:
-            sample_names = f.read().split('\n\n')
-            items = sample_names[video_id]
-            items = items.split('\n')
-            if items[-1] == '':
-                items = items[:-1]
-            for line in items:
-                names = line.split('/')
-                video_id = int(names[0])
-                frame_id = int(names[1])
-                data_name = str(video_id).zfill(2) + str(frame_id).zfill(4)
-                data_list.append(data_name)
-        return data_list
-
 
     # generate sample couple
     def generate_sample_couple(self):
@@ -379,11 +354,6 @@ class KittiTrackingDataset:
             labels[-1] = label_next
         return labels
 
-    def inv_label_transform(self, t, ry, sample_names):
-        trans, matrix, delta = self.coordinate_transform(sample_names)
-        ori_t = t @ np.linalg.inv(matrix) - trans
-        ori_delta = ry - delta
-        return ori_t, ori_delta
 
     def load_samples(self, indices):
         """ Loads input-output data for a set of samples. Should only be
@@ -409,7 +379,6 @@ class KittiTrackingDataset:
                 not_empty = (len(anchors_info[0]) > 0) and (len(anchors_info[1]) > 0)
                 if not not_empty and self.train_val_test == 'train' \
                         and (not self.train_on_all_samples):
-                    anchors_info = []
                     empty_sample_dict = {
                         constants.KEY_SAMPLE_NAME: sample_names,
                         constants.KEY_ANCHORS_INFO: anchors_info
@@ -428,9 +397,10 @@ class KittiTrackingDataset:
 
                 anchors_info = [[],[]]
 
-                label_anchors = [np.zeros((1, 7)), np.zeros((1, 7))]
-                label_boxes_3d = [np.zeros((1, 8)), np.zeros((1, 8))]
+                label_anchors = [np.zeros((1, 6)), np.zeros((1, 6))]
+                label_boxes_3d = [np.zeros((1, 7)), np.zeros((1, 7))]
                 label_classes = [np.zeros(1), np.zeros(1)]
+                object_ids = [np.zeros(1), np.zeros(1)]
 
             # Load image (BGR -> RGB)
             cv_bgr_image = [cv2.imread(self.get_rgb_image_path(name)) for name in sample_names]
@@ -494,7 +464,7 @@ class KittiTrackingDataset:
                 label_classes = []
                 for i in range(len(obj_labels)):
                     label_box_3d = np.asarray(
-                        [box_3d_encoder.tracking_object_label_to_box_3d(obj_label)
+                        [box_3d_encoder.object_label_to_box_3d(obj_label)
                          for obj_label in obj_labels[i]])
 
                     label_class = [
@@ -512,16 +482,16 @@ class KittiTrackingDataset:
                             # number here that does not break the offset calculation
                             # should work, since the negative samples won't be
                             # regressed in any case.
-                            dummy_anchors = [[0, -1000, -1000, -1000, 1, 1, 1]]
+                            dummy_anchors = [[-1000, -1000, -1000, 1, 1, 1]]
                             label_anchor = np.asarray(dummy_anchors)
-                            dummy_boxes = [[0, -1000, -1000, -1000, 1, 1, 1, 0]]
+                            dummy_boxes = [[-1000, -1000, -1000, 1, 1, 1, 0]]
                             label_box_3d = np.asarray(dummy_boxes)
                         else:
-                            label_anchor = np.zeros((1, 7))
-                            label_box_3d = np.zeros((1, 8))
+                            label_anchor = np.zeros((1, 6))
+                            label_box_3d = np.zeros((1, 7))
                         label_class = np.zeros(1)
                     else:
-                        label_anchor = box_3d_encoder.tracking_box_3d_to_anchor(
+                        label_anchor = box_3d_encoder.box_3d_to_anchor(
                             label_box_3d, ortho_rotate=True)
 
                     label_boxes_3d.append(label_box_3d)
@@ -537,47 +507,27 @@ class KittiTrackingDataset:
             bev_input = [np.dstack((*height_maps[i], density_map[i]))
                          for i in range(len(bev_images))]
 
-            #bev_input = [np.sum(bev, axis=2)for bev in bev_input]
-            bev_input = np.asarray(bev_input)
-            #bev_input = np.expand_dims(bev_input, axis=2)
-
             # calculate correlation offsets
             # label_corr_boxes_3d = self.calculate_corr_offsets(label_boxes_3d)
             # label_corr_anchors = self.calculate_corr_offsets(label_anchors)
 
-            # align anchors_info
-            aligned_anchors_info = []
-            anchors_info_mask = []
-            if len(anchors_info[0]) > 0 and len(anchors_info[1]) > 0:
-                anchors_info_mask, _ = self.list_align([anchors_info[0][0],
-                                    anchors_info[1][0]], return_mask=True)
-
-                for (item1, item2) in zip(anchors_info[0], anchors_info[1]):
-                    aligned_anchors_info.append(
-                        self.list_align([item1, item2]))
-
-            label_mask, _ = self.list_align(label_boxes_3d, return_mask=True)
             # transpose point_cloud for data align
             point_cloud = [point_cloud[0].T, point_cloud[1].T]
-            point_cloud_mask, point_cloud = self.list_align(point_cloud, return_mask=True)
 
             sample_dict = {
-                constants.KEY_LABEL_BOXES_3D: self.list_align(label_boxes_3d),
-                constants.KEY_LABEL_ANCHORS: self.list_align(label_anchors),
-                constants.KEY_LABEL_CLASSES: self.list_align(label_classes),
-                constants.KEY_LABEL_MASK: label_mask,
+                constants.KEY_LABEL_BOXES_3D: label_boxes_3d,
+                constants.KEY_LABEL_ANCHORS: label_anchors,
+                constants.KEY_LABEL_CLASSES: label_classes,
+
+                constants.KEY_IMAGE_INPUT: np.asarray(image_input),
+                constants.KEY_BEV_INPUT: np.asarray(bev_input),
 
                 # constants.KEY_LABEL_CORR_BOXES_3D: label_corr_boxes_3d,
                 # constants.KEY_LABEL_CORR_ANCHORS: label_corr_anchors,
 
-                constants.KEY_IMAGE_INPUT: np.asarray(image_input),
-                constants.KEY_BEV_INPUT: bev_input,
-
-                constants.KEY_ANCHORS_INFO: aligned_anchors_info,
-                constants.KEY_ANCHORS_INFO_MASK: anchors_info_mask,
+                constants.KEY_ANCHORS_INFO: anchors_info,
 
                 constants.KEY_POINT_CLOUD: point_cloud,
-                constants.KEY_POINT_CLOUD_MASK: point_cloud_mask,
                 constants.KEY_GROUND_PLANE: np.asarray(ground_plane),
                 constants.KEY_STEREO_CALIB_P2: stereo_calib_p2,
 
@@ -588,22 +538,16 @@ class KittiTrackingDataset:
 
         return sample_dicts
 
-    def list_align(self, list, return_mask=False):
+    def list_align(self, list):
         len1 = list[0].shape[0]
         len2 = list[1].shape[0]
-        mask = np.zeros((len1+len2,), dtype = np.int32)
+        mask = np.zeros((len1+len2,1), dtype = np.int32)
         mask[len1:] = 1
         out = np.concatenate(list, axis=0)
-        if return_mask:
-            return mask, out
-        else:
-            return out
-
-    def get_from_idx(self, data, idx):
-        assert len(data.shape) == 2, print('shape unmatch!')
-        mask = data[:, 0]
-        n_idx = (mask == idx)
-        return data[n_idx]
+        if len(out.shape) == 1:
+            out = np.expand_dims(out, axis=1)
+        list_out = np.concatenate([mask, out], axis=1)
+        return list_out
 
     def calculate_corr_offsets(self, labels):
         labels_1 = labels[0]
@@ -630,7 +574,6 @@ class KittiTrackingDataset:
                 #corr_offsets[i] = - label
                 corr_offsets[i][-1] = obj_id
         return corr_offsets
-
 
 
     def _shuffle_samples(self):
