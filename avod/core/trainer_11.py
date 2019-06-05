@@ -8,10 +8,6 @@ import os
 import tensorflow as tf
 import time
 
-from tensorflow.python.client import timeline
-
-from tensorflow.python import debug as tf_debug
-
 from avod.builders import optimizer_builder
 from avod.core import trainer_utils
 from avod.core import summary_utils
@@ -65,9 +61,8 @@ def train(model, train_config):
     checkpoint_path = checkpoint_dir + '/' + \
         model_config.checkpoint_name
 
-    pretrained_checkpoint_dir = checkpoint_dir + \
-        '/../../../../data_tracking/outputs/' \
-        'pyramid_cars_with_aug_tracking/checkpoints'
+    pretrained_checkpoint_dir = checkpoint_dir + '/../../' + \
+        'pyramid_cars_with_aug_example_trainval/checkpoints'
 
     global_summaries = set([])
 
@@ -106,13 +101,6 @@ def train(model, train_config):
             variables_to_train=variable_to_train,
             clip_gradient_norm=1.0,
             global_step=global_step_tensor)
-
-    if train_config.use_pretrained_model:
-        trainable_variables = tf.trainable_variables()
-        variable_to_restore = trainable_variables[:68] + \
-                              trainable_variables[84:108]
-        fine_tuning_op = tf.train.AdamOptimizer(5e-5)\
-            .minimize(total_loss, var_list=variable_to_restore)
 
     # Add the result of the train_op to the summary
     tf.summary.scalar("training_loss", train_op)
@@ -228,25 +216,16 @@ def train(model, train_config):
             time_elapsed = current_time - last_time
             last_time = current_time
 
-            if train_config.use_pretrained_model:
-                train_op_loss, fine_tuning_op_loss, summary_out = sess.run(
-                    [train_op, fine_tuning_op, summary_merged], feed_dict=feed_dict)
-                print('Step {}, Total Loss {:0.3f},Time Elapsed {:0.3f} s'.format(
-                     step, train_op_loss,  time_elapsed))
-            else:
-                train_op_loss, summary_out = sess.run(
+            train_op_loss, summary_out = sess.run(
                     [train_op, summary_merged], feed_dict=feed_dict)
-                print('Step {}, Total Loss {:0.3f}, Time Elapsed {:0.3f} s'.format(
+            print('Step {}, Total Loss {:0.3f}, Time Elapsed {:0.3f} s'.format(
                     step, train_op_loss, time_elapsed))
 
             train_writer.add_summary(summary_out, step)
 
         else:
             # Run the train op only
-            if train_config.use_pretrained_model:
-                sess.run([train_op, fine_tuning_op], feed_dict)
-            else:
-                sess.run(train_op, feed_dict)
+            sess.run(train_op, feed_dict)
 
     # Close the summary writers
     train_writer.close()

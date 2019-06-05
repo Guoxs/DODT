@@ -77,10 +77,7 @@ def train(model, train_config):
     if not train_config.use_pretrained_model:
         variable_to_train = None
     else:
-        trainable_variables = tf.trainable_variables()
-        variable_to_train = trainable_variables[68:84] + \
-                            trainable_variables[108:]
-
+        variable_to_train = tf.trainable_variables()
 
     ##############################
     # Setup loss
@@ -156,8 +153,6 @@ def train(model, train_config):
             sess.run(init)
             if train_config.use_pretrained_model:
                 variable_to_restore = tf.trainable_variables()
-                variable_to_restore = variable_to_restore[:68] + \
-                                      variable_to_restore[84:108]
                 variable_to_restore = {name_in_checkpoint(var):
                                            var for var in variable_to_restore}
                 saver2 = tf.train.Saver(var_list=variable_to_restore)
@@ -173,8 +168,6 @@ def train(model, train_config):
         if train_config.use_pretrained_model:
 
             variable_to_restore = tf.trainable_variables()
-            variable_to_restore = variable_to_restore[:68] + \
-                                  variable_to_restore[84:108]
             variable_to_restore = {name_in_checkpoint(var):
                                        var for var in variable_to_restore}
             saver2 = tf.train.Saver(var_list=variable_to_restore)

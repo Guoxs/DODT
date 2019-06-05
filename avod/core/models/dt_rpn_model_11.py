@@ -22,6 +22,7 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     PL_BEV_INPUT = 'bev_input_pl'
     PL_IMG_INPUT = 'img_input_pl'
+
     # PL_CORR_ANCHORS_OFFSETS = 'corr_anchors_offsets_pl'
 
     PL_ANCHORS = 'anchors_pl'
@@ -36,9 +37,6 @@ class DtRpnModel(model.DetectionModel):
     PL_LABEL_ANCHORS = 'label_anchors_pl'
     PL_LABEL_BOXES_3D = 'label_boxes_3d_pl'
     PL_LABEL_CLASSES = 'label_classes_pl'
-    # PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
-    # PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
-
     PL_LABEL_MASK_A = 'label_mask_a_pl'
     PL_LABEL_MASK_B = 'label_mask_b_pl'
 
@@ -60,10 +58,12 @@ class DtRpnModel(model.DetectionModel):
 
     PRED_MB_OBJECTNESS_GT = 'rpn_mb_objectness_gt'
     PRED_MB_OFFSETS_GT = 'rpn_mb_offsets_gt'
+    PRED_MB_CORR_OFFSETS_GT = 'rpn_mb_corr_offsets_gt'
 
     PRED_MB_MASK = 'rpn_mb_mask'
     PRED_MB_OBJECTNESS = 'rpn_mb_objectness'
     PRED_MB_OFFSETS = 'rpn_mb_offsets'
+    PRED_MB_CORR_OFFSETS = 'rpn_mb_corr_offsets'
 
     PRED_TOP_INDICES = 'rpn_top_indices'
     PRED_TOP_ANCHORS = 'rpn_top_anchors'
@@ -74,6 +74,7 @@ class DtRpnModel(model.DetectionModel):
     ##############################
     LOSS_RPN_OBJECTNESS = 'rpn_objectness_loss'
     LOSS_RPN_REGRESSION = 'rpn_regression_loss'
+    LOSS_RPN_CORRELATION = 'rpn_correlation_loss'
 
     def __init__(self, model_config, train_val_test, dataset):
         """
@@ -219,9 +220,6 @@ class DtRpnModel(model.DetectionModel):
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_A)
             self._add_placeholder(tf.int32, [None], self.PL_LABEL_MASK_B)
 
-            # self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
-            # self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
-
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
             self._add_placeholder(tf.float32, [None, 6], self.PL_ANCHORS)
@@ -273,7 +271,6 @@ class DtRpnModel(model.DetectionModel):
 
                 scope.reuse_variables()
 
-
         with tf.variable_scope('bev_bottleneck') as scope:
             self.bev_bottleneck = []
             for bev_feature_map in self.bev_feature_maps:
@@ -311,92 +308,35 @@ class DtRpnModel(model.DetectionModel):
         #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
         #                                                  feature_map[0])
 
-    # def _correlation_layer_v2(self):
-    #     corr_config = self._config.layers_config.correlation_config
-    #     bev_vgg_config = self._config.layers_config.bev_feature_extractor.bev_vgg_pyr
-    #     img_vgg_config = self._config.layers_config.img_feature_extractor.img_vgg_pyr
-    #
-    #     bev_feature_map_0, bev_feature_map_1 = self.bev_pyramid_feature_maps
-    #     img_feature_map_0, img_feature_map_1 = self.img_pyramid_feature_maps
-    #     size = len(bev_feature_map_0)
-    #     with tf.variable_scope('bev_correlation'):
-    #         bev_corr = [None] * size
-    #         for i in range(size):
-    #             bev_corr[i] = correlation(bev_feature_map_0[i], bev_feature_map_1[i],
-    #                                   max_displacement=corr_config.max_displacement,
-    #                                   padding=corr_config.padding)
-    #
-    #         bev_upcorr3 = slim.conv2d_transpose(bev_corr[0], bev_vgg_config.vgg_conv3[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='bev_upcorr3')
-    #
-    #         bev_concat_corr3 = tf.concat((bev_upcorr3, bev_corr[1]), axis=3, name='bev_concat_corr_3')
-    #
-    #         bev_pyramid_fusion2 = slim.conv2d(bev_concat_corr3, bev_vgg_config.vgg_conv2[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='bev_pyramid_fusion2')
-    #
-    #         bev_upcorr2 = slim.conv2d_transpose(bev_pyramid_fusion2, bev_vgg_config.vgg_conv2[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='bev_upcorr2')
-    #
-    #         bev_concat_corr2 = tf.concat((bev_upcorr2, bev_corr[2]), axis=3, name='bev_concat_corr_2')
-    #
-    #         bev_pyramid_fusion =  slim.conv2d(bev_concat_corr2, bev_vgg_config.vgg_conv1[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='bev_pyramid_fusion')
-    #
-    #         self.bev_corr_feature_maps = bev_pyramid_fusion[:, 4:]
-    #
-    #     with tf.variable_scope('img_correlation'):
-    #         img_corr = [None] * size
-    #         for i in range(size):
-    #             img_corr[i] = correlation(img_feature_map_0[i], img_feature_map_1[i],
-    #                                       max_displacement=corr_config.max_displacement,
-    #                                       padding=corr_config.padding)
-    #
-    #         img_upcorr3 = slim.conv2d_transpose(img_corr[0], img_vgg_config.vgg_conv3[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='img_upcorr3')
-    #
-    #         img_concat_corr3 = tf.concat((img_upcorr3, img_corr[1]), axis=3, name='img_concat_corr_3')
-    #
-    #         img_pyramid_fusion2 = slim.conv2d(img_concat_corr3, img_vgg_config.vgg_conv2[1],
-    #                                           [3, 3], normalizer_fn=slim.batch_norm,
-    #                                           normalizer_params={'is_training': self._is_training},
-    #                                           scope='img_pyramid_fusion2')
-    #
-    #         img_upcorr2 = slim.conv2d_transpose(img_pyramid_fusion2, img_vgg_config.vgg_conv2[1],
-    #                                             [3, 3], stride=2, normalizer_fn=slim.batch_norm,
-    #                                             normalizer_params={'is_training': self._is_training},
-    #                                             scope='img_upcorr2')
-    #
-    #         img_concat_corr2 = tf.concat((img_upcorr2, img_corr[2]), axis=3, name='img_concat_corr_2')
-    #
-    #         self.img_corr_feature_maps = slim.conv2d(img_concat_corr2, img_vgg_config.vgg_conv1[1],
-    #                                          [3, 3], normalizer_fn=slim.batch_norm,
-    #                                          normalizer_params={'is_training': self._is_training},
-    #                                          scope='img_pyramid_fusion')
+    def _correlation_layer(self, bev_feature_maps, img_feature_maps):
+        corr_config = self._config.layers_config.correlation_config
 
-    # def _correlation_layer(self):
-    #     corr_config = self._config.layers_config.correlation_config
-    #
-    #     with tf.variable_scope('bev_correlation'):
-    #         self.bev_corr_feature_maps = correlation(
-    #             self.bev_feature_maps[0], self.bev_feature_maps[1],
-    #             max_displacement=corr_config.max_displacement,
-    #             padding=corr_config.padding)
-    #
-    #     with tf.variable_scope('img_correlation'):
-    #         self.img_corr_feature_maps = correlation(
-    #             self.img_feature_maps[0],self.img_feature_maps[1],
-    #             max_displacement=corr_config.max_displacement,
-    #             padding=corr_config.padding)
+        with tf.variable_scope('bev_correlation'):
+            self.bev_corr_feature_maps = correlation(
+                bev_feature_maps[0], bev_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
+
+        with tf.variable_scope('img_correlation'):
+            self.img_corr_feature_maps = correlation(
+                img_feature_maps[0],img_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
+
+        with tf.variable_scope('bev_corr_bottleneck'):
+            self.bev_corr_bottleneck = slim.conv2d(
+                            self.bev_corr_feature_maps,
+                            1, [1, 1],
+                            scope='bev_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
+
+        with tf.variable_scope('img_corr_bottleneck'):
+            self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
+                            1, [1, 1],
+                            scope='img_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
 
 
     def build(self):
@@ -420,7 +360,7 @@ class DtRpnModel(model.DetectionModel):
                                     for i in range(SAMPLE_SIZE)]
 
         # get correlation feature
-        # self._correlation_layer()
+        # self._correlation_layer(self.bev_feature_maps, self.img_feature_maps)
 
         fusion_mean_div_factor = 2.0
 
@@ -483,6 +423,8 @@ class DtRpnModel(model.DetectionModel):
                 tf_box_indices[i],
                 self._proposal_roi_crop_size) for i in range(SAMPLE_SIZE)]
 
+
+
         with tf.variable_scope('proposal_roi_fusion'):
             rpn_fusion_out = None
             if self._fusion_method == 'mean':
@@ -490,6 +432,7 @@ class DtRpnModel(model.DetectionModel):
                                    for i in range(SAMPLE_SIZE)]
                 rpn_fusion_out = [tf.divide(tf_features_sum[i],fusion_mean_div_factor)
                                   for i in range(SAMPLE_SIZE)]
+
 
             elif self._fusion_method == 'concat':
                 rpn_fusion_out = [tf.concat([bev_proposal_rois[i], img_proposal_rois[i]],
@@ -629,7 +572,6 @@ class DtRpnModel(model.DetectionModel):
 
                 top_objectness_softmax = [tf.gather(objectness_scores[i], top_indices[i])
                                           for i in range(SAMPLE_SIZE)]
-
                 # top_offsets = tf.gather(offsets, top_indices)
                 # top_objectness = tf.gather(objectness, top_indices)
 
@@ -729,7 +671,6 @@ class DtRpnModel(model.DetectionModel):
                                     for i in range(SAMPLE_SIZE)]
             offsets_gt_masked = [tf.boolean_mask(all_offsets_gt[i],mini_batch_mask[i])
                                  for i in range(SAMPLE_SIZE)]
-
         # Specify the tensors to evaluate
         predictions = dict()
 
@@ -750,23 +691,14 @@ class DtRpnModel(model.DetectionModel):
             # Mini batch ground truth
             predictions[self.PRED_MB_OFFSETS_GT] = offsets_gt_masked
             predictions[self.PRED_MB_OBJECTNESS_GT] = objectness_gt_masked
-
             # Proposals after nms
             predictions[self.PRED_TOP_INDICES] = top_indices
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
-
-            # debug
-            # predictions['bev_corr_map'] = self.bev_corr_feature_maps
-            # predictions['img_corr_map'] = self.img_corr_feature_maps
-            # predictions['bev_pyramid_feature_maps'] = self.bev_pyramid_feature_maps
-            # predictions['img_pyramid_feature_maps'] = self.img_pyramid_feature_maps
-
         else:
             # self._train_val_test == 'test'
             predictions[self.PRED_TOP_ANCHORS] = top_anchors
             predictions[self.PRED_TOP_OBJECTNESS_SOFTMAX] = top_objectness_softmax
-
         return predictions
 
     def create_feed_dict(self, sample_index=None):
@@ -1138,9 +1070,6 @@ class DtRpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
-            # "offsets": offsets,
-            # "offsets_gt": offsets_gt,
-            # "objectness_gt": objectness_gt
         }
 
         return loss_dict, total_loss
