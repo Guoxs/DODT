@@ -508,8 +508,8 @@ class KittiTrackingDataset:
                          for i in range(len(bev_images))]
 
             # calculate correlation offsets
-            # label_corr_boxes_3d = self.calculate_corr_offsets(label_boxes_3d)
-            # label_corr_anchors = self.calculate_corr_offsets(label_anchors)
+            label_corr_boxes_3d = self.calculate_corr_offsets(label_boxes_3d)
+            label_corr_anchors = self.calculate_corr_offsets(label_anchors)
 
             # transpose point_cloud for data align
             point_cloud = [point_cloud[0].T, point_cloud[1].T]
@@ -522,8 +522,8 @@ class KittiTrackingDataset:
                 constants.KEY_IMAGE_INPUT: np.asarray(image_input),
                 constants.KEY_BEV_INPUT: np.asarray(bev_input),
 
-                # constants.KEY_LABEL_CORR_BOXES_3D: label_corr_boxes_3d,
-                # constants.KEY_LABEL_CORR_ANCHORS: label_corr_anchors,
+                constants.KEY_LABEL_CORR_BOXES_3D: label_corr_boxes_3d,
+                constants.KEY_LABEL_CORR_ANCHORS: label_corr_anchors,
 
                 constants.KEY_ANCHORS_INFO: anchors_info,
 

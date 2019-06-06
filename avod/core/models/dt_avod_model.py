@@ -208,8 +208,8 @@ class DtAvodModel(model.DetectionModel):
         bev_feature_maps = rpn_model.bev_feature_maps
         img_feature_maps = rpn_model.img_feature_maps
 
-        # bev_corr_feature_maps = rpn_model.bev_corr_feature_maps
-        # img_corr_feature_maps = rpn_model.img_corr_feature_maps
+        bev_corr_feature_maps = rpn_model.bev_corr_feature_maps
+        img_corr_feature_maps = rpn_model.img_corr_feature_maps
 
         if not (self._path_drop_probabilities[0] ==
                 self._path_drop_probabilities[1] == 1.0):
@@ -225,8 +225,8 @@ class DtAvodModel(model.DetectionModel):
                 bev_feature_maps = [tf.multiply(bev_feature_maps[i],bev_mask)
                                     for i in range(SAMPLE_SIZE)]
 
-                # img_corr_feature_maps = tf.multiply(img_corr_feature_maps, img_mask)
-                # bev_corr_feature_maps = tf.multiply(bev_corr_feature_maps, bev_mask)
+                img_corr_feature_maps = tf.multiply(img_corr_feature_maps, img_mask)
+                bev_corr_feature_maps = tf.multiply(bev_corr_feature_maps, bev_mask)
         else:
             bev_mask = tf.constant(1.0)
             img_mask = tf.constant(1.0)
@@ -265,19 +265,19 @@ class DtAvodModel(model.DetectionModel):
                 name='img_rois') for i in range(SAMPLE_SIZE)]
 
             # Do ROI Pooling on correlation maps
-            # bev_corr_rois = tf.image.crop_and_resize(
-            #     bev_corr_feature_maps,
-            #     bev_proposal_boxes_norm_tf_order[0],
-            #     tf_box_indices[0],
-            #     self._proposal_roi_crop_size,
-            #     name='bev_corr_rois')
-            #
-            # img_corr_rois = tf.image.crop_and_resize(
-            #     img_corr_feature_maps,
-            #     img_proposal_boxes_norm_tf_order[0],
-            #     tf_box_indices[0],
-            #     self._proposal_roi_crop_size,
-            #     name='img_corr_rois')
+            bev_corr_rois = tf.image.crop_and_resize(
+                bev_corr_feature_maps,
+                bev_proposal_boxes_norm_tf_order[0],
+                tf_box_indices[0],
+                self._proposal_roi_crop_size,
+                name='bev_corr_rois')
+
+            img_corr_rois = tf.image.crop_and_resize(
+                img_corr_feature_maps,
+                img_proposal_boxes_norm_tf_order[0],
+                tf_box_indices[0],
+                self._proposal_roi_crop_size,
+                name='img_corr_rois')
 
         # Fully connected layers (Box Predictor)
         avod_layers_config = self.model_config.layers_config.avod_config
@@ -297,12 +297,12 @@ class DtAvodModel(model.DetectionModel):
                         is_training=self._is_training)
                 scope.reuse_variables()
 
-        # with tf.variable_scope('avod_corr_layer'):
-        #     all_corr_offsets = avod_corr_layers_builder.build(
-        #                             layers_config=avod_layers_config,
-        #                             input_rois=[bev_corr_rois, img_corr_rois],
-        #                             input_weights=[bev_mask, img_mask],
-        #                             is_training=self._is_training)
+        with tf.variable_scope('avod_corr_layer'):
+            all_corr_offsets = avod_corr_layers_builder.build(
+                                    layers_config=avod_layers_config,
+                                    input_rois=[bev_corr_rois, img_corr_rois],
+                                    input_weights=[bev_mask, img_mask],
+                                    is_training=self._is_training)
 
         all_cls_logits = [fc_output_layers[i][avod_fc_layers_builder.KEY_CLS_LOGITS]
                           for i in range(SAMPLE_SIZE)]
@@ -325,7 +325,7 @@ class DtAvodModel(model.DetectionModel):
         anchors_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_A],
                       rpn_model.placeholders[DtRpnModel.PL_LABEL_ANCHORS_B]]
 
-        # corr_boxes_3d_gt = rpn_model.placeholders[DtRpnModel.PL_LABEL_CORR_BOXES_3D]
+        corr_boxes_3d_gt = rpn_model.placeholders[DtRpnModel.PL_LABEL_CORR_BOXES_3D]
 
         if self._box_rep in ['box_3d', 'box_4ca']:
             boxes_3d_gt = [rpn_model.placeholders[DtRpnModel.PL_LABEL_BOXES_3D_A],
@@ -398,7 +398,7 @@ class DtAvodModel(model.DetectionModel):
                     mb_angle_vectors[i] = None
 
             # Correlation
-            # mb_corr_offsets = tf.boolean_mask(all_corr_offsets, mb_mask[0])
+            mb_corr_offsets = tf.boolean_mask(all_corr_offsets, mb_mask[0])
 
         # Encode anchor offsets
         with tf.variable_scope('avod_encode_mb_anchors'):
@@ -409,7 +409,7 @@ class DtAvodModel(model.DetectionModel):
             proposal_boxes_4c = [None]*SAMPLE_SIZE
 
             # Gather corresponding ground truth corr offsets for each mb sample
-            # mb_corr_offsets_gt = tf.gather(corr_boxes_3d_gt, mb_gt_indices[0])
+            mb_corr_offsets_gt = tf.gather(corr_boxes_3d_gt, mb_gt_indices[0])
 
             for i in range(SAMPLE_SIZE):
                 mb_anchors = tf.boolean_mask(top_anchors[i], mb_mask[i])
@@ -637,8 +637,8 @@ class DtAvodModel(model.DetectionModel):
                 else:
                     raise NotImplementedError('NMS gather not implemented for', self._box_rep)
 
-                # if i == 0:
-                #     top_corr_offsets = tf.gather(all_corr_offsets, nms_indices)
+                if i == 0:
+                    top_corr_offsets = tf.gather(all_corr_offsets, nms_indices)
 
         if self._train_val_test in ['train', 'val']:
             # Additional entries are added to the shared prediction_dict
@@ -646,18 +646,18 @@ class DtAvodModel(model.DetectionModel):
             prediction_dict[self.PRED_MB_CLASSIFICATION_LOGITS] = mb_classifications_logits
             prediction_dict[self.PRED_MB_CLASSIFICATION_SOFTMAX] = mb_classifications_softmax
             prediction_dict[self.PRED_MB_OFFSETS] = mb_offsets
-            # prediction_dict[self.PRED_MB_CORR_OFFSETS] = mb_corr_offsets
+            prediction_dict[self.PRED_MB_CORR_OFFSETS] = mb_corr_offsets
 
             # Mini batch ground truth
             prediction_dict[self.PRED_MB_CLASSIFICATIONS_GT] = mb_classification_gt
             prediction_dict[self.PRED_MB_OFFSETS_GT] = mb_offsets_gt
-            # prediction_dict[self.PRED_MB_CORR_OFFSETS_GT] = mb_corr_offsets_gt
+            prediction_dict[self.PRED_MB_CORR_OFFSETS_GT] = mb_corr_offsets_gt
 
             # Top NMS predictions
             prediction_dict[self.PRED_TOP_CLASSIFICATION_LOGITS] = top_classification_logits
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            # prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
 
             # Mini batch predictions (for debugging)
             prediction_dict[self.PRED_MB_MASK] = mb_mask
@@ -676,7 +676,7 @@ class DtAvodModel(model.DetectionModel):
             # self._train_val_test == 'test'
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
-            # prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_corr_offsets
 
         if self._box_rep == 'box_3d':
             prediction_dict[self.PRED_MB_ANCHORS_GT] = mb_anchors_gt
@@ -745,7 +745,7 @@ class DtAvodModel(model.DetectionModel):
         final_reg_loss = tf.reduce_sum(
             losses_output[dt_avod_loss_builder.KEY_REGRESSION_LOSS])
 
-        # corr_offsets_loss = losses_output[dt_avod_loss_builder.KEY_CORRELATION_LOSS]
+        corr_offsets_loss = losses_output[dt_avod_loss_builder.KEY_CORRELATION_LOSS]
 
         avod_loss = tf.reduce_sum(
             losses_output[dt_avod_loss_builder.KEY_AVOD_LOSS])
@@ -755,11 +755,7 @@ class DtAvodModel(model.DetectionModel):
 
         loss_dict.update({self.LOSS_FINAL_CLASSIFICATION: classification_loss})
         loss_dict.update({self.LOSS_FINAL_REGRESSION: final_reg_loss})
-        # loss_dict.update({self.LOSS_FINAL_CORRELATION: corr_offsets_loss})
-
-        # add correlation gt
-        # loss_dict.update({self.PRED_MB_CORR_OFFSETS_GT: prediction_dict[self.PRED_MB_CORR_OFFSETS_GT]})
-        # loss_dict.update({self.PRED_MB_OFFSETS_GT: prediction_dict['pred_mb_box3d_gt']})
+        loss_dict.update({self.LOSS_FINAL_CORRELATION: corr_offsets_loss})
 
         # Add localization and orientation losses to loss dict for plotting
         loss_dict.update({self.LOSS_FINAL_LOCALIZATION: offset_loss_norm})
@@ -770,6 +766,6 @@ class DtAvodModel(model.DetectionModel):
             loss_dict.update({self.LOSS_FINAL_ORIENTATION: ang_loss_loss_norm})
 
         with tf.variable_scope('model_total_loss'):
-            total_loss = rpn_loss + avod_loss # + corr_offsets_loss
+            total_loss = rpn_loss + avod_loss + corr_offsets_loss
 
         return loss_dict, total_loss

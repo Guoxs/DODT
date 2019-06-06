@@ -14,6 +14,9 @@ from avod.core import summary_utils
 from avod.core.anchor_generators import grid_anchor_3d_generator
 from avod.datasets.kitti import kitti_aug
 
+from avod.core.corr_layers.correlation import correlation
+
+
 
 class DtRpnModel(model.DetectionModel):
     ##############################
@@ -49,6 +52,9 @@ class DtRpnModel(model.DetectionModel):
     PL_ANCHOR_IOUS_B = 'anchor_ious_pl_1'
     PL_ANCHOR_OFFSETS_B = 'anchor_offsets_pl_1'
     PL_ANCHOR_CLASSES_B = 'anchor_classes_pl_1'
+
+    PL_LABEL_CORR_ANCHORS = 'corr_label_anchors_pl'
+    PL_LABEL_CORR_BOXES_3D = 'corr_label_boxes_3d_pl'
 
     # Sample info, including keys for projection to image space
     # (e.g. camera matrix, image index, etc.)
@@ -219,10 +225,12 @@ class DtRpnModel(model.DetectionModel):
         with tf.variable_scope('pl_labels'):
             self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_A)
             self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_A)
-            self._add_placeholder(tf.float32, [None], self.PL_LABEL_CLASSES_A)
+            self._add_placeholder(tf.float32, [None],    self.PL_LABEL_CLASSES_A)
             self._add_placeholder(tf.float32, [None, 6], self.PL_LABEL_ANCHORS_B)
             self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_B)
-            self._add_placeholder(tf.float32, [None, ], self.PL_LABEL_CLASSES_B)
+            self._add_placeholder(tf.float32, [None,  ], self.PL_LABEL_CLASSES_B)
+            self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
+            self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
@@ -313,16 +321,36 @@ class DtRpnModel(model.DetectionModel):
                 self.img_bottleneck.append(temp_img_bottleneck)
                 scope.reuse_variables()
 
-        # # Visualize the end point feature maps being used
-        # for feature_map in list(self.bev_end_points.items()):
-        #     if 'conv' in feature_map[0]:
-        #         summary_utils.add_feature_maps_from_dict(self.bev_end_points,
-        #                                                  feature_map[0])
-        #
-        # for feature_map in list(self.img_end_points.items()):
-        #     if 'conv' in feature_map[0]:
-        #         summary_utils.add_feature_maps_from_dict(self.img_end_points,
-        #                                                  feature_map[0])
+    def correlation_layer(self):
+        corr_config = self._config.layers_config.correlation_config
+
+        with tf.variable_scope('bev_correlation'):
+            self.bev_corr_feature_maps = correlation(
+                self.bev_feature_maps[0], self.bev_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
+
+        with tf.variable_scope('img_correlation'):
+            self.img_corr_feature_maps = correlation(
+                self.img_feature_maps[0],self.img_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
+
+        with tf.variable_scope('bev_corr_bottleneck'):
+            self.bev_corr_bottleneck = slim.conv2d(
+                            self.bev_corr_feature_maps,
+                            1, [1, 1],
+                            scope='bev_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
+
+        with tf.variable_scope('img_corr_bottleneck'):
+            self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
+                            1, [1, 1],
+                            scope='img_corr_bottleneck',
+                            normalizer_fn=slim.batch_norm,
+                            normalizer_params={'is_training': self._is_training})
+
 
     def build(self):
         SAMPLE_SIZE = self.dataset.sample_num
@@ -334,6 +362,9 @@ class DtRpnModel(model.DetectionModel):
 
         bev_proposal_input = self.bev_bottleneck
         img_proposal_input = self.img_bottleneck
+
+        # compute correlation feature
+        self.correlation_layer()
 
         fusion_mean_div_factor = 2.0
 
@@ -776,6 +807,10 @@ class DtRpnModel(model.DetectionModel):
         image_input = couple_sample.get(constants.KEY_IMAGE_INPUT)
         bev_input = couple_sample.get(constants.KEY_BEV_INPUT)
 
+        # correlation gt offsets
+        label_corr_boxes_3d = couple_sample.get(constants.KEY_LABEL_CORR_BOXES_3D)
+        label_corr_anchors = couple_sample.get(constants.KEY_LABEL_CORR_ANCHORS)
+
         # Image shape (h, w)
         image_shape = [[image.shape[0], image.shape[1]] for image in image_input]
 
@@ -804,6 +839,9 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[1]
         self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[1]
+
+        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
+        self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
 
         # Sample Info
         # img_idx is a list to match the placeholder shape
@@ -1064,9 +1102,6 @@ class DtRpnModel(model.DetectionModel):
         loss_dict = {
             self.LOSS_RPN_OBJECTNESS: objectness_loss,
             self.LOSS_RPN_REGRESSION: localization_loss,
-            # "offsets": offsets,
-            # "offsets_gt": offsets_gt,
-            # "objectness_gt": objectness_gt
         }
 
         return loss_dict, total_loss

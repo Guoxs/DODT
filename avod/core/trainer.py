@@ -62,7 +62,7 @@ def train(model, train_config):
         model_config.checkpoint_name
 
     pretrained_checkpoint_dir = checkpoint_dir + '/../../' + \
-        'pyramid_cars_with_aug_example_trainval/checkpoints'
+        'pyramid_cars_with_aug_dt_5_tracking_pretrained/checkpoints'
 
     global_summaries = set([])
 
@@ -77,7 +77,10 @@ def train(model, train_config):
     if not train_config.use_pretrained_model:
         variable_to_train = None
     else:
-        variable_to_train = tf.trainable_variables()
+        trainable_variables = tf.trainable_variables()
+        variable_to_train = trainable_variables[68:72] + \
+                            trainable_variables[96:]
+
 
     ##############################
     # Setup loss
@@ -153,30 +156,27 @@ def train(model, train_config):
             sess.run(init)
             if train_config.use_pretrained_model:
                 variable_to_restore = tf.trainable_variables()
-                variable_to_restore = {name_in_checkpoint(var):
-                                           var for var in variable_to_restore}
+                variable_to_restore = variable_to_restore[:68] + \
+                                      variable_to_restore[72:96]
+                variable_to_restore = {var: var for var in variable_to_restore}
                 saver2 = tf.train.Saver(var_list=variable_to_restore)
                 print('Loading pretrained model...')
                 trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver2)
-                checkpoint_to_restore = saver2.last_checkpoints[-1]
+                checkpoint_to_restore = saver2.last_checkpoints[4]
                 saver2.restore(sess, checkpoint_to_restore)
-            else:
-                sess.run(init)
     else:
         # load pretrained model
         sess.run(init)
         if train_config.use_pretrained_model:
-
             variable_to_restore = tf.trainable_variables()
-            variable_to_restore = {name_in_checkpoint(var):
-                                       var for var in variable_to_restore}
+            variable_to_restore = variable_to_restore[:68] + \
+                                  variable_to_restore[72:96]
+            variable_to_restore = {var: var for var in variable_to_restore}
             saver2 = tf.train.Saver(var_list=variable_to_restore)
             print('Loading pretrained model...')
             trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver2)
-            checkpoint_to_restore = saver2.last_checkpoints[-1]
+            checkpoint_to_restore = saver2.last_checkpoints[4]
             saver2.restore(sess, checkpoint_to_restore)
-        else:
-            sess.run(init)
 
     # Read the global step if restored
     global_step = tf.train.global_step(sess,

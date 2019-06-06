@@ -44,7 +44,7 @@ class DtEvaluator:
                  skip_evaluated_checkpoints=True,
                  eval_wait_interval=30,
                  do_kitti_native_eval=True,
-                 do_kitti_native_tracking_eval=False):
+                 do_kitti_native_tracking_eval=True):
         """Evaluator class for evaluating model's detection output.
 
         Args:
@@ -595,7 +595,7 @@ class DtEvaluator:
         # Get the loss sums from the losses dict
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        # sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -604,8 +604,8 @@ class DtEvaluator:
             eval_losses[DtAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_REGRESSION]
-        # avod_correlation_loss = \
-        #     eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
+        avod_correlation_loss = \
+            eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
 
         avod_localization_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_LOCALIZATION]
@@ -614,7 +614,7 @@ class DtEvaluator:
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
-        # sum_avod_corr_loss += avod_correlation_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         # update the losses sums
@@ -624,8 +624,8 @@ class DtEvaluator:
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
 
-        # eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
-        #                          sum_avod_corr_loss})
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                 sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -654,10 +654,12 @@ class DtEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -688,7 +690,7 @@ class DtEvaluator:
 
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        # sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -697,15 +699,15 @@ class DtEvaluator:
             eval_losses[DtAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_REGRESSION]
-        # avod_correlation_loss = \
-        #     eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
+        avod_correlation_loss = \
+            eval_losses[DtAvodModel.LOSS_FINAL_CORRELATION]
 
         avod_localization_loss = \
             eval_losses[DtAvodModel.LOSS_FINAL_LOCALIZATION]
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
-        # sum_avod_corr_loss += avod_correlation_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         eval_avod_losses.update({KEY_SUM_AVOD_CLS_LOSS:
@@ -714,8 +716,8 @@ class DtEvaluator:
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
 
-        # eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
-        #                              sum_avod_corr_loss})
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                     sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -739,10 +741,12 @@ class DtEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -815,7 +819,7 @@ class DtEvaluator:
         """
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        # sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         sum_avod_loc_loss = eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS]
@@ -827,7 +831,7 @@ class DtEvaluator:
 
         avg_avod_cls_loss = sum_avod_cls_loss / num_valid_samples
         avg_avod_reg_loss = sum_avod_reg_loss / num_valid_samples
-        # avg_avod_corr_loss = sum_avod_corr_loss / num_valid_samples
+        avg_avod_corr_loss = sum_avod_corr_loss / num_valid_samples
         avg_avod_total_loss = sum_avod_total_loss / num_valid_samples
 
         if num_valid_regression_samples > 0:
@@ -852,10 +856,10 @@ class DtEvaluator:
             'avod_losses/regression/regression_total',
             avg_avod_reg_loss,
             self.summary_writer, global_step)
-        # summary_utils.add_scalar_summary(
-        #     'avod_losses/correlation/correlation_total',
-        #     avg_avod_corr_loss,
-        #     self.summary_writer, global_step)
+        summary_utils.add_scalar_summary(
+            'avod_losses/correlation/correlation_total',
+            avg_avod_corr_loss,
+            self.summary_writer, global_step)
 
         summary_utils.add_scalar_summary(
             'avod_losses/regression/localization',
@@ -870,10 +874,12 @@ class DtEvaluator:
         print("Step {}: Average AVOD Losses: "
               "cls {:.5f}, "
               "reg {:.5f}, "
+              "corr {: .5},"
               "total {:.5f} ".format(
                 global_step,
                 avg_avod_cls_loss,
                 avg_avod_reg_loss,
+                avg_avod_corr_loss,
                 avg_avod_total_loss,
                   ))
 
@@ -906,12 +912,14 @@ class DtEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
+
                                 avg_avod_loc_loss,
                                 avg_avod_ang_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
         elif box_rep in ['box_8c', 'box_8co', 'box_4c']:
             with open(avg_loss_file_path, 'ba') as fp:
                 np.savetxt(fp,
@@ -919,12 +927,12 @@ class DtEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
-
                                 avg_avod_loc_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
         else:
             raise NotImplementedError('Saving losses not implemented')
 
@@ -943,7 +951,7 @@ class DtEvaluator:
         # Initialize Avod average losses
         eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_REG_LOSS] = 0
-        # eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS] = 0
+        eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS] = 0
 
         eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS] = 0
@@ -1199,18 +1207,18 @@ class DtEvaluator:
         else:
             raise NotImplementedError('Parse predictions not implemented for', box_rep)
 
-        # final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
+        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
 
-        # final_pred_corr_boxes_3d = final_pred_boxes_3d[0]
-        # final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
-        # final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
+        final_pred_corr_boxes_3d = final_pred_boxes_3d[0]
+        final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
+        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
-        # corr_mark = np.zeros((final_pred_softmax[1].shape[0],
-        #                       final_pred_corr_boxes_3d.shape[1]))
-        # final_pred_corr_boxes_3d = [final_pred_corr_boxes_3d, corr_mark]
+        corr_mark = np.zeros((final_pred_softmax[1].shape[0],
+                              final_pred_corr_boxes_3d.shape[1]))
+        final_pred_corr_boxes_3d = [final_pred_corr_boxes_3d, corr_mark]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]
@@ -1235,7 +1243,7 @@ class DtEvaluator:
                 [final_pred_boxes_3d[i],
                  final_pred_scores,
                  final_pred_types[i],
-                 # final_pred_corr_boxes_3d[i],
+                 final_pred_corr_boxes_3d[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)
@@ -1244,11 +1252,11 @@ class DtEvaluator:
 
     def get_avod_predicted_box_corners_and_scores(self, predictions, box_rep):
 
-        # final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
+        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
         final_pred_boxes_3d = predictions[DtAvodModel.PRED_TOP_PREDICTION_BOXES_3D][0]
         final_pred_corr_boxes_3d = final_pred_boxes_3d
-        # final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
-        # final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
+        final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
+        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
         if box_rep in ['box_8c', 'box_8co']:
             final_pred_box_corners = predictions[DtAvodModel.PRED_TOP_BOXES_8C]
@@ -1267,9 +1275,9 @@ class DtEvaluator:
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
         # get top correlation offsets
-        # corr_mark = np.zeros((final_pred_softmax[1].shape[0],
-        #                       final_pred_corr_boxes_3d.shape[1]))
-        # final_pred_corr_box_corners = [final_pred_corr_boxes_3d, corr_mark]
+        corr_mark = np.zeros((final_pred_softmax[1].shape[0],
+                              final_pred_corr_boxes_3d.shape[1]))
+        final_pred_corr_box_corners = [final_pred_corr_boxes_3d, corr_mark]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]
@@ -1292,14 +1300,14 @@ class DtEvaluator:
             if box_rep in ['box_8c', 'box_8co']:
                 final_pred_box_corners[i] = np.reshape(final_pred_box_corners[i],
                                                     [-1, 24])
-                # final_pred_corr_box_corners[i] = np.reshape(final_pred_corr_box_corners[i],
-                #                                     [-1,24])
+                final_pred_corr_box_corners[i] = np.reshape(final_pred_corr_box_corners[i],
+                                                    [-1,24])
             # Stack into prediction format
             predictions_and_scores[i] = np.column_stack(
                 [final_pred_box_corners[i],
                  final_pred_scores,
                  final_pred_types[i],
-                 # final_pred_corr_box_corners[i],
+                 final_pred_corr_box_corners[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)
