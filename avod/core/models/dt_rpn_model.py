@@ -325,16 +325,22 @@ class DtRpnModel(model.DetectionModel):
         corr_config = self._config.layers_config.correlation_config
 
         with tf.variable_scope('bev_correlation'):
-            self.bev_corr_feature_maps = correlation(
-                self.bev_feature_maps[0], self.bev_feature_maps[1],
-                max_displacement=corr_config.max_displacement,
-                padding=corr_config.padding)
+            # self.bev_corr_feature_maps = correlation(
+            #     self.bev_feature_maps[0], self.bev_feature_maps[1],
+            #     max_displacement=corr_config.max_displacement,
+            #     padding=corr_config.padding)
+            self.bev_corr_feature_maps = tf.subtract(
+                        self.bev_feature_maps[0],
+                        self.bev_feature_maps[1])
 
         with tf.variable_scope('img_correlation'):
-            self.img_corr_feature_maps = correlation(
-                self.img_feature_maps[0],self.img_feature_maps[1],
-                max_displacement=corr_config.max_displacement,
-                padding=corr_config.padding)
+            # self.img_corr_feature_maps = correlation(
+            #     self.img_feature_maps[0],self.img_feature_maps[1],
+            #     max_displacement=corr_config.max_displacement,
+            #     padding=corr_config.padding)
+            self.img_corr_feature_maps = tf.subtract(
+                self.img_feature_maps[0],
+                self.img_feature_maps[1])
 
         with tf.variable_scope('bev_corr_bottleneck'):
             self.bev_corr_bottleneck = slim.conv2d(

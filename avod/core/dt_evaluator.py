@@ -929,6 +929,7 @@ class DtEvaluator:
                                 avg_avod_reg_loss,
                                 avg_avod_corr_loss,
                                 avg_avod_total_loss,
+
                                 avg_avod_loc_loss,
                              ]
                             )],
@@ -1129,14 +1130,13 @@ class DtEvaluator:
         Args:
             predictions: A dictionary containing the model outputs.
             box_rep: A string indicating the format of the 3D bounding
-                boxes i.e. 'box_3d', 'box_8c' etc.
+                boxes i.e. 'box_3d', 'box_8c' etc-//
 
         Returns:
             predictions_and_scores: A numpy array of shape
                 (number_of_predicted_boxes, 13), containing the final prediction
                 boxes, orientations, scores, and types, frame no.
-                [x, y, z, w, h, l, r, score, type, delta_x,
-                delta_y, delta_z, delta_w, delta_h, delta_l, delta_h, frame_mark]
+                [x, y, z, w, h, l, r, score, type, delta_x, delta_y, delta_z, delta_h, frame_mark]
         """
         if box_rep == 'box_3d':
             # Convert anchors + orientation to box_3d
@@ -1221,10 +1221,8 @@ class DtEvaluator:
         final_pred_corr_boxes_3d = [final_pred_corr_boxes_3d, corr_mark]
 
         # Find max class score index
-        not_bkg_scores = [pred_softmax[:, 1:]
-                          for pred_softmax in final_pred_softmax]
-        final_pred_types = [np.argmax(score, axis=1)
-                            for score in not_bkg_scores]
+        not_bkg_scores = [pred_softmax[:, 1:] for pred_softmax in final_pred_softmax]
+        final_pred_types = [np.argmax(score, axis=1) for score in not_bkg_scores]
 
         # Take max class score (ignoring background)
         size = len(final_pred_boxes_3d)
