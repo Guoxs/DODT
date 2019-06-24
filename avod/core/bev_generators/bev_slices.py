@@ -85,6 +85,18 @@ class BevSlices(bev_generator.BevGenerator):
 
                 # Remove y values (all 0)
                 voxel_indices = voxel_grid_2d.voxel_indices[:, [0, 2]]
+            # if slice_points is empty, init point (0,0,0) and do voxelization
+            else:
+                voxel_grid_2d = VoxelGrid2D()
+                origin_points = np.zeros((1, 3))
+                voxel_grid_2d.voxelize_2d(
+                    origin_points, voxel_size,
+                    extents=area_extents,
+                    ground_plane=ground_plane,
+                    create_leaf_layout=False)
+
+                # Remove y values (all 0)
+                voxel_indices = voxel_grid_2d.voxel_indices[:, [0, 2]]
 
             # Create empty BEV images
             height_map = np.zeros((voxel_grid_2d.num_divisions[0],
