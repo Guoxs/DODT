@@ -82,7 +82,7 @@ def basic_corr_layers(corr_layers_config, input_rois, input_weights, is_training
 
             fc_name_idx += 1
 
-        # [delta_x, delta_y, delta_z, delta_ry]
+        # [delta_x, delta_y, delta_z, delta_theta]
         corr_out_size = 4
         corr_out = slim.fully_connected(fc_drop,
                                             corr_out_size,
@@ -181,7 +181,7 @@ def _early_fusion_fc_layers(num_layers, layer_sizes,
             fc_name_idx += 1
 
         # correlation out
-        # [delta_x, delta_y, delta_z, delta_ry]
+        # [delta_x, delta_y, delta_z, delta_theta]
         corr_out_size = 4
         corr_out = slim.fully_connected(fc_drop,
                                         corr_out_size,
@@ -233,7 +233,7 @@ def _late_fusion_fc_layers(num_layers, layer_sizes,
                                                             input_weights)
 
         # correlation out
-        # [delta_x, delta_y, delta_z, delta_ry]
+        # [delta_x, delta_y, delta_z, delta_theta]
         corr_out_size = 4
         corr_out = slim.fully_connected(fused_features,
                                         corr_out_size,
@@ -283,7 +283,7 @@ def _deep_fusion_fc_layers(num_layers, layer_sizes,
                                                               input_weights)
 
         # correlation out
-        # [delta_x, delta_y, delta_z, delta_ry]
+        # [delta_x, delta_y, delta_z, delta_theta]
         corr_out_size = 4
         corr_out = slim.fully_connected(fusion_layer,
                                         corr_out_size,

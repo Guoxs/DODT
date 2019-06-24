@@ -66,7 +66,7 @@ def get_frames(dataset):
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
-    box3d[1:4] = 3.5 * box3d[1:4]
+    box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-2, 0, 2, 1, 3, 4, 5]]
     else:
@@ -194,76 +194,11 @@ def generate_dets_for_dt_track(frames, root_dir):
         dets_for_track.append(track_item)
         dets_for_ious.append(iou_item)
     return dets_for_track, dets_for_ious
-        
-
-def track_iou(dets_for_track, dets_for_ious, high_threshold, iou_threshold, t_min):
-    def merge_dets(dets, dets_iou):
-        # merge dets_iou and dets
-        merged_dets = dets
-        for item1 in dets_iou:
-            overlap = False
-            boxes3d = item1['boxes3d']
-            for item2 in dets:
-                if iou_3d(boxes3d, item2['boxes3d']) > 0:
-                    overlap = True
-                    break
-            if not overlap:
-                item1['rect_boxes3d'] = item1['boxes3d']
-                merged_dets.append(item1)
-        return merged_dets
-
-    tracks_active = []
-    tracks_finished = []
-
-    for frame_num, dets in enumerate(dets_for_track, start=0):
-        update_tracks = []
-        # get frame label for iou computing
-        # dets_iou = dets_for_ious[frame_num]
-
-        # 1-2', 2-3, using 2' to compute iou, len(2') == len(2)??
-        # if len(dets_iou) != len(dets):
-        #     # merge dets_iou and dets
-        #     merged_dets = merge_dets(dets, dets_iou)
-        #     dets = copy.deepcopy(merged_dets)
-        #     dets_iou = copy.deepcopy(merged_dets)
-
-        for track in tracks_active:
-            if len(dets) > 0:
-
-                # get det with the highest iou
-                # first frame uses offsets to compute iou
-                ious = [iou_3d(track['trajectory'][-1]['rect_boxes3d'], x['boxes3d']) for x in dets]
-                best_match_id = int(np.argmax(ious))
-                if ious[best_match_id] > iou_threshold:
-                    track['trajectory'].append(dets[best_match_id])
-                    track['max_score'] = max(track['max_score'], dets[best_match_id]['scores'])
-
-                    update_tracks.append(track)
-
-                    # remove from best matching detection from detections
-                    del dets[best_match_id]
-                   # del dets_iou[best_match_id]
-
-            # if track was not updated
-            if len(update_tracks) == 0 or track is not update_tracks[-1]:
-                # finish track when the conditions are met
-                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
-                    tracks_finished.append(track)
-
-        # create new tracks
-        new_tracks = [{'trajectory': [det], 'max_score': det['scores'],
-                       'start_frame': frame_num} for det in dets]
-
-        tracks_active = update_tracks + new_tracks
-
-    # finish all remaining active tracks
-    tracks_finished += [track for track in tracks_active if track['max_score']
-                        >= high_threshold and len(track['trajectory']) >= t_min]
-
-    return tracks_finished
 
 
-def track_iou_v2(dets_for_track, dets_for_ious, high_threshold, iou_threshold, t_min, ttl=3):
+def track_iou(dets_for_track, dets_for_ious,
+                 high_threshold, iou_threshold, t_min, ttl=3):
+
     tracks_active = []
     tracks_finished = []
 
@@ -274,8 +209,6 @@ def track_iou_v2(dets_for_track, dets_for_ious, high_threshold, iou_threshold, t
             if len(dets) > 0:
                 # get det with highest iou
                 ious = [iou_3d(track['trajectory'][-1]['rect_boxes3d'], x['boxes3d']) for x in dets]
-                # ious = two_d_iou(track['trajectory'][-1]['boxes2d'],
-                #                  np.array([x['boxes2d'] for x in dets]))
                 best_match_id = int(np.argmax(ious))
                 if ious[best_match_id] > iou_threshold:
                     # convert virtual dets to valid dets
@@ -341,11 +274,35 @@ def track_iou_v2(dets_for_track, dets_for_ious, high_threshold, iou_threshold, t
 
     return tracks_finished
 
+def compute_mid_frame(track):
+    track_next = track[1:]
+    track_pre = track[:-1]
+    new_track = []
+    new_track.append(track_pre[0])
+    for (pre, next) in zip(track_pre, track_next):
+        pre_frame_id = pre['frame_id']
+        next_frame_id = next['frame_id']
+        stride = next_frame_id - pre_frame_id - 1
+        offsets_2d = (next['boxes2d'] - pre['boxes2d']) / (stride + 1)
+        offsets_3d = next['boxes3d'] - pre['boxes3d'] / (stride + 1)
+        score = max(next['scores'], pre['scores'])
+
+        while stride > 0:
+            new_item = {}
+            new_item['frame_id'] = new_track[-1]['frame_id'] + 1
+            new_item['info'] = new_track[-1]['info']
+            new_item['boxes2d'] = new_track[-1]['boxes2d'] + offsets_2d
+            new_item['boxes3d'] = new_track[-1]['boxes3d'] + offsets_3d
+            new_item['scores'] = score
+            new_track.append(new_item)
+            stride = stride - 1
+        new_track.append(next)
+    return new_track
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
-    ckpt_indices = '22000'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_stride_3_tracking_corr_pretrained'
+    ckpt_indices = '38000'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -361,8 +318,33 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         dets_for_track, dets_for_ious = generate_dets_for_dt_track(frames, root_dir)
 
-        tracks_finished = track_iou_v2(dets_for_track, dets_for_ious, high_threshold=0.5,
-                                    iou_threshold=0.00, t_min=3)
+        # split dets according frame_stride
+        track_stride_dets = [[] for _ in range(frame_stride)]
+        ious_stride_dets  = [[] for _ in range(frame_stride)]
+        for i in range(len(dets_for_track)):
+            index = int(i % frame_stride)
+            track_stride_dets[index].append(dets_for_track[i])
+            ious_stride_dets[index].append(dets_for_ious[i])
+
+        # track_iou algorithm
+        temp_dets = track_stride_dets[0]
+        temp_ious = ious_stride_dets[0]
+        # add last frame
+        if temp_dets[-1][0]['frame_id'] != dets_for_track[-1][0]['frame_id']:
+            temp_dets.append(dets_for_track[-1])
+            temp_ious.append(dets_for_ious[-1])
+        tracks_finished = track_iou(temp_dets, temp_ious,
+                            high_threshold=0.5, iou_threshold=0.00, t_min=3)
+
+        # compute interframe
+        if frame_stride > 1:
+            new_tracks = []
+            for item in tracks_finished:
+                track = item['trajectory']
+                new_track = compute_mid_frame(track)
+                item['trajectory'] = new_track
+                new_tracks.append(item)
+            tracks_finished = new_tracks
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

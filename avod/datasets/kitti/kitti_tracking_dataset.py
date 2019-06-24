@@ -397,10 +397,9 @@ class KittiTrackingDataset:
 
                 anchors_info = [[],[]]
 
-                label_anchors = [np.zeros((1, 6)), np.zeros((1, 6))]
-                label_boxes_3d = [np.zeros((1, 7)), np.zeros((1, 7))]
+                label_anchors = [np.zeros((1, 7)), np.zeros((1, 7))]
+                label_boxes_3d = [np.zeros((1, 8)), np.zeros((1, 8))]
                 label_classes = [np.zeros(1), np.zeros(1)]
-                object_ids = [np.zeros(1), np.zeros(1)]
 
             # Load image (BGR -> RGB)
             cv_bgr_image = [cv2.imread(self.get_rgb_image_path(name)) for name in sample_names]
@@ -464,7 +463,7 @@ class KittiTrackingDataset:
                 label_classes = []
                 for i in range(len(obj_labels)):
                     label_box_3d = np.asarray(
-                        [box_3d_encoder.object_label_to_box_3d(obj_label)
+                        [box_3d_encoder.tracking_object_label_to_box_3d(obj_label)
                          for obj_label in obj_labels[i]])
 
                     label_class = [
@@ -482,16 +481,16 @@ class KittiTrackingDataset:
                             # number here that does not break the offset calculation
                             # should work, since the negative samples won't be
                             # regressed in any case.
-                            dummy_anchors = [[-1000, -1000, -1000, 1, 1, 1]]
+                            dummy_anchors = [[-1000, -1000, -1000, 1, 1, 1, 0]]
                             label_anchor = np.asarray(dummy_anchors)
-                            dummy_boxes = [[-1000, -1000, -1000, 1, 1, 1, 0]]
+                            dummy_boxes = [[-1000, -1000, -1000, 1, 1, 1, 0, 0]]
                             label_box_3d = np.asarray(dummy_boxes)
                         else:
-                            label_anchor = np.zeros((1, 6))
-                            label_box_3d = np.zeros((1, 7))
+                            label_anchor = np.zeros((1, 7))
+                            label_box_3d = np.zeros((1, 8))
                         label_class = np.zeros(1)
                     else:
-                        label_anchor = box_3d_encoder.box_3d_to_anchor(
+                        label_anchor = box_3d_encoder.tracking_box_3d_to_anchor(
                             label_box_3d, ortho_rotate=True)
 
                     label_boxes_3d.append(label_box_3d)
@@ -557,21 +556,21 @@ class KittiTrackingDataset:
         corr_offsets = np.zeros_like(labels_1)
         for i in range(len(labels_1)):
             label = labels_1[i]
-            if label.all() == 0:
-                continue
             obj_id = label[-1]
             match_flag = False
             for j in range(len(labels_2)):
                 d_label = labels_2[j]
                 d_obj_id = d_label[-1]
-                if obj_id == d_obj_id:
+                if int(obj_id) == int(d_obj_id):
                     match_flag = True
+                    # corr_offsets[i] = 1 / (np.exp(-(d_label-label)) + 1)
                     corr_offsets[i] = d_label - label
                     corr_offsets[i][-1] = obj_id
 
             # object does not exist in frame 2
             if not match_flag:
-                #corr_offsets[i] = - label
+                # corr_offsets[i] = 1 / (np.exp(-(-label)) + 1)
+                # corr_offsets[i] = -label
                 corr_offsets[i][-1] = obj_id
         return corr_offsets
 

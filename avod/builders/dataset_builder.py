@@ -24,7 +24,7 @@ class DatasetBuilder(object):
         cluster_split="train",
         classes=["Car", "Pedestrian", "Cyclist"],
         num_clusters=[2, 1, 1],
-        data_stride = 1,
+        data_stride = 3,
     )
 
     KITTI_UNITTEST = KittiDatasetConfig(

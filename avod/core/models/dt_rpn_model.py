@@ -325,22 +325,16 @@ class DtRpnModel(model.DetectionModel):
         corr_config = self._config.layers_config.correlation_config
 
         with tf.variable_scope('bev_correlation'):
-            # self.bev_corr_feature_maps = correlation(
-            #     self.bev_feature_maps[0], self.bev_feature_maps[1],
-            #     max_displacement=corr_config.max_displacement,
-            #     padding=corr_config.padding)
-            self.bev_corr_feature_maps = tf.subtract(
-                        self.bev_feature_maps[0],
-                        self.bev_feature_maps[1])
+            self.bev_corr_feature_maps = correlation(
+                self.bev_feature_maps[0], self.bev_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
 
         with tf.variable_scope('img_correlation'):
-            # self.img_corr_feature_maps = correlation(
-            #     self.img_feature_maps[0],self.img_feature_maps[1],
-            #     max_displacement=corr_config.max_displacement,
-            #     padding=corr_config.padding)
-            self.img_corr_feature_maps = tf.subtract(
-                self.img_feature_maps[0],
-                self.img_feature_maps[1])
+            self.img_corr_feature_maps = correlation(
+                self.img_feature_maps[0],self.img_feature_maps[1],
+                max_displacement=corr_config.max_displacement,
+                padding=corr_config.padding)
 
         with tf.variable_scope('bev_corr_bottleneck'):
             self.bev_corr_bottleneck = slim.conv2d(
@@ -838,12 +832,12 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_BEV_INPUT] = bev_input
         self._placeholder_inputs[self.PL_IMG_INPUT] = image_input
 
-        self._placeholder_inputs[self.PL_LABEL_ANCHORS_A] = label_anchors[0]
-        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_A] = label_boxes_3d[0]
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_A] = label_anchors[0][:, :-1]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_A] = label_boxes_3d[0][:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES_A] = label_classes[0]
 
-        self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[1]
-        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1]
+        self._placeholder_inputs[self.PL_LABEL_ANCHORS_B] = label_anchors[1][:, :-1]
+        self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1][:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[1]
 
         self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]

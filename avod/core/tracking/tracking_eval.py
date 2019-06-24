@@ -7,7 +7,7 @@ import numpy as np
 import avod
 import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
-from wavedata.tools.obj_detection.evaluation import three_d_iou
+from wavedata.tools.obj_detection.evaluation import three_d_iou, two_d_iou
 
 
 def config_setting(checkpoint_name, ckpt_indices):
@@ -44,14 +44,14 @@ def build_dataset(dataset_config):
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
      # Build the dataset object
-    dataset = DatasetBuilder.build_kitti_dataset(dataset_config,
+    dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
                                                      use_defaults=False)
     return dataset
 
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
-    box3d[1:4] = 4 * box3d[1:4]
+    # box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-2, 0, 2, 1, 3, 4, 5]]
     else:
@@ -111,10 +111,10 @@ def get_frames(dataset):
     video_frames = {}
     sample_names = dataset.sample_names
     for sample_name in sample_names:
-        video_id = sample_name[:2]
+        video_id = sample_name[0][:2]
         if not video_frames.__contains__(video_id):
             video_frames[video_id] = []
-        video_frames[video_id].append(sample_name)
+        video_frames[video_id].append(sample_name[0])
 
     video_frames = collections.OrderedDict(sorted(video_frames.items(),
                                                   key=lambda obj: obj[0]))
@@ -151,7 +151,7 @@ def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
     tracks_active = []
     tracks_finished = []
 
-    for frame_num, detections_frame in enumerate(detections, start=1):
+    for frame_num, detections_frame in enumerate(detections, start=0):
         # apply low threshold to detections
         dets = [det for det in detections_frame if det['scores'] >= sigma_l]
         updated_tracks = []
@@ -159,6 +159,9 @@ def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
             if len(dets) > 0:
                 # get det with highest iou
                 ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
+                # ious = two_d_iou(track['trajectory'][-1]['boxes2d'],
+                #                  np.array([x['boxes2d'] for x in dets]))
+
                 best_match_id = int(np.argmax(ious))
                 if ious[best_match_id] > sigma_iou:
                     track['trajectory'].append(dets[best_match_id])
@@ -197,6 +200,8 @@ def track_iou_v2(detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
             if len(dets) > 0:
                 # get det with highest iou
                 ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
+                # ious = two_d_iou(track['trajectory'][-1]['boxes2d'],
+                #                  np.array([x['boxes2d'] for x in dets]))
                 best_match_id = int(np.argmax(ious))
                 if ious[best_match_id] > sigma_iou:
                     # convert virtual dets to valid dets
@@ -264,8 +269,8 @@ def track_iou_v2(detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_example_trainval'
-    ckpt_indices = '120000'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
+    ckpt_indices = '22000'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)

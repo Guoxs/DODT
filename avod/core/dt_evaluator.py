@@ -44,7 +44,7 @@ class DtEvaluator:
                  skip_evaluated_checkpoints=True,
                  eval_wait_interval=30,
                  do_kitti_native_eval=True,
-                 do_kitti_native_tracking_eval=True):
+                 do_kitti_native_tracking_eval=False):
         """Evaluator class for evaluating model's detection output.
 
         Args:
@@ -1130,7 +1130,7 @@ class DtEvaluator:
         Args:
             predictions: A dictionary containing the model outputs.
             box_rep: A string indicating the format of the 3D bounding
-                boxes i.e. 'box_3d', 'box_8c' etc-//
+                boxes i.e. 'box_3d', 'box_8c' etc
 
         Returns:
             predictions_and_scores: A numpy array of shape
@@ -1209,7 +1209,9 @@ class DtEvaluator:
 
         final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
 
-        final_pred_corr_boxes_3d = final_pred_boxes_3d[0]
+        final_pred_corr_boxes_3d = final_pred_boxes_3d[0].copy()
+        # decoder corr offsets
+        # final_corr_offsets = np.log(final_corr_offsets / (1 - final_corr_offsets))
         final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
         final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
