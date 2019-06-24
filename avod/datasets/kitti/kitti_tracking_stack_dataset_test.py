@@ -23,7 +23,7 @@ class KittiDatasetTest(unittest.TestCase):
         dataset_config.data_split = data_split
         dataset_config.dataset_dir = directory
 
-        dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
+        dataset = DatasetBuilder.build_kitti_tracking_stack_dataset(dataset_config)
 
         return dataset
 
@@ -31,9 +31,9 @@ class KittiDatasetTest(unittest.TestCase):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
         indices_to_load = [1, 5, 9]
-        expected_samples = [['010001', '010004'],
-                            ['010005', '010008'],
-                            ['010009', '010009']]
+        expected_samples = [['010001', '010002', '010003'],
+                            ['010005', '010006', '010007'],
+                            ['010009', '010009', '010009']]
 
         # Load samples before shuffling
         samples = dataset.load_samples(indices_to_load)
@@ -59,6 +59,21 @@ class KittiDatasetTest(unittest.TestCase):
             self.assertIsNotNone(class_labels)
             self.assertIsInstance(class_labels[0], np.ndarray)
             self.assertIsInstance(class_labels[0][0], np.int32)
+
+            # Check integrated data
+            integrated_bev_input = samples[i].get(constants.KEY_INTEGRATED_BEV_INPUT)
+            self.assertIsNotNone(integrated_bev_input)
+            self.assertIsInstance(integrated_bev_input, np.ndarray)
+
+            integrated_box_labels = samples[i].get(constants.KEY_INTEGRATED_LABEL_BOX_3D)
+            self.assertIsNotNone(integrated_box_labels)
+            self.assertIsInstance(integrated_box_labels, np.ndarray)
+            self.assertIsInstance(integrated_box_labels[0], np.ndarray)
+
+            integrated_class_labels = samples[i].get(constants.KEY_INTEGRATED_LABEL_CLASS)
+            self.assertIsNotNone(integrated_class_labels)
+            self.assertIsInstance(integrated_class_labels, np.ndarray)
+            self.assertIsInstance(integrated_class_labels[0], np.int32)
 
     def test_data_splits(self):
         bad_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_UNITTEST)

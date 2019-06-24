@@ -266,6 +266,16 @@ class KittiUtils(object):
 
         return voxel_grid_2d
 
+    def create_sliced_voxel_grid_2d_v2(self, point_cloud, ground_plane):
+        filtered_points = self._apply_slice_filter(point_cloud, ground_plane)
+        # Create Voxel Grid
+        voxel_grid_2d = VoxelGrid2D()
+        voxel_grid_2d.voxelize_2d(filtered_points, self.voxel_size,
+                                  extents=self.area_extents,
+                                  ground_plane=ground_plane,
+                                  create_leaf_layout=True)
+        return voxel_grid_2d
+
     def create_voxel_grid_3d(self, sample_name, ground_plane,
                              source='lidar',
                              filter_type='slice'):

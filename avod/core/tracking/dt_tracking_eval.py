@@ -14,7 +14,7 @@ from wavedata.tools.obj_detection.evaluation import three_d_iou
 
 def config_setting(checkpoint_name, ckpt_indices):
     root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
-               '/predictions/final_predictions_and_scores/val/' + ckpt_indices
+               '/predictions/final_predictions_and_scores/test/' + ckpt_indices
 
     # Read the config from the experiment folder
     experiment_config_path = avod.root_dir() + '/data/outputs/' + \
@@ -37,8 +37,10 @@ def config_setting(checkpoint_name, ckpt_indices):
 def build_dataset(dataset_config):
     # Overwrite the defaults
     dataset_config = config_builder.proto_to_obj(dataset_config)
-    dataset_config.data_split = 'val'
-    dataset_config.data_split_dir = 'training'
+    # dataset_config.data_split = 'val'
+    # dataset_config.data_split_dir = 'training'
+    dataset_config.data_split = 'test'
+    dataset_config.data_split_dir = 'testing'
     dataset_config.has_labels = False
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
@@ -126,7 +128,7 @@ def convert_trajectory_to_kitti_format(trajectories):
     return final_pred_label
 
 
-def copy_tracking_eval_script(to_path, video_ids, train_split='val'):
+def copy_tracking_eval_script(to_path, video_ids, train_split='test'):
     from_path = avod.root_dir() + '/../scripts/offline_eval/' \
                 'kitti_tracking_native_eval/python/'
     os.makedirs(to_path, exist_ok=True)
@@ -344,8 +346,8 @@ def track_iou_v2(dets_for_track, dets_for_ious, high_threshold, iou_threshold, t
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
-    ckpt_indices = '22000'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_trainval'
+    ckpt_indices = '120000'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -373,4 +375,4 @@ if __name__ == '__main__':
         print('store prediction results:', video_result_path)
 
     # run eval script
-    run_kitti_tracking_script(checkpoint_name, ckpt_indices)
+    # run_kitti_tracking_script(checkpoint_name, ckpt_indices)

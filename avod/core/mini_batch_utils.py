@@ -118,6 +118,22 @@ class MiniBatchUtils:
 
         mini_tracking_batch_preprocessor.preprocess(indices)
 
+    def preprocess_rpn_mini_batch_single(self,  point_cloud, ground_truth_list, ground_plane):
+        clusters, _ = self._dataset.get_cluster_info()
+
+        mini_tracking_batch_preprocessor = \
+            MiniTrackingBatchPreprocessor(self._dataset,
+                                          self.mini_batch_dir,
+                                          self._anchor_strides,
+                                          self._density_threshold,
+                                          self.rpn_neg_iou_range,
+                                          self.rpn_pos_iou_range)
+
+        anchors_info = mini_tracking_batch_preprocessor.preprocess_single(
+            point_cloud, ground_truth_list, ground_plane)
+        return anchors_info
+
+
     def  get_file_path(self, classes_name, anchor_strides, sample_name):
         """Gets the full file path to the anchors info
 

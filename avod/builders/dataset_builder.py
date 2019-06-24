@@ -5,6 +5,7 @@ from google.protobuf import text_format
 import avod
 from avod.datasets.kitti.kitti_dataset import KittiDataset
 from avod.datasets.kitti.kitti_tracking_dataset import KittiTrackingDataset
+from avod.datasets.kitti.kitti_tracking_stack_dataset import KittiTrackingStackDataset
 from avod.protos import kitti_dataset_pb2
 from avod.protos.kitti_dataset_pb2 import KittiDatasetConfig
 
@@ -241,6 +242,33 @@ class DatasetBuilder(object):
             cfg_copy.MergeFrom(new_cfg)
 
         return KittiTrackingDataset(cfg_copy)
+
+    @staticmethod
+    def build_kitti_tracking_stack_dataset(base_cfg,
+                                     use_defaults=True,
+                                     new_cfg=None) -> KittiTrackingStackDataset:
+        """Builds a KittiDataset object(for tracking) using the provided configurations
+
+        Args:
+            base_cfg: a base dataset configuration
+            use_defaults: whether to use the default config values
+            new_cfg: (optional) a custom dataset configuration, no default
+                values will be used, all config values must be provided
+
+        Returns:
+            KittiDataset object
+        """
+        cfg_copy = DatasetBuilder.copy_config(base_cfg)
+
+        if use_defaults:
+            # Use default values
+            text_format.Merge(DatasetBuilder.CONFIG_DEFAULTS_PROTO, cfg_copy)
+
+        if new_cfg:
+            # Use new config values if provided
+            cfg_copy.MergeFrom(new_cfg)
+
+        return KittiTrackingStackDataset(cfg_copy)
 
 
 def main():

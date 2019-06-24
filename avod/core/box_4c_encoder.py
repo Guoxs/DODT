@@ -19,7 +19,7 @@ def np_box_3d_to_box_4c(box_3d, ground_plane):
     """Converts a single box_3d to box_4c
 
     Args:
-        box_3d: box_3d (6,)
+        box_3d: box_3d (7,)
         ground_plane: ground plane coefficients (4,)
 
     Returns:

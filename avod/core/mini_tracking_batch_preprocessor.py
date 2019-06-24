@@ -166,6 +166,48 @@ class MiniTrackingBatchPreprocessor(MiniBatchPreprocessor):
 
         return all_info
 
+    def preprocess_single(self, point_cloud, ground_truth_list, ground_plane):
+        dataset = self._dataset
+        dataset_utils = self._dataset.kitti_utils
+        classes_name = dataset.classes_name
+
+        # Get clusters for class
+        all_clusters_sizes, _ = dataset.get_cluster_info()
+        anchor_generator = grid_anchor_3d_generator.GridAnchor3dGenerator()
+        # Filter objects to dataset classes
+        filtered_gt_list = dataset_utils.filter_labels(ground_truth_list)
+        filtered_gt_list = np.asarray(filtered_gt_list)
+
+        # Generate sliced 2D voxel grid for filtering
+        vx_grid_2d = dataset_utils.create_sliced_voxel_grid_2d_v2(
+            point_cloud, ground_plane)
+
+        # List for merging all anchors
+        all_anchor_boxes_3d = []
+        # Create anchors for each class
+        for class_idx in range(len(dataset.classes)):
+            # Generate anchors for all classes
+            grid_anchor_boxes_3d = anchor_generator.generate(
+                area_3d=dataset_utils.area_extents,
+                anchor_3d_sizes=all_clusters_sizes[class_idx],
+                anchor_stride=self._anchor_strides[class_idx],
+                ground_plane=ground_plane)
+
+            all_anchor_boxes_3d.extend(grid_anchor_boxes_3d)
+
+        # Filter empty anchors
+        all_anchor_boxes_3d = np.asarray(all_anchor_boxes_3d)
+        anchors = box_3d_encoder.box_3d_to_anchor(all_anchor_boxes_3d)
+        empty_anchor_filter = anchor_filter.get_empty_anchor_filter_2d(
+            anchors, vx_grid_2d, self._density_threshold)
+
+        # Calculate anchor info
+        anchors_info = self._calculate_anchors_info(
+            all_anchor_boxes_3d, empty_anchor_filter, filtered_gt_list)
+
+        return anchors_info
+
+
     def preprocess(self, indices):
         """Preprocesses anchor info and saves info to files
 
@@ -291,4 +333,5 @@ class MiniTrackingBatchPreprocessor(MiniBatchPreprocessor):
                 # Save anchors info
                 self._save_to_file(classes_name, anchor_strides,
                                    sample_name, anchors_info)
+
 
