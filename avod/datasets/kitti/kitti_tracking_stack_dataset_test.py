@@ -52,13 +52,13 @@ class KittiDatasetTest(unittest.TestCase):
             # Check labels
             box_labels = samples[i].get(constants.KEY_LABEL_BOXES_3D)
             self.assertIsNotNone(box_labels)
+            self.assertIsInstance(box_labels, np.ndarray)
             self.assertIsInstance(box_labels[0], np.ndarray)
-            self.assertIsInstance(box_labels[0][0], np.ndarray)
 
             class_labels = samples[i].get(constants.KEY_LABEL_CLASSES)
             self.assertIsNotNone(class_labels)
-            self.assertIsInstance(class_labels[0], np.ndarray)
-            self.assertIsInstance(class_labels[0][0], np.int32)
+            self.assertIsInstance(class_labels, np.ndarray)
+            self.assertIsInstance(class_labels[0], np.int32)
 
             # Check integrated data
             integrated_bev_input = samples[i].get(constants.KEY_INTEGRATED_BEV_INPUT)

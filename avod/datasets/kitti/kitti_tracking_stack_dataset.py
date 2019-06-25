@@ -580,7 +580,6 @@ class KittiTrackingStackDataset:
 
                     # Return empty anchors_info if no ground truth after filtering
                     if len(label_box_3d) == 0:
-                        anchors_info[i] = []
                         if self.train_on_all_samples:
                             # If training without any positive labels, we cannot
                             # set these to zeros, because later on the offset calc
@@ -654,15 +653,21 @@ class KittiTrackingStackDataset:
             point_cloud = [pc.T for pc in point_cloud]
             integrated_point_cloud = integrated_point_cloud.T
 
+            # align lists to one
+            label_mask, label_boxes_3d = self.list_align(label_boxes_3d)
+            _, label_anchors = self.list_align(label_anchors)
+            _, label_classes = self.list_align(label_classes)
+
+            point_cloud_mask, point_cloud = self.list_align(point_cloud)
+
             sample_dict = {
                 constants.KEY_LABEL_BOXES_3D: label_boxes_3d,
                 constants.KEY_LABEL_ANCHORS: label_anchors,
                 constants.KEY_LABEL_CLASSES: label_classes,
+                constants.KEY_LABEL_MASK: label_mask,
 
                 constants.KEY_IMAGE_INPUT: np.asarray(image_input),
                 constants.KEY_BEV_INPUT: np.asarray(bev_input),
-
-                constants.KEY_ANCHORS_INFO: anchors_info,
 
                 constants.KEY_POINT_CLOUD: point_cloud,
                 constants.KEY_GROUND_PLANE: np.asarray(ground_plane),
@@ -682,6 +687,35 @@ class KittiTrackingStackDataset:
 
         return sample_dicts
 
+    def align_anchors(self, anchors):
+        indices, ious, offsets, classes = [], [], [], []
+        for anchor in anchors:
+            if anchor != []:
+                indices.append(anchor[0])
+                ious.append(anchor[1])
+                offsets.append(anchor[2])
+                classes.append(anchor[3])
+            else:
+                indices.append([])
+                ious.append([])
+                offsets.append([])
+                classes.append([])
+
+        aligned_mask, aligned_indices = self.list_align(indices)
+        _, aligned_ious = self.list_align(ious)
+        _, aligned_offsets = self.list_align(offsets)
+        _, aligned_classes = self.list_align(classes)
+        aligned_anchors = (aligned_indices, aligned_ious,
+                           aligned_offsets, aligned_classes)
+        return aligned_mask, aligned_anchors
+
+
+    def list_align(self, list):
+        lens = [len(item) for item in list]
+        masks = [np.ones(lens[i]) * i for i in range(len(lens))]
+        final_mask = np.concatenate(masks, axis=0).astype(np.int32)
+        out = np.concatenate(list, axis=0)
+        return final_mask, out
 
     def _shuffle_samples(self):
         perm = np.arange(self.num_samples)
