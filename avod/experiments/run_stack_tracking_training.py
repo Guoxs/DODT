@@ -11,33 +11,33 @@ import tensorflow as tf
 import avod
 import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
-from avod.core.models.dt_avod_model import DtAvodModel
-from avod.core.models.dt_rpn_model import DtRpnModel
-from avod.core import trainer_stride
+from avod.core.models.stack_avod_model import StackAvodModel
+from avod.core.models.stack_rpn_model import StackRpnModel
+from avod.core import stack_trainer
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 def train(model_config, train_config, dataset_config):
 
-    dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
-                                                 use_defaults=False)
+    dataset = DatasetBuilder.build_kitti_tracking_stack_dataset(
+                                    dataset_config, use_defaults=False)
     train_val_test = 'train'
     model_name = model_config.model_name
 
     with tf.Graph().as_default():
-        if model_name == 'dt_rpn_model':
-            model = DtRpnModel(model_config,
+        if model_name == 'stack_rpn_model':
+            model = StackRpnModel(model_config,
                              train_val_test=train_val_test,
                              dataset=dataset)
-        elif model_name == 'dt_avod_model':
-            model = DtAvodModel(model_config,
+        elif model_name == 'stack_avod_model':
+            model = StackAvodModel(model_config,
                               train_val_test=train_val_test,
                               dataset=dataset)
         else:
             raise ValueError('Invalid model_name')
 
-        trainer_stride.train(model, train_config)
+        stack_trainer.train(model, train_config)
 
 
 def main(_):
@@ -45,9 +45,9 @@ def main(_):
 
     # Defaults
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_5_stride_3_tracking_corr_pretrained_2.config'
+        '/configs/pyramid_cars_with_aug_stack_5_tracking_pretrained.config'
     default_data_split = 'train'
-    default_device = '2'
+    default_device = '0'
 
     parser.add_argument('--pipeline_config',
                         type=str,

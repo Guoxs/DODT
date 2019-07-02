@@ -157,16 +157,16 @@ def draw_gt_boxes3d(gt_boxes3d, fig, box_id=0, color=(1, 1, 1), line_width=1, dr
         for k in range(0, 4):
             # http://docs.enthought.com/mayavi/mayavi/auto/mlab_helper_functions.html
             i, j = k, (k + 1) % 4
-            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]], color=color, tube_radius=None,
-                        line_width=line_width, figure=fig)
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]],
+                        color=color, tube_radius=None, line_width=line_width, figure=fig)
 
             i, j = k + 4, (k + 1) % 4 + 4
-            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]], color=color, tube_radius=None,
-                        line_width=line_width, figure=fig)
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]],
+                        color=color, tube_radius=None, line_width=line_width, figure=fig)
 
             i, j = k, k + 4
-            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]], color=color, tube_radius=None,
-                        line_width=line_width, figure=fig)
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 2], b[j, 2]], [b[i, 1], b[j, 1]],
+                        color=color, tube_radius=None, line_width=line_width, figure=fig)
     # mlab.show(1)
     # mlab.view(azimuth=180, elevation=70, focalpoint=[ 12.0909996 , -1.04700089, -2.03249991], distance=62.0, figure=fig)
     return fig

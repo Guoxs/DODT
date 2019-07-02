@@ -267,9 +267,22 @@ class KittiTrackingStackDataset:
             frame_id = int(name.split('/')[1])
             return str(video_id).zfill(2) + str(frame_id).zfill(4)
 
-        def split_video_ids(ids, num, data_list):
+        def split_train_video_ids(ids, num, data_list):
             ids = list(map(extract_id, ids))
-            for i in range(len(ids)):
+            for i in range(0, len(ids), num):
+                temp = []
+                for j in range(num):
+                    if i + j < len(ids):
+                        next = ids[i+j]
+                    else:
+                        next = ids[-1]
+                    temp.append(next)
+                data_list.append(temp)
+            return data_list
+
+        def split_val_test_video_ids(ids, num, data_list):
+            ids = list(map(extract_id, ids))
+            for i in range(0, len(ids), num):
                 temp = []
                 temp_idx = 0
                 while temp_idx < num:
@@ -283,7 +296,6 @@ class KittiTrackingStackDataset:
                 data_list.append(temp)
             return data_list
 
-
         set_file = self.dataset_dir + '/' + self.data_split + '.txt'
         data_list = []
         with open(set_file, 'r') as f:
@@ -293,16 +305,16 @@ class KittiTrackingStackDataset:
                 if item[-1] == '':
                     item = item[:-1]
                 video_id = int(item[0].split('/')[0])
-                frame_num = int(item[-1].split('/')[1])
-                assert len(item) == frame_num+1, print('Frame number match failed!')
+                # frame_num = int(item[-1].split('/')[1])
+                # assert len(item) == frame_num+1, print('Frame number match failed!')
                 if self.data_split == 'test':
-                    data_list = split_video_ids(item, self.sample_num, data_list)
+                    data_list = split_val_test_video_ids(item, self.sample_num, data_list)
                 elif video_id in self.video_train_id:
                     if self.data_split in ['train', 'trainval']:
-                        data_list = split_video_ids(item, self.sample_num, data_list)
+                        data_list = split_train_video_ids(item, self.sample_num, data_list)
                 else:
-                    if self.data_split in ['val', 'trainval']:
-                        data_list = split_video_ids(item, self.sample_num, data_list)
+                    if self.data_split in ['val']:
+                        data_list = split_val_test_video_ids(item, self.sample_num, data_list)
         return data_list
 
 
@@ -372,10 +384,38 @@ class KittiTrackingStackDataset:
                 label_next[i].ry += delta
         return label_next
 
+    def recovery_t(self, label_obj, calib, trans, matrix):
+        from wavedata.tools.obj_detection import obj_utils
+        box3d = obj_utils.compute_box_corners_3d(label_obj).T  # [8,3]
+        # transfer to velo coord
+        box3d = calib.project_rect_to_velo(box3d)
+        # do rotate
+        inv_matrix = np.linalg.inv(matrix)
+        box3d = box3d @ inv_matrix - trans
+        # back to cam coord
+        box3d = calib.project_velo_to_rect(box3d)
+        # cal box center
+        origin_t = np.mean(box3d, axis=0)
+        # cal center bottom
+        origin_t[1] += label_obj.h / 2.0
+        return origin_t
+
+    def label_inverse_transform(self, labels, sample_names):
+
+
+        trans, matrix, delta = self.coordinate_transform(sample_names)
+        # transfer trans to camera coord
+        calib = self.kitti_utils.get_calib(self.bev_source, sample_names[-1])
+        label_trans = labels[-1]
+        if len(label_trans) != 0:
+            for i in range(len(label_trans)):
+                label_trans[i].t = self.recovery_t(label_trans[i],calib, trans, matrix)
+                label_trans[i].ry -= delta
+        return label_trans
 
     def merge_labels(self, gt_labels):
         assert len(gt_labels) > 0, print('Empty gt_labels!')
-        first_label = gt_labels[0].tolist()
+        first_label = gt_labels[0]
         # change list to map
         label_dict = dict()
         for obj in first_label:
@@ -461,7 +501,7 @@ class KittiTrackingStackDataset:
             if self.has_labels:
                 # Read mini batch first to see if it is empty
                 anchors_info = self.get_anchors_info(sample_names)
-                not_emptys = [len(info[0]) > 0 for info in anchors_info]
+                not_emptys = [len(info) > 0 for info in anchors_info]
                 if not sum(not_emptys) and self.train_val_test == 'train' \
                         and (not self.train_on_all_samples):
                     empty_sample_dict = {
@@ -480,9 +520,6 @@ class KittiTrackingStackDataset:
             else:
                 obj_labels = None
                 integrated_obj_labels = None
-
-                anchors_info = [[] for _ in range(self.sample_num)]
-
                 label_anchors = [np.zeros((1, 7)) for _ in range(self.sample_num)]
                 label_boxes_3d = [np.zeros((1, 8)) for _ in range(self.sample_num)]
                 label_classes = [np.zeros(1) for _ in range(self.sample_num)]
@@ -573,9 +610,8 @@ class KittiTrackingStackDataset:
                         [box_3d_encoder.tracking_object_label_to_box_3d(obj_label)
                          for obj_label in obj_labels[i]])
 
-                    label_class = [
-                        self.kitti_utils.class_str_to_index(obj_label.type)
-                        for obj_label in obj_labels[i]]
+                    label_class = [self.kitti_utils.class_str_to_index(obj_label.type)
+                                        for obj_label in obj_labels[i]]
                     label_class = np.asarray(label_class, dtype=np.int32)
 
                     # Return empty anchors_info if no ground truth after filtering

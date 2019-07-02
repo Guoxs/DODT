@@ -19,7 +19,7 @@ def test_oxts_coordinate_transform():
     dataset_config.data_split = 'trainval'
     dataset_config.dataset_dir = kitti_dir
     dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config)
-    sample_names = ['210040', '210045']
+    sample_names = ['020040', '020045']
     raw_point_cloud = []
     raw_label = []
     calibs = []
@@ -47,7 +47,6 @@ def test_oxts_coordinate_transform():
     ct_point_cloud = dataset.point_cloud_transform(raw_point_cloud, sample_names)
     for i in range(2):
         ct_fig = draw_lidar_and_boxes(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig)
-
     mlab.show()
     input()
 
@@ -55,7 +54,7 @@ def test_oxts_coordinate_transform():
     for i in range(2):
         ct_point_cloud[i] = dataset.kitti_utils.transfer_lidar_to_camera_view(
             dataset.bev_source, sample_names[i], ct_point_cloud[i], image_shape[i])
-        ct_fig2 = draw_lidar_and_boxes_in_camera_view(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig2)
+        ct_fig2 = draw_lidar_and_boxes_in_camera_view(ct_point_cloud[i], ct_obj_label[i], ct_fig2)
     mlab.show()
     input()
 

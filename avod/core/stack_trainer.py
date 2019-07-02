@@ -14,6 +14,16 @@ from avod.core import summary_utils
 
 slim = tf.contrib.slim
 
+def name_in_checkpoint(var):
+    name = var.op.name
+    if 'bev_vgg_pyr' in name:
+        name = name.replace('feature_extractor/', '')
+    elif 'img_vgg_pyr' in name:
+        name = name.replace('feature_extractor/', '')
+    elif 'box_predictor' in name:
+        name = name.replace('avod_fc_layer/', '')
+    return name
+
 def train(model, train_config):
     """Training function for detection models.
 
@@ -52,7 +62,7 @@ def train(model, train_config):
         model_config.checkpoint_name
 
     pretrained_checkpoint_dir = checkpoint_dir + '/../../' + \
-        'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained/checkpoints'
+        'pyramid_cars_with_aug_dt_5_tracking_pretrained/checkpoints'
 
     global_summaries = set([])
 
@@ -64,12 +74,13 @@ def train(model, train_config):
     summary_bev_images = train_config.summary_bev_images
 
     # get variables to train
-    # if not train_config.use_pretrained_model:
-    #     variable_to_train = None
-    # else:
-    #     trainable_variables = tf.trainable_variables()
-    #     variable_to_train = trainable_variables[68:72] + \
-    #                         trainable_variables[96:]
+    if not train_config.use_pretrained_model:
+        variable_to_train = None
+    else:
+        trainable_variables = tf.trainable_variables()
+        variable_to_train = trainable_variables
+        # variable_to_train = trainable_variables[68:72] + \
+        #                     trainable_variables[96:]
 
 
     ##############################
@@ -88,7 +99,7 @@ def train(model, train_config):
         train_op = slim.learning.create_train_op(
             total_loss,
             training_optimizer,
-            # variables_to_train=variable_to_train,
+            variables_to_train=variable_to_train,
             clip_gradient_norm=1.0,
             global_step=global_step_tensor)
 
@@ -156,7 +167,7 @@ def train(model, train_config):
                 saver2 = tf.train.Saver(var_list=variable_to_restore)
                 print('Loading pretrained model...')
                 trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver2)
-                checkpoint_to_restore = saver2.last_checkpoints[10]
+                checkpoint_to_restore = saver2.last_checkpoints[4]
                 saver2.restore(sess, checkpoint_to_restore)
     else:
         sess.run(init)
@@ -169,7 +180,7 @@ def train(model, train_config):
             saver2 = tf.train.Saver(var_list=variable_to_restore)
             print('Loading pretrained model...')
             trainer_utils.load_checkpoints(pretrained_checkpoint_dir, saver2)
-            checkpoint_to_restore = saver2.last_checkpoints[10]
+            checkpoint_to_restore = saver2.last_checkpoints[4]
             saver2.restore(sess, checkpoint_to_restore)
 
 

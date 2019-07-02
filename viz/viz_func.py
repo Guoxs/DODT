@@ -2,7 +2,7 @@ import numpy as np
 from viz.viz_utils import draw_lidar_simple, draw_gt_boxes3d
 from wavedata.tools.obj_detection.obj_utils import compute_box_corners_3d
 
-def draw_lidar_and_boxes(lidar, gt_boxes, calib, fig):
+def draw_lidar_and_boxes(lidar, gt_boxes, calib, fig, color=(1,1,1)):
     lidar_draw = lidar.T
     fig = draw_lidar_simple(lidar_draw, fig=fig)
     length = len(gt_boxes)
@@ -14,10 +14,10 @@ def draw_lidar_and_boxes(lidar, gt_boxes, calib, fig):
         corners_3ds[i] = calib.project_rect_to_velo(boxes3d)
         box_id.append(gt_box.object_id)
 
-    fig = draw_gt_boxes3d(corners_3ds, fig, box_id=box_id)
+    fig = draw_gt_boxes3d(corners_3ds, fig, box_id=box_id, color=color)
     return fig
 
-def draw_lidar_and_boxes_in_camera_view(lidar, gt_boxes, calib, fig):
+def draw_lidar_and_boxes_in_camera_view(lidar, gt_boxes, fig):
     lidar_draw = lidar.T
     fig = draw_lidar_simple(lidar_draw, fig=fig)
     length = len(gt_boxes)

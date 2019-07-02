@@ -252,7 +252,7 @@ class StackRpnModel(model.DetectionModel):
         with tf.variable_scope('sample_info'):
             # the calib matrix shape is (3 x 4)
             self._add_placeholder(tf.float32, [3, 4], self.PL_CALIB_P2)
-            self._add_placeholder(tf.int32, shape=[2], name=self.PL_IMG_IDX)
+            self._add_placeholder(tf.int32, shape=[self.sample_num], name=self.PL_IMG_IDX)
             self._add_placeholder(tf.float32, [None, 4], self.PL_GROUND_PLANE)
 
 
@@ -602,10 +602,6 @@ class StackRpnModel(model.DetectionModel):
         # Specify the tensors to evaluate
         predictions = dict()
 
-        # Temporary predictions for debugging
-        # predictions['anchor_ious'] = anchor_ious
-        # predictions['anchor_offsets'] = all_offsets_gt
-
         if self._train_val_test in ['train', 'val']:
             # All anchors
             predictions[self.PRED_ANCHORS] = anchors
@@ -740,6 +736,8 @@ class StackRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_LABEL_ANCHORS] = label_anchors[:, :-1]
         self._placeholder_inputs[self.PL_LABEL_BOXES_3D] = label_boxes_3d[:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES] = label_classes
+
+        # MASK
         for i in range(self.sample_num):
             name = self.PL_LABEL_MASK + '_' + str(i)
             self._placeholder_inputs[name] = np.where(label_mask == i)[0]
@@ -750,7 +748,7 @@ class StackRpnModel(model.DetectionModel):
 
         # Sample Info
         # img_idx is a list to match the placeholder shape
-        self._placeholder_inputs[self.PL_IMG_IDX] = [int(sample_name[0]), int(sample_name[1])]
+        self._placeholder_inputs[self.PL_IMG_IDX] = [int(name) for name in sample_name]
         self._placeholder_inputs[self.PL_CALIB_P2] = stereo_calib_p2
         self._placeholder_inputs[self.PL_GROUND_PLANE] = ground_plane
 

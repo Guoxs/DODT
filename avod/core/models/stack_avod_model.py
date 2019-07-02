@@ -33,6 +33,10 @@ class StackAvodModel(model.DetectionModel):
     PRED_MB_OFFSETS = 'avod_mb_offsets'
     PRED_MB_ANGLE_VECTORS = 'avod_mb_angle_vectors'
 
+    # Anchors from RPN and top-K idx from NMS
+    PRED_RPN_ANCHORS = 'avod_pred_rpn_anchors'
+    PRED_RPN_ANCHORS_TOP_K_IDX = 'avod_pred_rpn_anchors_top_k_idx'
+
     # Top predictions after BEV NMS
     PRED_TOP_CLASSIFICATION_LOGITS = 'avod_top_classification_logits'
     PRED_TOP_CLASSIFICATION_SOFTMAX = 'avod_top_classification_softmax'
@@ -478,6 +482,7 @@ class StackAvodModel(model.DetectionModel):
         top_prediction_boxes_3d = [None] * sample_num
         top_prediction_boxes_8c = [None] * sample_num
         top_prediction_boxes_4c = [None] * sample_num
+        top_nms_indices = [None] * sample_num
 
         for i in range(sample_num):
             # Get orientations from angle vectors
@@ -548,6 +553,8 @@ class StackAvodModel(model.DetectionModel):
                     max_output_size=self._nms_size,
                     iou_threshold=self._nms_iou_threshold)
 
+                top_nms_indices[i] = nms_indices
+
                 # Gather predictions from NMS indices
                 top_classification_logits[i] = tf.gather(all_cls_logits[i], nms_indices)
                 top_classification_softmax[i] = tf.gather(all_cls_softmax[i], nms_indices)
@@ -577,6 +584,10 @@ class StackAvodModel(model.DetectionModel):
             prediction_dict[self.PRED_MB_CLASSIFICATION_LOGITS] = mb_classifications_logits
             prediction_dict[self.PRED_MB_CLASSIFICATION_SOFTMAX] = mb_classifications_softmax
             prediction_dict[self.PRED_MB_OFFSETS] = mb_offsets
+
+            # Anchors from RPN and TOP K indices after NMS
+            prediction_dict[self.PRED_RPN_ANCHORS] = top_anchors
+            prediction_dict[self.PRED_RPN_ANCHORS_TOP_K_IDX] = top_nms_indices
 
             # Mini batch ground truth
             prediction_dict[self.PRED_MB_CLASSIFICATIONS_GT] = mb_classification_gt

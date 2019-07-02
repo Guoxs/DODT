@@ -13,6 +13,7 @@ import avod
 from avod.core import box_3d_projector
 from avod.core import summary_utils
 from wavedata.tools.core import calib_utils
+from wavedata.tools.obj_detection.obj_utils import ObjectLabel
 from wavedata.tools.obj_detection.evaluation import three_d_iou
 from avod.core.dt_inference_utils import convert_pred_to_kitti_format
 
@@ -89,14 +90,6 @@ def save_predictions_in_kitti_format(model,
             continue
 
         all_predictions = np.loadtxt(predictions_file_path)
-
-        # # Swap l, w for predictions where w > l
-        # swapped_indices = all_predictions[:, 4] > all_predictions[:, 3]
-        # fixed_predictions = np.copy(all_predictions)
-        # fixed_predictions[swapped_indices, 3] = all_predictions[
-        #     swapped_indices, 4]
-        # fixed_predictions[swapped_indices, 4] = all_predictions[
-        #     swapped_indices, 3]
 
         score_filter = all_predictions[:, 7] >= score_threshold
         all_predictions = all_predictions[score_filter]
@@ -194,6 +187,209 @@ def save_predictions_in_kitti_format(model,
 
     print('\nNum valid:', num_valid_samples)
     print('Num samples:', num_samples)
+
+
+def save_stack_predictions_in_kitti_format(model,
+                                     checkpoint_name,
+                                     data_split,
+                                     score_threshold,
+                                     global_step,
+                                     is_detection_single=True):
+    """ Converts a set of network predictions into text files required for
+    KITTI evaluation.
+    """
+
+    dataset = model.dataset
+    # Round this because protobuf encodes default values as full decimal
+    score_threshold = round(score_threshold, 3)
+
+    # Get available prediction folders
+    predictions_root_dir = avod.root_dir() + '/data/outputs/' + \
+        checkpoint_name + '/predictions'
+
+    if is_detection_single:
+        final_predictions_root_dir = predictions_root_dir + \
+            '/final_predictions_and_scores/' + dataset.data_split
+    else:
+        final_predictions_root_dir = predictions_root_dir + \
+            '/kitti_detection_predictions_and_scores/' + dataset.data_split
+
+    final_predictions_dir = final_predictions_root_dir + \
+        '/' + str(global_step)
+
+    # 3D prediction directories
+    kitti_predictions_3d_dir = predictions_root_dir + \
+        '/kitti_native_eval/' + \
+        str(score_threshold) + '/' + \
+        str(global_step) + '/data'
+
+    if not os.path.exists(kitti_predictions_3d_dir):
+        os.makedirs(kitti_predictions_3d_dir)
+
+    # Do conversion
+    num_samples = dataset.num_samples
+    num_valid_samples = 0
+
+    print('\nGlobal step:', global_step)
+    print('Converting detections from:', final_predictions_dir)
+
+    print('3D Detections being saved to:', kitti_predictions_3d_dir)
+
+    for sample_idx in range(num_samples):
+
+        # Print progress
+        sys.stdout.write('\rConverting {} / {}'.format(
+            sample_idx + 1, num_samples))
+        sys.stdout.flush()
+
+        sample_name = dataset.sample_names[sample_idx]
+
+        if is_detection_single:
+            prediction_file = sample_name + '.txt'
+        else:
+            prediction_file = sample_name[0] + '.txt'
+
+        kitti_predictions_3d_file_path = kitti_predictions_3d_dir + \
+            '/' + prediction_file
+
+        predictions_file_path = final_predictions_dir + \
+            '/' + prediction_file
+
+        # If no predictions, skip to next file
+        if not os.path.exists(predictions_file_path):
+            np.savetxt(kitti_predictions_3d_file_path, [])
+            continue
+
+        all_predictions = np.loadtxt(predictions_file_path)
+
+        score_filter = all_predictions[:, 8] >= score_threshold
+        all_predictions = all_predictions[score_filter]
+
+        # If no predictions, skip to next file
+        if len(all_predictions) == 0:
+            np.savetxt(kitti_predictions_3d_file_path, [])
+            continue
+
+        # Project to image space
+        sample_name = prediction_file.split('.')[0]
+
+        # Load image for truncation
+        image = Image.open(dataset.get_rgb_image_path(sample_name))
+
+        if is_detection_single:
+            img_idx = int(sample_name)
+            stereo_calib_p2 = calib_utils.read_calibration(dataset.calib_dir,
+                                                       img_idx).p2
+        else:
+            img_idx = sample_name
+            video_id = int(img_idx[:2])
+            stereo_calib_p2 = calib_utils.read_tracking_calibration(
+                dataset.calib_dir, video_id).p2
+
+        boxes = []
+        image_filter = []
+        for i in range(len(all_predictions)):
+            box_3d = all_predictions[i, 1:8]
+            img_box = box_3d_projector.project_to_image_space(
+                box_3d, stereo_calib_p2,
+                truncate=True, image_size=image.size)
+
+            # Skip invalid boxes (outside image space)
+            if img_box is None:
+                image_filter.append(False)
+                continue
+
+            image_filter.append(True)
+            boxes.append(img_box)
+
+        boxes = np.asarray(boxes)
+        all_predictions = all_predictions[image_filter]
+
+        # If no predictions, skip to next file
+        if len(boxes) == 0:
+            np.savetxt(kitti_predictions_3d_file_path, [])
+            continue
+
+        num_valid_samples += 1
+
+        # To keep each value in its appropriate position, an array of zeros
+        # (N, 16) is allocated but only values [4:16] are used
+        kitti_predictions = np.zeros([len(boxes), 16])
+
+        # Get object types
+        all_pred_classes = all_predictions[:, 9].astype(np.int32)
+        obj_types = [dataset.classes[class_idx]
+                     for class_idx in all_pred_classes]
+
+        # Truncation and Occlusion are always empty (see below)
+
+        # Alpha (Not computed)
+        kitti_predictions[:, 3] = -10 * np.ones((len(kitti_predictions)),
+                                                dtype=np.int32)
+
+        # 2D predictions
+        kitti_predictions[:, 4:8] = boxes[:, 0:4]
+
+        # 3D predictions
+        # (l, w, h)
+        kitti_predictions[:, 8] = all_predictions[:, 6]
+        kitti_predictions[:, 9] = all_predictions[:, 5]
+        kitti_predictions[:, 10] = all_predictions[:, 4]
+        # (x, y, z)
+        kitti_predictions[:, 11:14] = all_predictions[:, 1:4]
+        # (ry, score)
+        kitti_predictions[:, 14:16] = all_predictions[:, 7:9]
+
+        # Round detections to 3 decimal places
+        kitti_predictions = np.round(kitti_predictions, 3)
+
+        # Empty Truncation, Occlusion
+        kitti_empty_1 = -1 * np.ones((len(kitti_predictions), 2),
+                                     dtype=np.int32)
+
+        # Stack 3D predictions text
+        kitti_text_3d = np.column_stack([obj_types,
+                                         kitti_empty_1,
+                                         kitti_predictions[:, 3:16]])
+
+        # Save to text files
+        np.savetxt(kitti_predictions_3d_file_path, kitti_text_3d,
+                   newline='\r\n', fmt='%s')
+
+    print('\nNum valid:', num_valid_samples)
+    print('Num samples:', num_samples)
+
+
+def recovery_predictions(dataset, sample_names, predictions):
+    base_name = sample_names[0]
+    num = len(sample_names)
+    lists = [predictions[predictions[:, -1] == i] for i in range(num)]
+    lists = [list[:, :-1] for list in lists]
+
+    for i in range(1, num):
+        temp_name = sample_names[i]
+        trans, matrix, delta = dataset.coordinate_transform(
+                                [base_name, temp_name])
+        calib = dataset.kitti_utils.get_calib(dataset.bev_source, temp_name)
+
+        top_list = lists[i]
+        if len(top_list) != 0:
+            for j in range(len(top_list)):
+                # convert to TrackingLabel object
+                obj = ObjectLabel()
+                obj.t = top_list[j][1:4]
+                obj.l = top_list[j][6]
+                obj.w = top_list[j][5]
+                obj.h = top_list[j][4]
+                obj.ry = top_list[j][7]
+
+                obj.t = dataset.recovery_t(obj, calib, trans, matrix)
+                obj.ry -= delta
+
+                # convert back to numpy
+                top_list[j][1:4] = obj.t
+                top_list[j][7] = obj.ry
+    return lists
 
 
 def decode_tracking_file(root_dir, file_name, dataset, threshold):
