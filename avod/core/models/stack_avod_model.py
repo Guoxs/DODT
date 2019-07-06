@@ -201,7 +201,7 @@ class StackAvodModel(model.DetectionModel):
         bev_feature_maps = rpn_model.bev_feature_maps
         img_feature_maps = rpn_model.img_feature_maps
 
-        # integrated_bev_feature_map = rpn_model.integrated_bev_feature_map
+        integrated_bev_feature_map = rpn_model.integrated_bev_feature_map
 
         if not (self._path_drop_probabilities[0] ==
                 self._path_drop_probabilities[1] == 1.0):
@@ -237,14 +237,6 @@ class StackAvodModel(model.DetectionModel):
             # These should be all 0's since there is only 1 image
             tf_box_indices = get_box_indices(bev_boxes_norm_batches)
 
-            # Do ROI Pooling on integrated BEV
-            # integrated_bev_rois = tf.image.crop_and_resize(
-            #             integrated_bev_feature_map,
-            #             bev_proposal_boxes_norm_tf_order,
-            #             tf_box_indices,
-            #             self._proposal_roi_crop_size,
-            #             name='integrated_bev_rois')
-
             # Do ROI Pooling on BEV
             bev_rois = [tf.image.crop_and_resize(
                 bev_feature_maps[i],
@@ -261,6 +253,17 @@ class StackAvodModel(model.DetectionModel):
                 self._proposal_roi_crop_size,
                 name='img_rois')
                 for i in range(sample_num)]
+
+            # Do ROI Pooling on integrated BEV
+            integrated_bev_rois = tf.image.crop_and_resize(
+                integrated_bev_feature_map,
+                bev_proposal_boxes_norm_tf_order,
+                tf_box_indices,
+                self._proposal_roi_crop_size,
+                name='integrated_bev_rois')
+
+            bev_rois = [tf.add(bev_roi, integrated_bev_rois) / 2.0
+                        for bev_roi in bev_rois]
 
         with tf.variable_scope('avod_fc_layer') as scope:
             # Fully connected layers (Box Predictor)

@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 import tensorflow as tf
+from sklearn.cluster import DBSCAN
 
 import avod
 import avod.builders.config_builder_util as config_builder
@@ -93,7 +94,6 @@ def draw_anchors(dataset, pred_path, cpkt_idx, sample_names):
 
     bev_boxes = bev_norm_boxes * [800, 700, 800, 700]
     bev_boxes = bev_boxes.astype(np.int32)
-    print(bev_boxes)
 
     # draw bev_boxes in img
     img = cv2.imread(first_name + '.png')
@@ -105,14 +105,29 @@ def draw_anchors(dataset, pred_path, cpkt_idx, sample_names):
     file_path = os.path.join(pred_path, 'proposals_and_scores/val/'+cpkt_idx)
     anchor_file = os.path.join(file_path, sample_names + '.txt')
     proposals = np.loadtxt(anchor_file)
-    # proposals = proposals[proposals[:, -1] > 0.1]
+    # proposals = proposals[proposals[:, -1] > 0.05]
     proposals_anchors = proposals[:, :6]
     _, proposal_bev_norm_boxes = \
         anchor_projector.project_to_bev(proposals_anchors, area_extents[[0, 2]])
     proposal_bev_boxes = proposal_bev_norm_boxes * [800, 700, 800, 700]
-    proposal_bev_boxes = proposal_bev_boxes.astype(np.int32)
-    for box in proposal_bev_boxes:
-        cv2.rectangle(img, (box[0],box[1]), (box[2], box[3]), (0,255,255), 1)
+
+    center_xy = np.zeros((proposal_bev_boxes.shape[0], 2), np.int32)
+    center_xy[:, 0] = 1 / 2 * (proposal_bev_boxes[:, 0] + proposal_bev_boxes[:, 2])
+    center_xy[:, 1] = 1 / 2 * (proposal_bev_boxes[:, 1] + proposal_bev_boxes[:, 3])
+    # print(center_xy)
+
+    # cluster
+    db = DBSCAN(eps=5, min_samples=5).fit(center_xy)
+    labels = db.labels_
+    print(labels)
+
+    cluster_num = max(labels) + 2
+    all_color = np.random.randint(0,256,(cluster_num,3)).astype(np.uint32)
+
+    for i in range(len(center_xy)):
+        point = tuple(center_xy[i])
+        color = all_color[labels[i]+1]
+        cv2.circle(img, point, 1, (int(color[0]), int(color[1]), int(color[2])), 1)
 
     cv2.imwrite(first_name + '.png', img)
 
@@ -135,7 +150,7 @@ def main(_):
     dataset = build_dataset(eval_config, dataset_config)
 
     sample_name = '000132_000134'
-    cpkt_idx = '17000'
+    cpkt_idx = '7000'
     pred_path = model_config.paths_config.pred_dir
     draw_anchors(dataset, pred_path, cpkt_idx, sample_name)
 
