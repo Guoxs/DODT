@@ -29,7 +29,7 @@ def config_setting(checkpoint_name, ckpt_indices):
 
     model_config, _, eval_config, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
-            experiment_config_path, is_training=False)
+            experiment_config_path, dataset_name='', is_training=False)
 
     return root_dir, tracking_output_dir, tracking_eval_script_dir, dataset_config
 

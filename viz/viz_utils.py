@@ -174,8 +174,8 @@ def draw_gt_boxes3d(gt_boxes3d, fig, box_id=0, color=(1, 1, 1), line_width=1, dr
 
 def draw_bounding_box(box3d, fig, color=(1, 1, 1), line_width=1):
     x_min,x_max, y_min,y_max, z_min,z_max = box3d
-    vertices = [[x_min,y_max,z_max],[x_min,y_min,z_max],[x_max,y_min,z_max],[x_max,y_max,z_max],
-                [x_min,y_max,z_min],[x_min,y_min,z_min],[x_max,y_min,z_min],[x_max,y_max,z_min]]
+    vertices = [[x_min,z_max,y_max],[x_min,z_min,y_max],[x_max,z_min,y_max],[x_max,z_max,y_max],
+                [x_min,z_max,y_min],[x_min,z_min,y_min],[x_max,z_min,y_min],[x_max,z_max,y_min]]
     vertices = np.asarray(vertices)
     for k in range(0, 4):
         i, j = k, (k + 1) % 4

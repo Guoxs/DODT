@@ -100,16 +100,16 @@ class KittiDatasetTest(unittest.TestCase):
 
         # Validation split
         validation_dataset = self.get_fake_dataset('val', self.fake_kitti_dir)
-        self.assertEqual(validation_dataset.num_samples, 10)
+        self.assertEqual(validation_dataset.num_samples, 15)
 
         # Train + validation split
         trainval_dataset = self.get_fake_dataset('trainval',
                                                  self.fake_kitti_dir)
-        self.assertEqual(trainval_dataset.num_samples, 20)
+        self.assertEqual(trainval_dataset.num_samples, 40)
 
         # Test split
         test_dataset = self.get_fake_dataset('test', self.fake_kitti_dir)
-        self.assertEqual(test_dataset.num_samples, 10)
+        self.assertEqual(test_dataset.num_samples, 5)
 
     def test_batch_loading(self):
         # Training split

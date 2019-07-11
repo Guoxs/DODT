@@ -269,7 +269,7 @@ class KittiTrackingStackDataset:
 
         def split_train_video_ids(ids, num, data_list):
             ids = list(map(extract_id, ids))
-            for i in range(0, len(ids), num):
+            for i in range(len(ids)):
                 temp = []
                 for j in range(num):
                     if i + j < len(ids):
@@ -282,7 +282,7 @@ class KittiTrackingStackDataset:
 
         def split_val_test_video_ids(ids, num, data_list):
             ids = list(map(extract_id, ids))
-            for i in range(0, len(ids), num):
+            for i in range(0, len(ids), num-1):
                 temp = []
                 temp_idx = 0
                 while temp_idx < num:
@@ -309,11 +309,13 @@ class KittiTrackingStackDataset:
                 # assert len(item) == frame_num+1, print('Frame number match failed!')
                 if self.data_split == 'test':
                     data_list = split_val_test_video_ids(item, self.sample_num, data_list)
+                elif self.data_split == 'trainval':
+                    data_list = split_train_video_ids(item, self.sample_num, data_list)
                 elif video_id in self.video_train_id:
-                    if self.data_split in ['train', 'trainval']:
+                    if self.data_split == 'train':
                         data_list = split_train_video_ids(item, self.sample_num, data_list)
                 else:
-                    if self.data_split in ['val']:
+                    if self.data_split == 'val':
                         data_list = split_val_test_video_ids(item, self.sample_num, data_list)
         return data_list
 

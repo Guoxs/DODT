@@ -8,7 +8,7 @@ sys.path.append('/home/mooyu/Project/avod/wavedata')
 import avod.tests as tests
 import mayavi.mlab as mlab
 from avod.builders.dataset_builder import DatasetBuilder
-from viz.viz_utils import draw_lidar_simple
+from viz.viz_utils import draw_lidar_simple, draw_bounding_box
 from wavedata.tools.obj_detection import tracking_utils
 from viz.viz_func import draw_lidar_and_boxes,draw_lidar_and_boxes_in_camera_view
 
@@ -55,6 +55,10 @@ def test_oxts_coordinate_transform():
         ct_point_cloud[i] = dataset.kitti_utils.transfer_lidar_to_camera_view(
             dataset.bev_source, sample_names[i], ct_point_cloud[i], image_shape[i])
         ct_fig2 = draw_lidar_and_boxes_in_camera_view(ct_point_cloud[i], ct_obj_label[i], ct_fig2)
+
+    # draw bounding box
+    bounding_box = [-40, 40, -5, 3, 0, 70]
+    ct_fig2 = draw_bounding_box(bounding_box, ct_fig2)
     mlab.show()
     input()
 

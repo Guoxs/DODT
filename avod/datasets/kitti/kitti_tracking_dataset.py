@@ -251,12 +251,24 @@ class KittiTrackingDataset:
             frame_id = int(name.split('/')[1])
             return str(video_id).zfill(2) + str(frame_id).zfill(4)
 
-        def split_video_ids(ids, stride, data_list):
+        def split_train_video_ids(ids, stride, data_list):
             ids = list(map(extract_id, ids))
             for i in range(len(ids)):
                 cur = ids[i]
                 if i+stride < len(ids):
                     next = ids[i+stride]
+                else:
+                    next = ids[-1]
+
+                data_list.append([cur, next])
+            return data_list
+
+        def split_val_test_video_ids(ids, stride, data_list):
+            ids = list(map(extract_id, ids))
+            for i in range(0, len(ids), stride+1):
+                cur = ids[i]
+                if i + stride < len(ids):
+                    next = ids[i + stride]
                 else:
                     next = ids[-1]
 
@@ -273,16 +285,18 @@ class KittiTrackingDataset:
                 if item[-1] == '':
                     item = item[:-1]
                 video_id = int(item[0].split('/')[0])
-                frame_num = int(item[-1].split('/')[1])
+                # frame_num = int(item[-1].split('/')[1])
                 # assert len(item) == frame_num+1, print('Frame number match failed!')
                 if self.data_split == 'test':
-                    data_list = split_video_ids(item, self.data_stride, data_list)
+                    data_list = split_val_test_video_ids(item, self.data_stride, data_list)
+                elif self.data_split == 'trainval':
+                    data_list = split_train_video_ids(item, self.data_stride, data_list)
                 elif video_id in self.video_train_id:
-                    if self.data_split in ['train', 'trainval']:
-                        data_list = split_video_ids(item, self.data_stride, data_list)
+                    if self.data_split == 'train':
+                        data_list = split_train_video_ids(item, self.data_stride, data_list)
                 else:
-                    if self.data_split in ['val', 'trainval']:
-                        data_list = split_video_ids(item, self.data_stride, data_list)
+                    if self.data_split == 'val':
+                        data_list = split_val_test_video_ids(item, self.data_stride, data_list)
         return data_list
 
 

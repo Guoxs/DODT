@@ -93,6 +93,12 @@ def main(_):
                         required=True,
                         help='Data split must be specified e.g. val or test')
 
+    parser.add_argument('--dataset',
+                        type=str,
+                        dest='dataset',
+                        default='',
+                        help='Dataset for training')
+
     parser.add_argument(
         '--ckpt_indices',
         type=int,
@@ -121,7 +127,7 @@ def main(_):
 
     model_config, _, eval_config, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
-            experiment_config_path, is_training=False)
+            experiment_config_path, args.dataset, is_training=False)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device
     inference(model_config, eval_config,

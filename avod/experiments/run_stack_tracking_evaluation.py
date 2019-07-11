@@ -106,6 +106,12 @@ def main(_):
                         default='val',
                         help='Data split for evaluation')
 
+    parser.add_argument('--dataset',
+                        type=str,
+                        dest='dataset',
+                        default='',
+                        help='Dataset for training')
+
     parser.add_argument('--device',
                         type=str,
                         dest='device',
@@ -118,6 +124,7 @@ def main(_):
     model_config, _, eval_config, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
             args.pipeline_config_path,
+            args.dataset,
             is_training=False)
 
     # Overwrite data split

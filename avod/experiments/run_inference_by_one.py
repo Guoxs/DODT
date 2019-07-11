@@ -98,7 +98,7 @@ def get_config(checkpoint_name):
 
     model_config, _, eval_config, dataset_config = \
             config_builder.get_configs_from_pipeline_file(
-                experiment_config_path, is_training=False)
+                experiment_config_path, dataset_name='', is_training=False)
     return model_config, dataset_config
 
 

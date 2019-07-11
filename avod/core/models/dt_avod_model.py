@@ -209,7 +209,7 @@ class DtAvodModel(model.DetectionModel):
         img_feature_maps = rpn_model.img_feature_maps
 
         bev_corr_feature_maps = rpn_model.bev_corr_feature_maps
-        img_corr_feature_maps = rpn_model.img_corr_feature_maps
+        # img_corr_feature_maps = rpn_model.img_corr_feature_maps
 
         if not (self._path_drop_probabilities[0] ==
                 self._path_drop_probabilities[1] == 1.0):
@@ -225,8 +225,8 @@ class DtAvodModel(model.DetectionModel):
                 bev_feature_maps = [tf.multiply(bev_feature_maps[i],bev_mask)
                                     for i in range(SAMPLE_SIZE)]
 
-                img_corr_feature_maps = tf.multiply(img_corr_feature_maps, img_mask)
-                bev_corr_feature_maps = tf.multiply(bev_corr_feature_maps, bev_mask)
+                # img_corr_feature_maps = tf.multiply(img_corr_feature_maps, img_mask)
+                # bev_corr_feature_maps = tf.multiply(bev_corr_feature_maps, bev_mask)
         else:
             bev_mask = tf.constant(1.0)
             img_mask = tf.constant(1.0)
@@ -272,12 +272,12 @@ class DtAvodModel(model.DetectionModel):
                 self._proposal_roi_crop_size,
                 name='bev_corr_rois')
 
-            img_corr_rois = tf.image.crop_and_resize(
-                img_corr_feature_maps,
-                img_proposal_boxes_norm_tf_order[0],
-                tf_box_indices[0],
-                self._proposal_roi_crop_size,
-                name='img_corr_rois')
+            # img_corr_rois = tf.image.crop_and_resize(
+            #     img_corr_feature_maps,
+            #     img_proposal_boxes_norm_tf_order[0],
+            #     tf_box_indices[0],
+            #     self._proposal_roi_crop_size,
+            #     name='img_corr_rois')
 
         # Fully connected layers (Box Predictor)
         avod_layers_config = self.model_config.layers_config.avod_config
@@ -300,8 +300,7 @@ class DtAvodModel(model.DetectionModel):
         with tf.variable_scope('avod_corr_layer'):
             all_corr_offsets = avod_corr_layers_builder.build(
                                     layers_config=avod_layers_config,
-                                    input_rois=[bev_corr_rois, img_corr_rois],
-                                    input_weights=[bev_mask, img_mask],
+                                    input_rois=bev_corr_rois,
                                     is_training=self._is_training)
 
         all_cls_logits = [fc_output_layers[i][avod_fc_layers_builder.KEY_CLS_LOGITS]

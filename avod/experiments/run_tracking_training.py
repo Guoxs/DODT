@@ -47,7 +47,7 @@ def main(_):
     default_pipeline_config_path = avod.root_dir() + \
         '/configs/pyramid_cars_with_aug_dt_5_tracking_corr_pretrained.config'
     default_data_split = 'train'
-    default_device = '2'
+    default_device = '1'
 
     parser.add_argument('--pipeline_config',
                         type=str,
@@ -61,6 +61,12 @@ def main(_):
                         default=default_data_split,
                         help='Data split for training')
 
+    parser.add_argument('--dataset',
+                        type=str,
+                        dest='dataset',
+                        default='',
+                        help='Dataset for training')
+
     parser.add_argument('--device',
                         type=str,
                         dest='device',
@@ -72,7 +78,7 @@ def main(_):
     # Parse pipeline config
     model_config, train_config, _, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
-            args.pipeline_config_path, is_training=True)
+            args.pipeline_config_path, args.dataset, is_training=True)
 
     # Overwrite data split
     dataset_config.data_split = args.data_split

@@ -230,7 +230,7 @@ class DtRpnModel(model.DetectionModel):
             self._add_placeholder(tf.float32, [None, 7], self.PL_LABEL_BOXES_3D_B)
             self._add_placeholder(tf.float32, [None,  ], self.PL_LABEL_CLASSES_B)
             self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_ANCHORS)
-            self._add_placeholder(tf.float32, [None, 4], self.PL_LABEL_CORR_BOXES_3D)
+            self._add_placeholder(tf.float32, [None, 3], self.PL_LABEL_CORR_BOXES_3D)
 
         # Placeholders for anchors
         with tf.variable_scope('pl_anchors'):
@@ -330,11 +330,11 @@ class DtRpnModel(model.DetectionModel):
                 max_displacement=corr_config.max_displacement,
                 padding=corr_config.padding)
 
-        with tf.variable_scope('img_correlation'):
-            self.img_corr_feature_maps = correlation(
-                self.img_feature_maps[0],self.img_feature_maps[1],
-                max_displacement=corr_config.max_displacement,
-                padding=corr_config.padding)
+        # with tf.variable_scope('img_correlation'):
+        #     self.img_corr_feature_maps = correlation(
+        #         self.img_feature_maps[0],self.img_feature_maps[1],
+        #         max_displacement=corr_config.max_displacement,
+        #         padding=corr_config.padding)
 
         with tf.variable_scope('bev_corr_bottleneck'):
             self.bev_corr_bottleneck = slim.conv2d(
@@ -344,12 +344,12 @@ class DtRpnModel(model.DetectionModel):
                             normalizer_fn=slim.batch_norm,
                             normalizer_params={'is_training': self._is_training})
 
-        with tf.variable_scope('img_corr_bottleneck'):
-            self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
-                            1, [1, 1],
-                            scope='img_corr_bottleneck',
-                            normalizer_fn=slim.batch_norm,
-                            normalizer_params={'is_training': self._is_training})
+        # with tf.variable_scope('img_corr_bottleneck'):
+        #     self.img_corr_bottleneck = slim.conv2d(self.img_corr_feature_maps,
+        #                     1, [1, 1],
+        #                     scope='img_corr_bottleneck',
+        #                     normalizer_fn=slim.batch_norm,
+        #                     normalizer_params={'is_training': self._is_training})
 
 
     def build(self):
@@ -840,7 +840,8 @@ class DtRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_LABEL_BOXES_3D_B] = label_boxes_3d[1][:, :-1]
         self._placeholder_inputs[self.PL_LABEL_CLASSES_B] = label_classes[1]
 
-        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 1, 2, 6]]
+        # x,z,ry
+        self._placeholder_inputs[self.PL_LABEL_CORR_BOXES_3D] = label_corr_boxes_3d[:, [0, 2, 6]]
         self._placeholder_inputs[self.PL_LABEL_CORR_ANCHORS] = label_corr_anchors[:, :3]
 
         # Sample Info

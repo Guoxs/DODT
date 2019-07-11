@@ -29,7 +29,7 @@ def config_setting(checkpoint_name, ckpt_indices):
 
     model_config, _, eval_config, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
-            experiment_config_path, is_training=False)
+            experiment_config_path, dataset_name='', is_training=False)
 
     return root_dir, tracking_output_dir, tracking_eval_script_dir, dataset_config
 
@@ -67,12 +67,12 @@ def get_frames(dataset):
 
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
-    box3d = box3d_1[[-2, 0, 2, 1, 3, 4, 5]]
+    box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
     box3d[1:4] = 3.5 * box3d[1:4]
     if len(box3d_2.shape) == 1:
-        boxes3d = box3d_2[[-2, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
     else:
-        boxes3d = box3d_2[:, [-2, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[:, [-1, 0, 2, 1, 3, 4, 5]]
     iou = three_d_iou(box3d, boxes3d)
     return iou
 

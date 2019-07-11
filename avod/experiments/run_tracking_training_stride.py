@@ -11,34 +11,33 @@ import tensorflow as tf
 import avod
 import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
-from avod.core.models.avod_model import AvodModel
-from avod.core.models.rpn_model import RpnModel
-from avod.core import trainer
+from avod.core.models.dt_avod_model import DtAvodModel
+from avod.core.models.dt_rpn_model import DtRpnModel
+from avod.core import trainer_stride
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 def train(model_config, train_config, dataset_config):
 
-    dataset = DatasetBuilder.build_kitti_dataset(dataset_config,
+    dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
                                                  use_defaults=False)
-
     train_val_test = 'train'
     model_name = model_config.model_name
 
     with tf.Graph().as_default():
-        if model_name == 'rpn_model':
-            model = RpnModel(model_config,
+        if model_name == 'dt_rpn_model':
+            model = DtRpnModel(model_config,
                              train_val_test=train_val_test,
                              dataset=dataset)
-        elif model_name == 'avod_model':
-            model = AvodModel(model_config,
+        elif model_name == 'dt_avod_model':
+            model = DtAvodModel(model_config,
                               train_val_test=train_val_test,
                               dataset=dataset)
         else:
             raise ValueError('Invalid model_name')
 
-        trainer.train(model, train_config)
+        trainer_stride.train(model, train_config)
 
 
 def main(_):
@@ -46,9 +45,9 @@ def main(_):
 
     # Defaults
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_example.config'
+        '/configs/pyramid_cars_with_aug_dt_5_stride_3_tracking_corr_pretrained_2.config'
     default_data_split = 'train'
-    default_device = '1'
+    default_device = '2'
 
     parser.add_argument('--pipeline_config',
                         type=str,
