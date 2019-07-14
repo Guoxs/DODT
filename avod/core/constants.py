@@ -29,3 +29,7 @@ KEY_INTEGRATED_ANCHORS_INFO = 'integrated_anchors_info'
 KEY_INTEGRATED_LABEL_ANCHOR = 'integrated_label_anchor'
 KEY_INTEGRATED_LABEL_BOX_3D = 'integrated_label_box_3d'
 KEY_INTEGRATED_LABEL_CLASS = 'integrated_label_class'
+
+# for correlation
+KEY_SINGLE_BEV_MAPS = 'single_bev_maps'
+KEY_CORR_OFFSETS = 'correlation_offsets'

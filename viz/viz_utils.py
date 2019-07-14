@@ -91,8 +91,8 @@ def draw_lidar(pc, color=None, fig=None, bgcolor=(0, 0, 0), pts_scale=1, pts_mod
     # draw fov (todo: update to real sensor spec.)
     if draw_fov:
         fov = np.array([  # 45 degree
-            [20., 20., 0., 0.],
-            [20., -20., 0., 0.],
+            [40., 40., 0., 0.],
+            [40., -40., 0., 0.],
         ], dtype=np.float64)
 
         mlab.plot3d([0, fov[0, 0]], [0, fov[0, 1]], [0, fov[0, 2]], color=(1, 1, 1), tube_radius=None, line_width=1,

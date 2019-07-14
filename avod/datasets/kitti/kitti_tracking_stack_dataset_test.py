@@ -31,9 +31,9 @@ class KittiDatasetTest(unittest.TestCase):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
         indices_to_load = [1, 5, 9]
-        expected_samples = [['010001', '010002', '010003'],
-                            ['010005', '010006', '010007'],
-                            ['010009', '010009', '010009']]
+        expected_samples = [['010001', '010003'],
+                            ['010005', '010007'],
+                            ['010009', '010009']]
 
         # Load samples before shuffling
         samples = dataset.load_samples(indices_to_load)

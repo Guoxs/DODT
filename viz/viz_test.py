@@ -14,7 +14,7 @@ from viz.viz_func import draw_lidar_and_boxes,draw_lidar_and_boxes_in_camera_vie
 
 def test_oxts_coordinate_transform():
     kitti_dir = tests.test_path() + "/datasets/Kitti/tracking"
-    dataset_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_UNITTEST)
+    dataset_config = DatasetBuilder.copy_config(DatasetBuilder.KITTI_TRACKING_UNITTEST)
     # Overwrite config values
     dataset_config.data_split = 'trainval'
     dataset_config.dataset_dir = kitti_dir
@@ -58,7 +58,7 @@ def test_oxts_coordinate_transform():
 
     # draw bounding box
     bounding_box = [-40, 40, -5, 3, 0, 70]
-    ct_fig2 = draw_bounding_box(bounding_box, ct_fig2)
+    draw_bounding_box(bounding_box, ct_fig2)
     mlab.show()
     input()
 

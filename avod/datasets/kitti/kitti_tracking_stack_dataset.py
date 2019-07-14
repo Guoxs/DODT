@@ -16,6 +16,7 @@ from avod.core import box_3d_encoder, box_8c_encoder, box_4c_encoder
 from avod.core import constants
 from avod.datasets.kitti import kitti_aug
 from avod.datasets.kitti.kitti_tracking_utils import KittiTrackingUtils, Oxts
+from avod.datasets.kitti.label_offset import cal_label_offsets
 
 
 class Sample:
@@ -58,7 +59,8 @@ class KittiTrackingStackDataset:
         self.aug_list = self.config.aug_list
 
         # 3 image a samples
-        self.sample_num = self.config.data_stride
+        self.sample_num = 2
+        self.stride = self.config.data_stride
 
         # stride for couple data, default is 1
         # self.temporal_batch = self.config.data_stride
@@ -277,7 +279,7 @@ class KittiTrackingStackDataset:
                     else:
                         next = ids[-1]
                     temp.append(next)
-                data_list.append(temp)
+                data_list.append([temp[0], temp[-1]])
             return data_list
 
         def split_val_test_video_ids(ids, num, data_list):
@@ -293,7 +295,7 @@ class KittiTrackingStackDataset:
                     temp.append(next)
                     temp_idx += 1
 
-                data_list.append(temp)
+                data_list.append([temp[0], temp[-1]])
             return data_list
 
         set_file = self.dataset_dir + '/' + self.data_split + '.txt'
@@ -308,15 +310,15 @@ class KittiTrackingStackDataset:
                 # frame_num = int(item[-1].split('/')[1])
                 # assert len(item) == frame_num+1, print('Frame number match failed!')
                 if self.data_split == 'test':
-                    data_list = split_val_test_video_ids(item, self.sample_num, data_list)
+                    data_list = split_val_test_video_ids(item, self.stride, data_list)
                 elif self.data_split == 'trainval':
-                    data_list = split_train_video_ids(item, self.sample_num, data_list)
+                    data_list = split_train_video_ids(item, self.stride, data_list)
                 elif video_id in self.video_train_id:
                     if self.data_split == 'train':
-                        data_list = split_train_video_ids(item, self.sample_num, data_list)
+                        data_list = split_train_video_ids(item, self.stride, data_list)
                 else:
                     if self.data_split == 'val':
-                        data_list = split_val_test_video_ids(item, self.sample_num, data_list)
+                        data_list = split_val_test_video_ids(item, self.stride, data_list)
         return data_list
 
 
@@ -480,6 +482,25 @@ class KittiTrackingStackDataset:
                 merged_labels.append(base_labels)
         return merged_labels
 
+
+    def create_all_sample_names(self, sample_names):
+        '''
+        :param sample_names: ['010001', '010004']
+        :return: ['010001', '010002', '010003', '010004']
+        '''
+        all_sample_names = [sample_names[0]]
+        video_id = sample_names[0][:2]
+        frame_id_1 = int(sample_names[0][2:])
+        frame_id_2 = int(sample_names[1][2:])
+
+        temp_id = frame_id_1
+        while(temp_id < frame_id_2):
+            temp_id += 1
+            temp_name = video_id + str(temp_id).zfill(4)
+            all_sample_names.append(temp_name)
+
+        return all_sample_names
+
     def load_samples(self, indices):
         """ Loads input-output data for a set of samples. Should only be
                     called when a particular sample dict is required. Otherwise,
@@ -496,6 +517,9 @@ class KittiTrackingStackDataset:
         for sample_idx in indices:
             sample = self.sample_list[sample_idx]
             sample_names = sample.name
+
+            # create all sample names in a batch for integrated point cloud
+            all_sample_names = self.create_all_sample_names(sample_names)
 
             # compute integrated info
             assert self.sample_num == len(sample_names)
@@ -521,7 +545,6 @@ class KittiTrackingStackDataset:
 
             else:
                 obj_labels = None
-                integrated_obj_labels = None
                 label_anchors = [np.zeros((1, 7)) for _ in range(self.sample_num)]
                 label_boxes_3d = [np.zeros((1, 8)) for _ in range(self.sample_num)]
                 label_classes = [np.zeros(1) for _ in range(self.sample_num)]
@@ -529,7 +552,7 @@ class KittiTrackingStackDataset:
                 integrated_anchors_info = [[]]
                 integrated_label_anchor = np.zeros((1,7))
                 integrated_label_box_3d = np.zeros((1,8))
-                integrated_obj_labels = np.zeros(1)
+                corr_offsets = np.zeros((1, 4))
 
             # Load image (BGR -> RGB)
             cv_bgr_image = [cv2.imread(self.get_rgb_image_path(name))
@@ -555,20 +578,21 @@ class KittiTrackingStackDataset:
                 self.calib_dir, int(sample_names[0][:2])).p2
 
             # load raw lidar data
-            raw_point_cloud = [self.kitti_utils.get_raw_point_cloud(
-                self.bev_source, sample_names[i]) for i in range(self.sample_num)]
+            all_raw_point_cloud = [self.kitti_utils.get_raw_point_cloud(
+                self.bev_source, all_sample_names[i]) for i in range(len(all_sample_names))]
 
             # transform other point_cloud frames to first point_cloud frame coordinate system
-            point_cloud = [raw_point_cloud[0]]
-            for i in range(1, self.sample_num):
-                new_pc = self.point_cloud_transform([point_cloud[0], raw_point_cloud[i]],
-                                                    [sample_names[0], sample_names[i]])
-                point_cloud.append(new_pc)
+            point_cloud = [all_raw_point_cloud[0]]
+            if len(all_sample_names) > 1:
+                for i in range(1, len(all_sample_names)):
+                    new_pc = self.point_cloud_transform([point_cloud[0], all_raw_point_cloud[i]],
+                                                        [all_sample_names[0], all_sample_names[i]])
+                    point_cloud.append(new_pc)
 
             # convert transfered lidar to camera view
             point_cloud = [self.kitti_utils.transfer_lidar_to_camera_view(
-                self.bev_source, sample_names[i], point_cloud[i], image_shape[i])
-                for i in range(self.sample_num)]
+                            self.bev_source, all_sample_names[i], point_cloud[i], image_shape[0])
+                            for i in range(len(all_sample_names))]
 
             # transform second frame label to first frame label coordinate system
             if obj_labels is not None:
@@ -652,6 +676,17 @@ class KittiTrackingStackDataset:
                                           for obj_label in integrated_obj_labels]
                 integrated_label_class = np.asarray(integrated_label_class, dtype=np.int32)
 
+                # caluate correlation offsets
+                if len(integrated_label_box_3d) == 0:
+                    if self.train_on_all_samples:
+                        dummy_offsets = [[-1000, -1000, -1000, 0]]
+                        corr_offsets = np.asarray(dummy_offsets)
+                    else:
+                        corr_offsets = np.zeros((1, 4))
+                else:
+                    corr_offsets = cal_label_offsets(label_boxes_3d[0],
+                                                     label_boxes_3d[1])
+
                 if len(integrated_label_box_3d) == 0:
                     integrated_anchors_info = []
                     if self.train_on_all_samples:
@@ -672,13 +707,18 @@ class KittiTrackingStackDataset:
                         integrated_point_cloud, integrated_obj_labels, ground_plane[0])
 
             # Create BEV maps
+            dual_point_cloud = [point_cloud[0], point_cloud[-1]]
             bev_images = [self.kitti_utils.create_bev_maps(
-                point_cloud[i], ground_plane[i]) for i in range(len(sample_names))]
+                dual_point_cloud[i], ground_plane[i]) for i in range(len(sample_names))]
 
             height_maps = [bev_image.get('height_maps') for bev_image in bev_images]
             density_map = [bev_image.get('density_map') for bev_image in bev_images]
             bev_input = [np.dstack((*height_maps[i], density_map[i]))
                          for i in range(len(bev_images))]
+
+            # bev map for correlation
+            single_bev_maps = [np.mean(input[:, :, :-1], axis=-1, keepdims=True)
+                               for input in bev_input]
 
             # Create integrated BEV maps
             integrated_bev_map = self.kitti_utils.create_bev_maps(
@@ -717,6 +757,10 @@ class KittiTrackingStackDataset:
                 constants.KEY_INTEGRATED_LABEL_ANCHOR: integrated_label_anchor,
                 constants.KEY_INTEGRATED_LABEL_BOX_3D: integrated_label_box_3d,
                 constants.KEY_INTEGRATED_LABEL_CLASS: integrated_label_class,
+
+                # for correlation
+                constants.KEY_SINGLE_BEV_MAPS: single_bev_maps,
+                constants.KEY_CORR_OFFSETS: corr_offsets,
 
                 constants.KEY_SAMPLE_NAME: sample_names,
                 constants.KEY_SAMPLE_AUGS: sample.augs

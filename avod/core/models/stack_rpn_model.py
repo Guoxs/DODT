@@ -52,6 +52,9 @@ class StackRpnModel(model.DetectionModel):
     PL_INTEGRATED_LABEL_BOXES_3D = 'integrated_label_boxes_3d_pl'
     PL_INTEGRATED_LABEL_CLASSES = 'integrated_label_classes_pl'
 
+    PL_SINGLE_BEV_INPUT = 'single_bev_input_pl'
+    PL_CORRELATION_OFFSETS = 'correlation_offsets_pl'
+
     ##############################
     # Keys for Predictions
     ##############################
@@ -119,6 +122,11 @@ class StackRpnModel(model.DetectionModel):
         self._bev_feature_extractor = \
             feature_extractor_builder.get_extractor(
                 self._config.layers_config.bev_feature_extractor)
+
+        self._single_bev_feature_extractor = \
+            feature_extractor_builder.get_extractor(
+                self._config.layers_config.bev_feature_extractor)
+
         self._img_feature_extractor = \
             feature_extractor_builder.get_extractor(
                 self._config.layers_config.img_feature_extractor)
@@ -167,6 +175,8 @@ class StackRpnModel(model.DetectionModel):
         # Combine config data
         bev_dims = np.append(self._bev_pixel_size, self._bev_depth)
         all_bev_dims = np.append(self.sample_num, bev_dims)
+        single_bev_dims = np.append(self._bev_pixel_size, 1)
+        all_single_bev_dims = np.append(self.sample_num, single_bev_dims)
 
         with tf.variable_scope('bev_input'):
             # Placeholder for BEV image input, to be filled in with feed_dict
@@ -248,6 +258,19 @@ class StackRpnModel(model.DetectionModel):
                                       self.PL_INTEGRATED_IMG_ANCHORS)
                 self._integrated_img_anchors_norm_pl = self._add_placeholder(
                             tf.float32, [None, 4], self.PL_INTEGRATED_IMG_ANCHORS_NORM)
+
+        with tf.variable_scope('pl_correlation_offsets'):
+            # single_bev_input_placeholder_couple = self._add_placeholder(tf.float32,
+            #                                     all_single_bev_dims, self.PL_SINGLE_BEV_INPUT)
+            # self._single_bev_input_batches = []
+            # self._single_bev_preprocessed = []
+            # for i in range(self.sample_num):
+            #     temp_single_bev_input_batch = tf.expand_dims(single_bev_input_placeholder_couple[i], axis=0)
+            #     temp_single_bev_preprocessed = self._single_bev_feature_extractor.preprocess_input(
+            #                                     temp_single_bev_input_batch, self._bev_pixel_size)
+            #     self._bev_input_batches.append(temp_single_bev_input_batch)
+            #     self._bev_preprocessed.append(temp_single_bev_preprocessed)
+            self._add_placeholder(tf.float32, [None, 3], self.PL_CORRELATION_OFFSETS)
 
         with tf.variable_scope('sample_info'):
             # the calib matrix shape is (3 x 4)
@@ -714,6 +737,10 @@ class StackRpnModel(model.DetectionModel):
         integrated_label_boxes_3d = couple_sample.get(constants.KEY_INTEGRATED_LABEL_BOX_3D)
         integrated_label_classes = couple_sample.get(constants.KEY_INTEGRATED_LABEL_CLASS)
 
+        # correlation data
+        # single_bev_input = couple_sample.get(constants.KEY_SINGLE_BEV_MAPS)
+        corr_offsets = couple_sample.get(constants.KEY_CORR_OFFSETS)
+
         # Image shape (h, w)
         image_shape = [[image.shape[0], image.shape[1]] for image in image_input]
         ground_plane = couple_sample.get(constants.KEY_GROUND_PLANE)
@@ -745,6 +772,9 @@ class StackRpnModel(model.DetectionModel):
         self._placeholder_inputs[self.PL_INTEGRATED_LABEL_ANCHORS] = integrated_label_anchors[:, :-1]
         self._placeholder_inputs[self.PL_INTEGRATED_LABEL_BOXES_3D] = integrated_label_boxes_3d[:, :-1]
         self._placeholder_inputs[self.PL_INTEGRATED_LABEL_CLASSES] = integrated_label_classes
+
+        # self._placeholder_inputs[self.PL_SINGLE_BEV_INPUT] = single_bev_input
+        self._placeholder_inputs[self.PL_CORRELATION_OFFSETS] = corr_offsets[:,:-1]
 
         # Sample Info
         # img_idx is a list to match the placeholder shape

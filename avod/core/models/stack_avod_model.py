@@ -16,6 +16,7 @@ from avod.core import box_list_ops
 from avod.core import model
 from avod.core import orientation_encoder
 from avod.core.models.stack_rpn_model import StackRpnModel
+from avod.core.avod_fc_layers import corr_fc_layers
 
 
 class StackAvodModel(model.DetectionModel):
@@ -31,6 +32,7 @@ class StackAvodModel(model.DetectionModel):
     PRED_MB_CLASSIFICATION_LOGITS = 'avod_mb_classification_logits'
     PRED_MB_CLASSIFICATION_SOFTMAX = 'avod_mb_classification_softmax'
     PRED_MB_OFFSETS = 'avod_mb_offsets'
+    PRED_MB_CORR_OFFSETS = 'avod_mb_corr_offsets'
     PRED_MB_ANGLE_VECTORS = 'avod_mb_angle_vectors'
 
     # Anchors from RPN and top-K idx from NMS
@@ -44,6 +46,7 @@ class StackAvodModel(model.DetectionModel):
     PRED_TOP_PREDICTION_ANCHORS = 'avod_top_prediction_anchors'
     PRED_TOP_PREDICTION_BOXES_3D = 'avod_top_prediction_boxes_3d'
     PRED_TOP_ORIENTATIONS = 'avod_top_orientations'
+    PRED_TOP_CORR_OFFSETS = 'avod_top_corr_offsets'
 
     # Other box representations
     PRED_TOP_BOXES_8C = 'avod_top_regressed_boxes_8c'
@@ -53,6 +56,7 @@ class StackAvodModel(model.DetectionModel):
     PRED_MB_MASK = 'avod_mb_mask'
     PRED_MB_POS_MASK = 'avod_mb_pos_mask'
     PRED_MB_ANCHORS_GT = 'avod_mb_anchors_gt'
+    PRED_MB_CORR_OFFSETS_GT = 'avod_mb_corr_offsets_gt'
     PRED_MB_CLASS_INDICES_GT = 'avod_mb_gt_classes'
 
     # All predictions (for debugging)
@@ -72,6 +76,7 @@ class StackAvodModel(model.DetectionModel):
     # (for debugging)
     LOSS_FINAL_ORIENTATION = 'avod_orientation_loss'
     LOSS_FINAL_LOCALIZATION = 'avod_localization_loss'
+    LOSS_FINAL_CORRELATION = 'avod_correlation_loss'
 
     def __init__(self, model_config, train_val_test, dataset):
         """
@@ -201,7 +206,7 @@ class StackAvodModel(model.DetectionModel):
         bev_feature_maps = rpn_model.bev_feature_maps
         img_feature_maps = rpn_model.img_feature_maps
 
-        integrated_bev_feature_map = rpn_model.integrated_bev_feature_map
+        # integrated_bev_feature_map = rpn_model.integrated_bev_feature_map
 
         if not (self._path_drop_probabilities[0] ==
                 self._path_drop_probabilities[1] == 1.0):
@@ -255,15 +260,15 @@ class StackAvodModel(model.DetectionModel):
                 for i in range(sample_num)]
 
             # Do ROI Pooling on integrated BEV
-            integrated_bev_rois = tf.image.crop_and_resize(
-                integrated_bev_feature_map,
-                bev_proposal_boxes_norm_tf_order,
-                tf_box_indices,
-                self._proposal_roi_crop_size,
-                name='integrated_bev_rois')
-
-            bev_rois = [tf.add(bev_roi, integrated_bev_rois) / 2.0
-                        for bev_roi in bev_rois]
+            # integrated_bev_rois = tf.image.crop_and_resize(
+            #     integrated_bev_feature_map,
+            #     bev_proposal_boxes_norm_tf_order,
+            #     tf_box_indices,
+            #     self._proposal_roi_crop_size,
+            #     name='integrated_bev_rois')
+            #
+            # bev_rois = [tf.add(bev_roi, integrated_bev_rois) / 2.0
+            #             for bev_roi in bev_rois]
 
         with tf.variable_scope('avod_fc_layer') as scope:
             # Fully connected layers (Box Predictor)
@@ -295,6 +300,16 @@ class StackAvodModel(model.DetectionModel):
             all_cls_softmax = [tf.nn.softmax(all_cls_logits[i])
                                for i in range(sample_num)]
 
+        # correlation
+        with tf.variable_scope('avod_corr_layer'):
+            avod_layers_config = self.model_config.layers_config.avod_config
+            avod_config = self._config.avod_config
+            all_corr_offsets = corr_fc_layers.build(
+                                avod_layers_config=avod_layers_config,
+                                avod_config=avod_config,
+                                bev_rois=bev_rois,
+                                is_training=self._is_training)
+
         ######################################################
         # Subsample mini_batch for the loss function
         ######################################################
@@ -310,6 +325,9 @@ class StackAvodModel(model.DetectionModel):
             boxes_3d_gt = [tf.gather(boxes_3d_gt, label_mask[i]) for i in range(sample_num)]
         else:
             raise NotImplementedError('Ground truth tensors not implemented')
+
+        # ground truth of correlation offset
+        corr_offsets_gt = rpn_model.placeholders[StackRpnModel.PL_CORRELATION_OFFSETS]
 
         # Project anchor_gts to 2D bev
         with tf.variable_scope('avod_gt_projection'):
@@ -369,6 +387,10 @@ class StackAvodModel(model.DetectionModel):
                 else:
                     mb_angle_vectors[i] = None
 
+            # correlation
+            mb_corr_offsets = [tf.boolean_mask(all_corr_offsets, mb_mask[i])
+                               for i in range(sample_num)]
+
         # Encode anchor offsets
         with tf.variable_scope('avod_encode_mb_anchors'):
             mb_anchors_gt = [None] * sample_num
@@ -376,6 +398,9 @@ class StackAvodModel(model.DetectionModel):
             mb_orientations_gt = [None] * sample_num
             proposal_boxes_8c = [None] * sample_num
             proposal_boxes_4c = [None] * sample_num
+
+            mb_corr_offsets_gt = [tf.gather(corr_offsets_gt, mb_gt_indices[i])
+                                  for i in range(sample_num)]
 
             for i in range(sample_num):
                 mb_anchors = tf.boolean_mask(top_anchors, mb_mask[i])
@@ -486,6 +511,7 @@ class StackAvodModel(model.DetectionModel):
         top_prediction_boxes_8c = [None] * sample_num
         top_prediction_boxes_4c = [None] * sample_num
         top_nms_indices = [None] * sample_num
+        top_correlation_offsets = [None] * sample_num
 
         for i in range(sample_num):
             # Get orientations from angle vectors
@@ -551,10 +577,10 @@ class StackAvodModel(model.DetectionModel):
 
                 # Apply NMS in BEV
                 nms_indices = tf.image.non_max_suppression(
-                    avod_bev_boxes_tf_order,
-                    all_top_scores,
-                    max_output_size=self._nms_size,
-                    iou_threshold=self._nms_iou_threshold)
+                                    avod_bev_boxes_tf_order,
+                                    all_top_scores,
+                                    max_output_size=self._nms_size,
+                                    iou_threshold=self._nms_iou_threshold)
 
                 top_nms_indices[i] = nms_indices
 
@@ -562,6 +588,7 @@ class StackAvodModel(model.DetectionModel):
                 top_classification_logits[i] = tf.gather(all_cls_logits[i], nms_indices)
                 top_classification_softmax[i] = tf.gather(all_cls_softmax[i], nms_indices)
                 top_prediction_anchors[i] = tf.gather(prediction_anchors, nms_indices)
+                top_correlation_offsets[i] = tf.gather(all_corr_offsets, nms_indices)
                 if self._box_rep == 'box_3d':
                     top_orientations[i] = tf.gather(all_orientations, nms_indices)
 
@@ -587,6 +614,7 @@ class StackAvodModel(model.DetectionModel):
             prediction_dict[self.PRED_MB_CLASSIFICATION_LOGITS] = mb_classifications_logits
             prediction_dict[self.PRED_MB_CLASSIFICATION_SOFTMAX] = mb_classifications_softmax
             prediction_dict[self.PRED_MB_OFFSETS] = mb_offsets
+            prediction_dict[self.PRED_MB_CORR_OFFSETS] = mb_corr_offsets
 
             # Anchors from RPN and TOP K indices after NMS
             prediction_dict[self.PRED_RPN_ANCHORS] = top_anchors
@@ -595,11 +623,12 @@ class StackAvodModel(model.DetectionModel):
             # Mini batch ground truth
             prediction_dict[self.PRED_MB_CLASSIFICATIONS_GT] = mb_classification_gt
             prediction_dict[self.PRED_MB_OFFSETS_GT] = mb_offsets_gt
+            prediction_dict[self.PRED_MB_CORR_OFFSETS_GT] = mb_corr_offsets_gt
 
             # Top NMS predictions
             prediction_dict[self.PRED_TOP_CLASSIFICATION_LOGITS] = top_classification_logits
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
-
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_correlation_offsets
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
 
             # Mini batch predictions (for debugging)
@@ -619,12 +648,14 @@ class StackAvodModel(model.DetectionModel):
             # self._train_val_test == 'test'
             prediction_dict[self.PRED_TOP_CLASSIFICATION_SOFTMAX] = top_classification_softmax
             prediction_dict[self.PRED_TOP_PREDICTION_ANCHORS] = top_prediction_anchors
+            prediction_dict[self.PRED_TOP_CORR_OFFSETS] = top_correlation_offsets
+            prediction_dict[self.PRED_RPN_ANCHORS] = top_anchors
+            prediction_dict[self.PRED_RPN_ANCHORS_TOP_K_IDX] = top_nms_indices
 
         if self._box_rep == 'box_3d':
             prediction_dict[self.PRED_MB_ANCHORS_GT] = mb_anchors_gt
             prediction_dict[self.PRED_MB_ORIENTATIONS_GT] = mb_orientations_gt
             prediction_dict[self.PRED_MB_ANGLE_VECTORS] = mb_angle_vectors
-
             prediction_dict[self.PRED_TOP_ORIENTATIONS] = top_orientations
 
             # For debugging
@@ -693,6 +724,9 @@ class StackAvodModel(model.DetectionModel):
         final_reg_loss = tf.reduce_sum(
             losses_output[stack_avod_loss_builder.KEY_REGRESSION_LOSS])
 
+        corr_offsets_loss = tf.reduce_sum(
+            losses_output[stack_avod_loss_builder.KEY_CORRELATION_LOSS])
+
         avod_loss = tf.reduce_sum(
             losses_output[stack_avod_loss_builder.KEY_AVOD_LOSS])
 
@@ -701,6 +735,7 @@ class StackAvodModel(model.DetectionModel):
 
         loss_dict.update({self.LOSS_FINAL_CLASSIFICATION: classification_loss})
         loss_dict.update({self.LOSS_FINAL_REGRESSION: final_reg_loss})
+        loss_dict.update({self.LOSS_FINAL_CORRELATION: corr_offsets_loss})
 
         # Add localization and orientation losses to loss dict for plotting
         loss_dict.update({self.LOSS_FINAL_LOCALIZATION: offset_loss_norm})
