@@ -78,9 +78,8 @@ def train(model, train_config):
         variable_to_train = None
     else:
         trainable_variables = tf.trainable_variables()
-        variable_to_train = trainable_variables
-        # variable_to_train = trainable_variables[68:72] + \
-        #                     trainable_variables[96:]
+        #variable_to_train = trainable_variables
+        variable_to_train = trainable_variables[92:]
 
 
     ##############################
@@ -161,8 +160,7 @@ def train(model, train_config):
             # load pretrained model
             if train_config.use_pretrained_model:
                 variable_to_restore = tf.trainable_variables()
-                # variable_to_restore = variable_to_restore[:68] + \
-                #                       variable_to_restore[72:96]
+                variable_to_restore = variable_to_restore[:92]
                 variable_to_restore = {var.op.name: var for var in variable_to_restore}
                 saver2 = tf.train.Saver(var_list=variable_to_restore)
                 print('Loading pretrained model...')
@@ -174,8 +172,7 @@ def train(model, train_config):
         # load pretrained model
         if train_config.use_pretrained_model:
             variable_to_restore = tf.trainable_variables()
-            # variable_to_restore = variable_to_restore[:68] + \
-            #                       variable_to_restore[72:96]
+            variable_to_restore = variable_to_restore[:92]
             variable_to_restore = {var.op.name: var for var in variable_to_restore}
             saver2 = tf.train.Saver(var_list=variable_to_restore)
             print('Loading pretrained model...')

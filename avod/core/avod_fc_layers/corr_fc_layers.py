@@ -9,6 +9,11 @@ def build(avod_layers_config, avod_config, bev_rois, is_training):
     l2_weight_decay = fc_layers_config.l2_weight_decay
     keep_prob = fc_layers_config.keep_prob
 
+    if l2_weight_decay > 0:
+        weights_regularizer = slim.l2_regularizer(l2_weight_decay)
+    else:
+        weights_regularizer = None
+
     # caluate correlation features
     disp = avod_config.avod_proposal_roi_crop_size
     padding = avod_config.avod_proposal_roi_crop_size
@@ -20,10 +25,9 @@ def build(avod_layers_config, avod_config, bev_rois, is_training):
                                              padding=padding)
     # Flatten
     fc_drop = slim.flatten(roi_corr_feature_maps)
-
     with slim.arg_scope(
             [slim.fully_connected],
-            weights_regularizer=l2_weight_decay):
+            weights_regularizer=weights_regularizer):
         for layer_idx in range(num_layers):
             fc_name_idx = layer_idx
 

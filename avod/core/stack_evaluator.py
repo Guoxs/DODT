@@ -27,6 +27,7 @@ KEY_SUM_RPN_OBJ_ACC = 'sum_rpn_obj_accuracy'
 
 KEY_SUM_AVOD_CLS_LOSS = 'sum_avod_cls_loss'
 KEY_SUM_AVOD_REG_LOSS = 'sum_avod_reg_loss'
+KEY_SUM_AVOD_CORR_LOSS = 'sum_avod_corr_loss'
 KEY_SUM_AVOD_TOTAL_LOSS = 'sum_avod_total_loss'
 KEY_SUM_AVOD_LOC_LOSS = 'sum_avod_loc_loss'
 KEY_SUM_AVOD_ANG_LOSS = 'sum_avod_ang_loss'
@@ -252,11 +253,6 @@ class StackEvaluator:
                     avod_box_corners_file_path = avod_box_corners_dir + \
                         '/{}_{}.txt'.format(sample_name[0], sample_name[-1])
 
-            # kitti detection native eval
-            kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
-                                   '/{}.txt'.format(name)
-                                    for name in sample_name]
-
             num_valid_samples += 1
             print("Step {}: {} / {}, Inference on sample {}_{}".format(
                 global_step, num_valid_samples, num_samples,
@@ -295,17 +291,20 @@ class StackEvaluator:
 
                 # Save predictions
                 predictions_and_scores = \
-                    self.get_avod_predicted_boxes_3d_and_scores(predictions,
-                                                                box_rep)
+                    self.get_avod_predicted_boxes_3d_and_scores(predictions, box_rep)
                 np.savetxt(avod_file_path, predictions_and_scores, fmt='%.5f')
 
-                # Save predictions for kitti native deteciton eval
-                # recovery coordinate transform
-                recovery_predictions_and_scores = evaluator_utils.recovery_predictions(
-                    self.model.dataset, sample_name, predictions_and_scores)
+
+                # Interpolating non-keyframe result and save
+                all_predicitons_and_scores, all_names = \
+                    evaluator_utils.interpolate_non_keyframe_predicitons(
+                    self.model.dataset, sample_name, predictions_and_scores, threshold=0.1)
+                # kitti detection native eval
+                kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
+                                       '/{}.txt'.format(name) for name in all_names]
                 for i in range(len(sample_name)):
                     np.savetxt(kitti_eval_file_path[i],
-                               recovery_predictions_and_scores[i], fmt='%.5f')
+                               all_predicitons_and_scores[i], fmt='%.5f')
 
                 if self.full_model:
                     if box_rep in ['box_3d', 'box_4ca']:
@@ -595,6 +594,7 @@ class StackEvaluator:
         # Get the loss sums from the losses dict
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -603,6 +603,8 @@ class StackEvaluator:
             eval_losses[StackAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_REGRESSION]
+        avod_correlation_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION]
 
         avod_localization_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_LOCALIZATION]
@@ -611,6 +613,7 @@ class StackEvaluator:
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         # update the losses sums
@@ -619,6 +622,9 @@ class StackEvaluator:
 
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                     sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -647,10 +653,12 @@ class StackEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -681,6 +689,7 @@ class StackEvaluator:
 
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -689,12 +698,14 @@ class StackEvaluator:
             eval_losses[StackAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_REGRESSION]
-
+        avod_correlation_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION]
         avod_localization_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_LOCALIZATION]
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
+        sum_avod_corr_loss += avod_correlation_loss
         sum_avod_total_loss += eval_total_loss
 
         eval_avod_losses.update({KEY_SUM_AVOD_CLS_LOSS:
@@ -702,6 +713,9 @@ class StackEvaluator:
 
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
+                                     sum_avod_corr_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -725,10 +739,12 @@ class StackEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
+              "correlation {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
+                avod_correlation_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -801,6 +817,7 @@ class StackEvaluator:
         """
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
+        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         sum_avod_loc_loss = eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS]
@@ -812,6 +829,7 @@ class StackEvaluator:
 
         avg_avod_cls_loss = sum_avod_cls_loss / num_valid_samples
         avg_avod_reg_loss = sum_avod_reg_loss / num_valid_samples
+        avg_avod_corr_loss = sum_avod_corr_loss / num_valid_samples
         avg_avod_total_loss = sum_avod_total_loss / num_valid_samples
 
         if num_valid_regression_samples > 0:
@@ -836,6 +854,10 @@ class StackEvaluator:
             'avod_losses/regression/regression_total',
             avg_avod_reg_loss,
             self.summary_writer, global_step)
+        summary_utils.add_scalar_summary(
+            'avod_losses/correlation/correlation_total',
+            avg_avod_corr_loss,
+            self.summary_writer, global_step)
 
         summary_utils.add_scalar_summary(
             'avod_losses/regression/localization',
@@ -850,10 +872,12 @@ class StackEvaluator:
         print("Step {}: Average AVOD Losses: "
               "cls {:.5f}, "
               "reg {:.5f}, "
+              "corr {: .5},"
               "total {:.5f} ".format(
                 global_step,
                 avg_avod_cls_loss,
                 avg_avod_reg_loss,
+                avg_avod_corr_loss,
                 avg_avod_total_loss,
                   ))
 
@@ -886,13 +910,13 @@ class StackEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
-
                                 avg_avod_loc_loss,
                                 avg_avod_ang_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
         elif box_rep in ['box_8c', 'box_8co', 'box_4c']:
             with open(avg_loss_file_path, 'ba') as fp:
                 np.savetxt(fp,
@@ -900,12 +924,12 @@ class StackEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
+                                avg_avod_corr_loss,
                                 avg_avod_total_loss,
-
                                 avg_avod_loc_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
         else:
             raise NotImplementedError('Saving losses not implemented')
 
@@ -924,6 +948,7 @@ class StackEvaluator:
         # Initialize Avod average losses
         eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_REG_LOSS] = 0
+        eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS] = 0
 
         eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS] = 0
@@ -1067,13 +1092,12 @@ class StackEvaluator:
         Returns:
             proposals_and_scores: A list of two numpy array of shape
             (number_of_proposals, 7), containing the rpn proposal boxes and scores.
-            [x, y, z, w, h, l, r]
+            [x, y, z, l, w, h, r]
         """
 
         top_anchors = predictions[StackRpnModel.PRED_TOP_ANCHORS]
         top_proposals = box_3d_encoder.anchors_to_box_3d(top_anchors)
         softmax_scores = predictions[StackRpnModel.PRED_TOP_OBJECTNESS_SOFTMAX]
-
         proposals_and_scores = np.column_stack((top_proposals,
                                                 softmax_scores))
 
@@ -1089,9 +1113,10 @@ class StackEvaluator:
 
         Returns:
             predictions_and_scores: A numpy array of shape
-                (number_of_predicted_boxes, 10), containing the final prediction
+                (number_of_predicted_boxes, 13), containing the final prediction
                 boxes, orientations, scores, and types, frame no.
-                [anchor_id, x, y, z, w, h, l, r, score, type, frame_mark]
+                [anchor_id, x, y, z, l, w, h, r, score, type,
+                delta_x, delta_z, delta_ry, frame_mark]
         """
         if box_rep == 'box_3d':
             # Convert anchors + orientation to box_3d
@@ -1162,7 +1187,8 @@ class StackEvaluator:
         else:
             raise NotImplementedError('Parse predictions not implemented for', box_rep)
 
-
+        # correlation offsets
+        final_pre_corr_offsets = predictions[StackAvodModel.PRED_TOP_CORR_OFFSETS]
         # Append score and class index (object type)
         final_pred_softmax = predictions[StackAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
@@ -1191,6 +1217,7 @@ class StackEvaluator:
                  final_pred_boxes_3d[i],
                  final_pred_scores,
                  final_pred_types[i],
+                 final_pre_corr_offsets[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)
@@ -1207,6 +1234,9 @@ class StackEvaluator:
 
         # Append score and class index (object type)
         final_pred_softmax = predictions[StackAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
+
+        # correlation offsets
+        final_pre_corr_offsets = predictions[StackAvodModel.PRED_TOP_CORR_OFFSETS]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]
@@ -1234,6 +1264,7 @@ class StackEvaluator:
                 [final_pred_box_corners[i],
                  final_pred_scores,
                  final_pred_types[i],
+                 final_pre_corr_offsets[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)

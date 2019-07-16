@@ -255,8 +255,8 @@ class DtEvaluator:
                         '/{}_{}.txt'.format(sample_name[0], sample_name[1])
 
             # kitti detection native eval, only eval first frame
-            kitti_eval_file_path = kitti_detection_eval_prediction_dir + \
-                                   '/{}.txt'.format(sample_name[0])
+            # kitti_eval_file_path = kitti_detection_eval_prediction_dir + \
+            #                        '/{}.txt'.format(sample_name[0])
 
             num_valid_samples += 1
             print("Step {}: {} / {}, Inference on sample {}_{}".format(
@@ -302,10 +302,21 @@ class DtEvaluator:
                 np.savetxt(avod_file_path, predictions_and_scores, fmt='%.5f')
 
                 # Save predictions for kitti native deteciton eval
-                first_frame_indices = np.where(predictions_and_scores[:, -1] == 0)
-                kitti_eval_prediction_and_scores = \
-                    predictions_and_scores[first_frame_indices][:, :9]
-                np.savetxt(kitti_eval_file_path, kitti_eval_prediction_and_scores, fmt='%.5f')
+                # first_frame_indices = np.where(predictions_and_scores[:, -1] == 0)
+                # kitti_eval_prediction_and_scores = \
+                #     predictions_and_scores[first_frame_indices][:, :9]
+                # np.savetxt(kitti_eval_file_path, kitti_eval_prediction_and_scores, fmt='%.5f')
+
+                # Interpolating non-keyframe result and save
+                all_predicitons_and_scores, all_names = \
+                    evaluator_utils.interpolate_non_keyframe_predicitons(
+                        self.model.dataset, sample_name, predictions_and_scores, threshold=0.1)
+                # kitti detection native eval
+                kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
+                                        '/{}.txt'.format(name) for name in all_names]
+                for i in range(len(sample_name)):
+                    np.savetxt(kitti_eval_file_path[i],
+                               all_predicitons_and_scores[i], fmt='%.5f')
 
                 if self.full_model:
                     if box_rep in ['box_3d', 'box_4ca']:
@@ -558,7 +569,6 @@ class DtEvaluator:
         sum_rpn_obj_loss = eval_rpn_losses[KEY_SUM_RPN_OBJ_LOSS]
         sum_rpn_reg_loss = eval_rpn_losses[KEY_SUM_RPN_REG_LOSS]
         sum_rpn_total_loss = eval_rpn_losses[KEY_SUM_RPN_TOTAL_LOSS]
-
 
         sum_rpn_obj_loss += rpn_objectness_loss
         sum_rpn_reg_loss += rpn_regression_loss
@@ -1136,7 +1146,7 @@ class DtEvaluator:
             predictions_and_scores: A numpy array of shape
                 (number_of_predicted_boxes, 13), containing the final prediction
                 boxes, orientations, scores, and types, frame no.
-                [x, y, z, w, h, l, r, score, type, delta_x, delta_y, delta_z, delta_h, frame_mark]
+                [x, y, z, l, w, h, r, score, type, delta_x, delta_z, delta_ry, frame_mark]
         """
         if box_rep == 'box_3d':
             # Convert anchors + orientation to box_3d
@@ -1207,21 +1217,14 @@ class DtEvaluator:
         else:
             raise NotImplementedError('Parse predictions not implemented for', box_rep)
 
+        # [delta_x, delta_z, delta_ry]
         final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
-
-        final_pred_corr_boxes_3d = final_pred_boxes_3d[0].copy()
-        # decoder corr offsets
-        # final_corr_offsets = np.log(final_corr_offsets / (1 - final_corr_offsets))
-        final_pred_corr_boxes_3d[:, 0] += final_corr_offsets[:, 0]
-        final_pred_corr_boxes_3d[:, 2] += final_corr_offsets[:, 1]
-        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
-        corr_mark = np.zeros((final_pred_softmax[1].shape[0],
-                              final_pred_corr_boxes_3d.shape[1]))
-        final_pred_corr_boxes_3d = [final_pred_corr_boxes_3d, corr_mark]
+        corr_mark = np.zeros((final_pred_softmax[1].shape[0],final_corr_offsets.shape[1]))
+        final_pred_corr_offsets = [final_corr_offsets, corr_mark]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:] for pred_softmax in final_pred_softmax]
@@ -1244,7 +1247,7 @@ class DtEvaluator:
                 [final_pred_boxes_3d[i],
                  final_pred_scores,
                  final_pred_types[i],
-                 final_pred_corr_boxes_3d[i],
+                 final_pred_corr_offsets[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)
@@ -1252,12 +1255,6 @@ class DtEvaluator:
         return predictions_and_scores
 
     def get_avod_predicted_box_corners_and_scores(self, predictions, box_rep):
-
-        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
-        final_pred_boxes_3d = predictions[DtAvodModel.PRED_TOP_PREDICTION_BOXES_3D][0]
-        final_pred_corr_boxes_3d = final_pred_boxes_3d
-        final_pred_corr_boxes_3d[:, :3] += final_corr_offsets[:, :3]
-        final_pred_corr_boxes_3d[:, -1] += final_corr_offsets[:, -1]
 
         if box_rep in ['box_8c', 'box_8co']:
             final_pred_box_corners = predictions[DtAvodModel.PRED_TOP_BOXES_8C]
@@ -1275,10 +1272,11 @@ class DtEvaluator:
         # Append score and class index (object type)
         final_pred_softmax = predictions[DtAvodModel.PRED_TOP_CLASSIFICATION_SOFTMAX]
 
+        final_corr_offsets = predictions[DtAvodModel.PRED_TOP_CORR_OFFSETS]
+
         # get top correlation offsets
-        corr_mark = np.zeros((final_pred_softmax[1].shape[0],
-                              final_pred_corr_boxes_3d.shape[1]))
-        final_pred_corr_box_corners = [final_pred_corr_boxes_3d, corr_mark]
+        corr_mark = np.zeros((final_pred_softmax[1].shape[0], final_corr_offsets.shape[1]))
+        final_pred_corr_box_corners = [final_corr_offsets, corr_mark]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]
@@ -1301,8 +1299,6 @@ class DtEvaluator:
             if box_rep in ['box_8c', 'box_8co']:
                 final_pred_box_corners[i] = np.reshape(final_pred_box_corners[i],
                                                     [-1, 24])
-                final_pred_corr_box_corners[i] = np.reshape(final_pred_corr_box_corners[i],
-                                                    [-1,24])
             # Stack into prediction format
             predictions_and_scores[i] = np.column_stack(
                 [final_pred_box_corners[i],

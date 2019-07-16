@@ -391,6 +391,178 @@ def recovery_predictions(dataset, sample_names, predictions):
                 top_list[j][7] = obj.ry
     return lists
 
+def recovery_coordinate(dataset, samples_names, predictions):
+    base_name = samples_names[0]
+    curr_name = samples_names[1]
+    trans, matrix, delta = dataset.coordinate_transform([base_name, curr_name])
+    calib = dataset.kitti_utils.get_calib(dataset.bev_source, curr_name)
+    if len(predictions) != 0:
+        for j in range(len(predictions)):
+            # convert to TrackingLabel object
+            obj = ObjectLabel()
+            obj.t = predictions[j][1:4]
+            obj.l = predictions[j][6]
+            obj.w = predictions[j][5]
+            obj.h = predictions[j][4]
+            obj.ry = predictions[j][7]
+
+            obj.t = dataset.recovery_t(obj, calib, trans, matrix)
+            obj.ry -= delta
+
+            # convert back to numpy
+            predictions[j][1:4] = obj.t
+            predictions[j][7] = obj.ry
+    return predictions
+
+def interpolate_non_keyframe_predicitons(dataset, sample_names, predictions, threshold):
+    def cal_iou(box3d_1, box3d_2):
+        # convert to [ry, l, h, w, tx, ty, tz]
+        box3d = box3d_1[[7, 4, 5, 6, 1, 2, 3]]
+        if len(box3d_2.shape) == 1:
+            boxes3d = box3d_2[[7, 4, 5, 6, 1, 2, 3]]
+        else:
+            boxes3d = box3d_2[:, [7, 4, 5, 6, 1, 2, 3]]
+        iou = three_d_iou(box3d, boxes3d)
+        return iou
+
+    all_sample_names = dataset.create_all_sample_names(sample_names)
+    num = len(all_sample_names)
+    pred_lists = [predictions[predictions[:, -1] == i] for i in range(num)]
+    # only one valid frame
+    if num  == 1:
+        # [anchor_id, x, y, z, l, w, h, r, score, type]
+        final_predictions = [pred_lists[0][:, :-4]]
+        return final_predictions, all_sample_names
+    # two adjacent valid frame, no need for interpolation
+    if num == 2:
+        # convert frame 2 to it own coordinate
+        final_predictions = [pred[:, :-4] for pred in pred_lists]
+        final_predictions[1] = recovery_coordinate(dataset, sample_names,
+                                                   final_predictions[1])
+        assert len(final_predictions) == len(all_sample_names)
+        return final_predictions, all_sample_names
+
+    # more than 3 frames
+    else:
+        # keep box which score large than 0.1
+        kept_list = [pred[np.where(pred[:, 8] > threshold)[0]] for pred in pred_lists]
+        # object match
+        trajectories = []
+        if len(kept_list[0]) == 0:
+            if len(kept_list[1]) == 0:
+                final_predictions = [[] for _ in all_sample_names]
+                return final_predictions, all_sample_names
+            else:
+                remain_obj = kept_list[1]
+                for obj in remain_obj:
+                    trajectories.append([[], obj])
+        else:
+            next_idx = [i for i in range(len(kept_list[1]))]
+            for i in range(kept_list[0]):
+                curr_obj = kept_list[0][i]
+                temp_track = [curr_obj]
+                ious = cal_iou(curr_obj, kept_list[1])
+                best_match_id = int(np.argmax(ious))
+                if(ious[best_match_id]) > 0:
+                    temp_track.append(kept_list[1][best_match_id])
+                    next_idx.remove(best_match_id)
+                else:
+                    temp_track.append([])
+                trajectories.append(temp_track)
+            if len(next_idx) != 0:
+                remain_obj = kept_list[1][next_idx]
+                for obj in remain_obj:
+                    trajectories.append([[], obj])
+
+        # do interpolation
+        dense_trajectories = interpolate_trajectory(trajectories, num)
+        # convert trajectories to predictions
+        final_predictions = [[] for _ in range(num)]
+        for track in dense_trajectories:
+            assert len(track) == num
+            for i in range(num):
+                if track[i] != []:
+                    final_predictions[i].append(track[i])
+        # convert to numpy
+        final_predictions = [np.asarray(pred) for pred in final_predictions]
+        # coordinate transform
+        for i in range(1, num):
+            sample_names = [all_sample_names[0], all_sample_names[i]]
+            final_predictions[i] = recovery_coordinate(dataset, sample_names,
+                                                       final_predictions[i])
+
+        return final_predictions, all_sample_names
+
+def interpolate_trajectory(trajectories, num):
+    dense_trajectories = []
+    for track in trajectories:
+        new_track = []
+        if track[0] != [] and track[1] != []:
+            track[0] = track[0][:-4]
+            track[1] = track[1][:-4]
+            new_track.append(track[0])
+            # [delta_x, delta_z, delta_ry]
+            offsets = track[1][[1, 3, 7]] - track[0][[1, 3, 7]]
+            score = max(track[0][8], track[1][8])
+            for i in range(num-2):
+                new_obj = copy.deepcopy(track[0])
+                new_obj[[1,3,7]] += offsets * (i + 1.0) / (num - 1)
+                new_obj[8] = score
+                new_track.append(new_obj)
+            # append last frame obj
+            track[1][8] = score
+            new_track.append(track[1])
+        elif track[0] == []:
+            offsets = track[1][-4:-1]
+            track[1] = track[1][:-4]
+            d = np.sqrt(offsets[0]**2 + offsets[1]**2)
+            # d > l/2, do interpolation
+            if d <= track[1][4] / 2:
+                ry = track[1][7]
+                delta_x = d * np.cos(ry)
+                delta_z = d * np.sin(ry)
+                for i in range(num-1):
+                    new_obj = copy.deepcopy(track[1])
+                    new_obj[1] -= delta_x * (num - i - 2) / (num - 1)
+                    new_obj[3] -= delta_z * (num - i - 2)  / (num - 1)
+                    new_track.append(new_obj)
+                new_track.append(track[1])
+            else:
+                # trajectory birth, pre half frame is None
+                for i in range(num - 1):
+                    if i <= num / 2:
+                        new_track.append([])
+                    else:
+                        new_obj = copy.deepcopy(track[1])
+                        new_track.append(new_obj)
+                new_track.append(track[1])
+        elif track[1] == []:
+            offsets = track[0][-4:-1]
+            track[0] = track[0][:-4]
+            d = np.sqrt(offsets[0] ** 2 + offsets[1] ** 2)
+            # d > l/2, do interpolation
+            if d <= track[0][4] / 2:
+                ry = track[0][7]
+                delta_x = d * np.cos(ry)
+                delta_z = d * np.sin(ry)
+                new_track.append(track[0])
+                for i in range(num - 1):
+                    new_obj = copy.deepcopy(track[0])
+                    new_obj[1] += delta_x * (i + 1.0) / (num - 1)
+                    new_obj[3] += delta_z * (i + 1.0) / (num - 1)
+                    new_track.append(new_obj)
+            else:
+                new_track.append(track[0])
+                # trajectory dead, next half frame is None
+                for i in range(num - 1):
+                    if i >= num / 2:
+                        new_track.append([])
+                    else:
+                        new_obj = copy.deepcopy(track[0])
+                        new_track.append(new_obj)
+
+        dense_trajectories.append(new_track)
+    return dense_trajectories
 
 def decode_tracking_file(root_dir, file_name, dataset, threshold):
     file_path = os.path.join(root_dir, file_name+'.txt')

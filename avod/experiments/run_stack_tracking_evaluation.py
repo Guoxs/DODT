@@ -90,9 +90,9 @@ def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_stack_5_tracking_pretrained.config'
+        '/configs/avod_stack_tracking_pretrained.config'
 
-    default_device = '2'
+    default_device = '3'
 
     parser.add_argument('--pipeline_config',
                         type=str,
