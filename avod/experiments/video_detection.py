@@ -57,7 +57,7 @@ def build_dataset(dataset_config):
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
-    # box3d[1:4] = 4 * box3d[1:4]
+    box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
     else:

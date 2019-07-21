@@ -146,7 +146,7 @@ def draw_rotate_rectangle(img, boxes_2d, line_type='normal', color=(255,255,255)
                      (box2d[j], box2d[j+4]), color, 1, lineType=cv2.LINE_AA)
     return img
 
-def draw_prediction(dataset, input_dir, output_dir):
+def draw_prediction(dataset, input_dir, iter, output_dir):
     image_shape = [360, 1200]
     ground_plane = np.array([0, -1, 0, 1.65])
     sample_names = dataset.sample_names
@@ -176,7 +176,7 @@ def draw_prediction(dataset, input_dir, output_dir):
             img = draw_rotate_rectangle(img, gt_bev_boxes, color=(0, 255, 0))
 
         # get 0.1 labels
-        label_dir_1 = input_dir + '0.1/'
+        label_dir_1 = input_dir + '0.1/' + iter + '/data/'
         boxes3d_pred_1 = load_pred_box3d(label_dir_1, name, score_threshold=0.1)
         gt_bev_boxes_1 = project_label_to_bev_box(boxes3d_pred_1, ground_plane)
 
@@ -188,7 +188,7 @@ def draw_prediction(dataset, input_dir, output_dir):
             img = draw_rotate_rectangle(img, gt_bev_boxes_1, color=(0, 255, 255))
 
         # get 0.1_2 labels
-        label_dir_2 = input_dir + '0.1_2/'
+        label_dir_2 = input_dir + '0.1_2/' + iter + '/data/'
         boxes3d_pred_2 = load_pred_box3d(label_dir_2, name, score_threshold=0.1)
         gt_bev_boxes_2 = project_label_to_bev_box(boxes3d_pred_2, ground_plane)
 
@@ -203,7 +203,7 @@ def draw_prediction(dataset, input_dir, output_dir):
         print('Saving image' + output_dir + name + '.png')
 
 def create_video(img_dir):
-    output_dir = img_dir + '../video/'
+    output_dir = img_dir + '../'
     # read all image
     image_names = os.listdir(img_dir)
     video_frames = {}
@@ -229,11 +229,15 @@ def create_video(img_dir):
 
 
 def main(_):
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new.config'
+        '/configs/' + checkpoint_name + '.config'
+    iter = '7000'
+    input_dir = avod.root_dir() + '/data/outputs/'+ checkpoint_name + \
+                '/predictions/kitti_native_eval/'
 
-    input_dir = avod.root_dir() + '/../viz/label_data/corr_tracking_7000/'
-    output_dir = avod.root_dir() + '/../viz/label_data/corr_tracking_7000/result/'
+    output_dir = avod.root_dir() + '/../viz/video/corr_tracking_7000/'
+    os.makedirs(output_dir, exist_ok=True)
     #
     # Parse pipeline config
     model_config, _, eval_config, dataset_config = \
@@ -249,7 +253,7 @@ def main(_):
 
     dataset = build_dataset(eval_config, dataset_config)
 
-    draw_prediction(dataset, input_dir, output_dir)
+    # draw_prediction(dataset, input_dir, iter, output_dir)
 
     create_video(output_dir)
 
