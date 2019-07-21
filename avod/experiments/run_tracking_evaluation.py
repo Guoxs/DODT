@@ -83,13 +83,14 @@ def evaluate(model_config, eval_config, dataset_config):
             model_evaluator.repeated_checkpoint_run()
         else:
             model_evaluator.run_latest_checkpoints()
+            # model_evaluator.run_kitti_native_eval(80000)
 
 
 def main(_):
     parser = argparse.ArgumentParser()
 
     default_pipeline_config_path = avod.root_dir() + \
-        '/configs/pyramid_cars_with_aug_dt_5_corr_tracking.config'
+        '/configs/pyramid_cars_with_aug_dt_5_stride_3_tracking_corr_pretrained_new.config'
 
     default_device = '2'
 

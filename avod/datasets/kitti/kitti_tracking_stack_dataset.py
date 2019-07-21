@@ -284,7 +284,7 @@ class KittiTrackingStackDataset:
 
         def split_val_test_video_ids(ids, num, data_list):
             ids = list(map(extract_id, ids))
-            for i in range(0, len(ids), num-1):
+            for i in range(0, len(ids), num):
                 temp = []
                 temp_idx = 0
                 while temp_idx < num:
@@ -405,8 +405,6 @@ class KittiTrackingStackDataset:
         return origin_t
 
     def label_inverse_transform(self, labels, sample_names):
-
-
         trans, matrix, delta = self.coordinate_transform(sample_names)
         # transfer trans to camera coord
         calib = self.kitti_utils.get_calib(self.bev_source, sample_names[-1])

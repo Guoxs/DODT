@@ -368,23 +368,24 @@ class KittiTrackingDataset:
             labels[-1] = label_next
         return labels
 
+    def recovery_t(self, label_obj, calib, trans, matrix):
+        from wavedata.tools.obj_detection import obj_utils
+        box3d = obj_utils.compute_box_corners_3d(label_obj).T  # [8,3]
+        # transfer to velo coord
+        box3d = calib.project_rect_to_velo(box3d)
+        # do rotate
+        inv_matrix = np.linalg.inv(matrix)
+        box3d = box3d @ inv_matrix - trans
+        # back to cam coord
+        box3d = calib.project_velo_to_rect(box3d)
+        # cal box center
+        origin_t = np.mean(box3d, axis=0)
+        # cal center bottom
+        origin_t[1] += label_obj.h / 2.0
+        return origin_t
 
     def label_inverse_transform(self, labels, sample_names):
-        def recover_t(label_obj, calib, trans, matrix):
-            from wavedata.tools.obj_detection import obj_utils
-            box3d = obj_utils.compute_box_corners_3d(label_obj).T  # [8,3]
-            # transfer to velo coord
-            box3d = calib.project_rect_to_velo(box3d)
-            # do rotate
-            inv_matrix = np.linalg.inv(matrix)
-            box3d = box3d @ inv_matrix - trans
-            # back to cam coord
-            box3d = calib.project_velo_to_rect(box3d)
-            # cal box center
-            origin_t = np.mean(box3d, axis=0)
-            # cal center bottom
-            origin_t[1] += label_obj.h / 2.0
-            return origin_t
+
 
         trans, matrix, delta = self.coordinate_transform(sample_names)
         # transfer trans to camera coord
@@ -392,11 +393,28 @@ class KittiTrackingDataset:
         label_trans = labels[-1]
         if len(label_trans) != 0:
             for i in range(len(label_trans)):
-                label_trans[i].t = recover_t(label_trans[i],calib, trans, matrix)
+                label_trans[i].t = self.recovery_t(label_trans[i],calib, trans, matrix)
                 label_trans[i].ry -= delta
             labels[-1] = label_trans
         return labels
 
+    def create_all_sample_names(self, sample_names):
+        '''
+        :param sample_names: ['010001', '010004']
+        :return: ['010001', '010002', '010003', '010004']
+        '''
+        all_sample_names = [sample_names[0]]
+        video_id = sample_names[0][:2]
+        frame_id_1 = int(sample_names[0][2:])
+        frame_id_2 = int(sample_names[1][2:])
+
+        temp_id = frame_id_1
+        while(temp_id < frame_id_2):
+            temp_id += 1
+            temp_name = video_id + str(temp_id).zfill(4)
+            all_sample_names.append(temp_name)
+
+        return all_sample_names
 
     def load_samples(self, indices):
         """ Loads input-output data for a set of samples. Should only be

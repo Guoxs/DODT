@@ -302,7 +302,7 @@ class StackEvaluator:
                 # kitti detection native eval
                 kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
                                        '/{}.txt'.format(name) for name in all_names]
-                for i in range(len(sample_name)):
+                for i in range(len(all_names)):
                     np.savetxt(kitti_eval_file_path[i],
                                all_predicitons_and_scores[i], fmt='%.5f')
 
@@ -1291,8 +1291,7 @@ class StackEvaluator:
             self.model_config.checkpoint_name,
             self.dataset_config.data_split,
             self.eval_config.kitti_score_threshold,
-            global_step,
-            is_detection_single=False)
+            global_step)
 
         checkpoint_name = self.model_config.checkpoint_name
         kitti_score_threshold = self.eval_config.kitti_score_threshold

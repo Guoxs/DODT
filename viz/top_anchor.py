@@ -139,6 +139,7 @@ def main(_):
     model_config, _, eval_config, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
             default_pipeline_config_path,
+            dataset_name='',
             is_training=False)
 
     # Overwrite data split

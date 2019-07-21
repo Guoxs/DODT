@@ -9,10 +9,10 @@ from multiprocessing import Process
 import tensorflow as tf
 
 from avod.core import box_3d_encoder, box_8c_encoder, box_4c_encoder
-from avod.core import evaluator_utils
+from avod.core import dt_evaluator_utils
 from avod.core import summary_utils
 from avod.core import trainer_utils
-from avod.core.evaluator_utils import encoder_tracking_dets, \
+from avod.core.dt_evaluator_utils import encoder_tracking_dets, \
     track_through_ious, convert_trajectory_to_kitti_format
 
 from avod.core.models.dt_avod_model import DtAvodModel
@@ -95,7 +95,7 @@ class DtEvaluator:
         if self.do_kitti_native_eval:
             if self.eval_config.eval_mode == 'val':
                 # Copy kitti native eval code into the predictions folder
-                evaluator_utils.copy_kitti_native_code(
+                dt_evaluator_utils.copy_kitti_native_code(
                     self.model_config.checkpoint_name)
 
         if self.do_kitti_native_tracking_eval:
@@ -103,7 +103,7 @@ class DtEvaluator:
             self.video_frames = self.generate_video_frames()
             video_ids = self.video_frames.keys()
             # Copy kitti tracking native eval code into the predictions folder
-            evaluator_utils.copy_kitti_native_tracking_code(
+            dt_evaluator_utils.copy_kitti_native_tracking_code(
                 self.model_config.checkpoint_name,
                 video_ids, eval_mode)
 
@@ -124,7 +124,7 @@ class DtEvaluator:
                 self.model.loss(self._prediction_dict)
 
             self.summary_writer, self.summary_merged = \
-                evaluator_utils.set_up_summary_writer(
+                dt_evaluator_utils.set_up_summary_writer(
                     self.model_config, self._sess)
 
         else:
@@ -301,20 +301,14 @@ class DtEvaluator:
                                                                 box_rep)
                 np.savetxt(avod_file_path, predictions_and_scores, fmt='%.5f')
 
-                # Save predictions for kitti native deteciton eval
-                # first_frame_indices = np.where(predictions_and_scores[:, -1] == 0)
-                # kitti_eval_prediction_and_scores = \
-                #     predictions_and_scores[first_frame_indices][:, :9]
-                # np.savetxt(kitti_eval_file_path, kitti_eval_prediction_and_scores, fmt='%.5f')
-
                 # Interpolating non-keyframe result and save
                 all_predicitons_and_scores, all_names = \
-                    evaluator_utils.interpolate_non_keyframe_predicitons(
+                    dt_evaluator_utils.interpolate_non_keyframe_predicitons(
                         self.model.dataset, sample_name, predictions_and_scores, threshold=0.1)
                 # kitti detection native eval
                 kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
                                         '/{}.txt'.format(name) for name in all_names]
-                for i in range(len(sample_name)):
+                for i in range(len(all_names)):
                     np.savetxt(kitti_eval_file_path[i],
                                all_predicitons_and_scores[i], fmt='%.5f')
 
@@ -401,7 +395,7 @@ class DtEvaluator:
 
         else:
             # Test mode --> train_val_test == 'test'
-            evaluator_utils.print_inference_time_statistics(
+            dt_evaluator_utils.print_inference_time_statistics(
                 total_feed_dict_time, total_inference_time)
 
         print("Step {}: Finished evaluation, results saved to {}".format(
@@ -446,7 +440,7 @@ class DtEvaluator:
             # go through all existing checkpoints
             for ckpt_idx in range(num_checkpoints):
                 checkpoint_to_restore = self._saver.last_checkpoints[ckpt_idx]
-                ckpt_id = evaluator_utils.strip_checkpoint_id(
+                ckpt_id = dt_evaluator_utils.strip_checkpoint_id(
                     checkpoint_to_restore)
 
                 # Check if checkpoint has been evaluated already
@@ -483,7 +477,7 @@ class DtEvaluator:
 
         # Copy kitti native eval code into the predictions folder
         if self.do_kitti_native_eval:
-            evaluator_utils.copy_kitti_native_code(
+            dt_evaluator_utils.copy_kitti_native_code(
                 self.model_config.checkpoint_name)
 
         if self.skip_evaluated_checkpoints:
@@ -514,7 +508,7 @@ class DtEvaluator:
                 for ckpt_idx in range(num_checkpoints):
                     checkpoint_to_restore = \
                         self._saver.last_checkpoints[ckpt_idx]
-                    ckpt_id = evaluator_utils.strip_checkpoint_id(
+                    ckpt_id = dt_evaluator_utils.strip_checkpoint_id(
                         checkpoint_to_restore)
 
                     # Check if checkpoint has been evaluated already
@@ -1326,23 +1320,22 @@ class DtEvaluator:
         # Kitti native evaluation, do this during validation
         # and when running Avod model.
         # Store predictions in kitti format
-        evaluator_utils.save_predictions_in_kitti_format(
+        dt_evaluator_utils.save_predictions_in_kitti_format(
             self.model,
             self.model_config.checkpoint_name,
             self.dataset_config.data_split,
             self.eval_config.kitti_score_threshold,
-            global_step,
-            is_detection_single=False)
+            global_step)
 
         checkpoint_name = self.model_config.checkpoint_name
         kitti_score_threshold = self.eval_config.kitti_score_threshold
 
         # Create a separate processes to run the native evaluation
         native_eval_proc = Process(
-            target=evaluator_utils.run_kitti_native_script, args=(
+            target=dt_evaluator_utils.run_kitti_native_script, args=(
                 checkpoint_name, kitti_score_threshold, global_step))
         native_eval_proc_05_iou = Process(
-            target=evaluator_utils.run_kitti_native_script_with_05_iou,
+            target=dt_evaluator_utils.run_kitti_native_script_with_05_iou,
             args=(checkpoint_name, kitti_score_threshold, global_step))
         # Don't call join on this cuz we do not want to block
         # this will cause one zombie process - should be fixed later.

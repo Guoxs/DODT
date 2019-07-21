@@ -52,7 +52,7 @@ def build_dataset(dataset_config):
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
-    # box3d[1:4] = 4 * box3d[1:4]
+    box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
     else:
@@ -219,7 +219,8 @@ def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min)
         for track in tracks_active:
             if len(dets) > 0:
                 # get det with highest iou
-                ious = [cal_transformed_ious(dataset, video_id, track['trajectory'][-1], x) for x in dets]
+                # ious = [cal_transformed_ious(dataset, video_id, track['trajectory'][-1], x) for x in dets]
+                ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
                 # print(ious)
 
                 best_match_id = int(np.argmax(ious))
@@ -248,7 +249,12 @@ def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min)
     return tracks_finished
 
 
-def track_iou_v2(detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
+def create_visual_det():
+    pass
+
+
+
+def track_iou_v2(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
     tracks_active = []
     tracks_finished = []
 
@@ -259,7 +265,8 @@ def track_iou_v2(detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
         for track in tracks_active:
             if len(dets) > 0:
                 # get det with highest iou
-                ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
+                # ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
+                ious = [cal_transformed_ious(dataset, video_id, track['trajectory'][-1], x) for x in dets]
 
                 best_match_id = int(np.argmax(ious))
                 if ious[best_match_id] > sigma_iou:
@@ -329,10 +336,12 @@ def track_iou_v2(detections, sigma_l, sigma_h, sigma_iou, t_min, ttl=3):
 
 if __name__ == '__main__':
     checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
-    ckpt_indices = '22000'
+    ckpt_indices = '7000'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
+
+    dataset_config.data_stride = 0
 
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
@@ -344,8 +353,9 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
-        tracks_finished = track_iou(dataset, video_id, dets_for_track, sigma_l=0.1,
-                                    sigma_h=0.5, sigma_iou=0.1, t_min=5)
+        tracks_finished = track_iou_v2(dataset, video_id, dets_for_track, sigma_l=0.1,
+                                    sigma_h=0.2, sigma_iou=0.0, t_min=2)
+
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
         # store final result

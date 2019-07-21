@@ -99,7 +99,6 @@ def getOffsets(label):
 
 
 def getOffsets2(label):
-    center = [label[0], label[2]]
     theta = label[-2]
     obj_id = label[-1]
     # [delta_x, delta_z, delta_ry=0, obj_id]

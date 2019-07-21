@@ -52,7 +52,8 @@ def compute_corner_box3d(gt_labels):
 
 
 dataset = build_datasets()
-samples = dataset.load_samples([10])
+print(dataset.sample_names)
+samples = dataset.load_samples([9])
 integrated_pc = samples[0][constants.KEY_INTEGRATED_POINT_CLOUD]
 integrated_boxes3d = samples[0][constants.KEY_INTEGRATED_LABEL_BOX_3D]
 sepaprated_boxes3d = samples[0][constants.KEY_LABEL_BOXES_3D]

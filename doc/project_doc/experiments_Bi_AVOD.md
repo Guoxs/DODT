@@ -66,7 +66,7 @@
 
 `pyramid_cars_with_aug_dt_5_tracking_pretrained_results_0.1`
 
-`Iter: 6000`
+`Iter: 33000`
 
 <table>
    <tr>
@@ -84,12 +84,12 @@
       <td style="text-align:center;vertical-align:middle;">Hard</td>
    </tr>
     <tr>
-      <td style="text-align:center;vertical-align:middle;">90.61/99.98</td>
-      <td style="text-align:center;vertical-align:middle;">89.01/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.84/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.81/90.91</td>
-      <td style="text-align:center;vertical-align:middle;">76.38/90.86</td>
-      <td style="text-align:center;vertical-align:middle;">75.83/90.85</td>
+      <td style="text-align:center;vertical-align:middle;">90.58/99.95</td>
+      <td style="text-align:center;vertical-align:middle;">88.98/90.89</td>
+      <td style="text-align:center;vertical-align:middle;">88.76/90.88</td>
+      <td style="text-align:center;vertical-align:middle;">87.14/90.91</td>
+      <td style="text-align:center;vertical-align:middle;">74.52/90.83</td>
+      <td style="text-align:center;vertical-align:middle;">67.70/81.32</td>
    </tr>
 </table>
 
@@ -201,32 +201,23 @@
       <td style="text-align:center;vertical-align:middle;">54.11/81.75</td>
       <td style="text-align:center;vertical-align:middle;">47.75/72.68</td>
     </tr>
-	<tr>
-      <td style="text-align:center;vertical-align:middle;">bi-avod </br>(with corr)</td>
-       <td style="text-align:center;vertical-align:middle;">90.42/90.91</td>
-      <td style="text-align:center;vertical-align:middle;">80.23/81.79</td>
-      <td style="text-align:center;vertical-align:middle;">79.88/81.78</td>
-      <td style="text-align:center;vertical-align:middle;">76.91/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">58.30/81.76</td>
-      <td style="text-align:center;vertical-align:middle;">56.91/72.70</td>
-    </tr>
     <tr>
       <td style="text-align:center;vertical-align:middle;">bi-avod* </br>(no corr)</td>
-      <td style="text-align:center;vertical-align:middle;">90.61/99.98</td>
-      <td style="text-align:center;vertical-align:middle;">89.01/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.84/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.81/90.91</td>
-      <td style="text-align:center;vertical-align:middle;">76.38/90.86</td>
-      <td style="text-align:center;vertical-align:middle;">75.83/90.85</td>
+      <td style="text-align:center;vertical-align:middle;">90.58/99.95</td>
+      <td style="text-align:center;vertical-align:middle;">88.98/90.89</td>
+      <td style="text-align:center;vertical-align:middle;">88.76/90.88</td>
+      <td style="text-align:center;vertical-align:middle;">87.14/90.91</td>
+      <td style="text-align:center;vertical-align:middle;">74.52/90.83</td>
+      <td style="text-align:center;vertical-align:middle;">67.70/81.32</td>
     </tr>
 	<tr>
       <td style="text-align:center;vertical-align:middle;">bi-avod* </br>(with corr)</td>
-      <td style="text-align:center;vertical-align:middle;">90.60/99.94</td>
-      <td style="text-align:center;vertical-align:middle;">89.22/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.93/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">89.05/90.91</td>
-      <td style="text-align:center;vertical-align:middle;">76.67/90.85</td>
-      <td style="text-align:center;vertical-align:middle;">75.83/90.84</td>
+      <td style="text-align:center;vertical-align:middle;">90.59/99.98</td>
+      <td style="text-align:center;vertical-align:middle;">88.94/90.90</td>
+      <td style="text-align:center;vertical-align:middle;">88.76/90.89</td>
+      <td style="text-align:center;vertical-align:middle;">88.33/90.90</td>
+      <td style="text-align:center;vertical-align:middle;">75.25/90.86</td>
+      <td style="text-align:center;vertical-align:middle;">68.51/90.85</td>
     </tr>
 </table>
 
@@ -256,12 +247,12 @@ using pretrained_model
    </tr>
     <tr>
       <td style="text-align:center;vertical-align:middle;">1</td>
-     <td style="text-align:center;vertical-align:middle;">90.60/99.94</td>
-      <td style="text-align:center;vertical-align:middle;">89.22/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">88.93/90.89</td>
-      <td style="text-align:center;vertical-align:middle;">89.05/90.91</td>
-      <td style="text-align:center;vertical-align:middle;">76.67/90.85</td>
-      <td style="text-align:center;vertical-align:middle;">75.83/90.84</td>
+      <td style="text-align:center;vertical-align:middle;">90.59/99.98</td>
+      <td style="text-align:center;vertical-align:middle;">88.94/90.90</td>
+      <td style="text-align:center;vertical-align:middle;">88.76/90.89</td>
+      <td style="text-align:center;vertical-align:middle;">88.33/90.90</td>
+      <td style="text-align:center;vertical-align:middle;">75.25/90.86</td>
+      <td style="text-align:center;vertical-align:middle;">68.51/90.85</td>
     </tr>
     <tr>
       <td style="text-align:center;vertical-align:middle;">2</td>
@@ -452,4 +443,5 @@ using pretrained_model
 
 ① 只对 BEV map 做相关，因为我们只需要得到 (x,z) 的偏移量就行了， 这些信息通过 BEV map 就能很好的包含。
 
-② 不做相关，只是将两 BEV map 变为一维，然后相减/concat，对两帧对应物体框的并区域作为anchor, 提取对应区域特征, 预测特征
+② 不做相关，只是将两 BEV map 变为一维，然后相减 concat，对两帧对应物体框的并区域作为anchor, 提取对应区域特征, 预测特征
+

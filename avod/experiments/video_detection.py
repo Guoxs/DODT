@@ -1,13 +1,18 @@
 import os
 import collections
+import subprocess
+import sys
 import warnings
+from copy import deepcopy
 from distutils import dir_util
+from multiprocessing import Process
 
 import numpy as np
 import avod
 import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
-from wavedata.tools.obj_detection.evaluation import three_d_iou
+from avod.core.box_4c_encoder import np_box_3d_to_box_4c
+from wavedata.tools.obj_detection.evaluation import three_d_iou, two_d_iou
 
 
 def config_setting(checkpoint_name, ckpt_indices):
@@ -44,14 +49,15 @@ def build_dataset(dataset_config):
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
      # Build the dataset object
-    dataset = DatasetBuilder.build_kitti_dataset(dataset_config,
+    dataset = DatasetBuilder.build_kitti_tracking_dataset(dataset_config,
                                                      use_defaults=False)
     return dataset
+
 
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
     box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
-    # box3d[1:4] = 3 * box3d[1:4]
+    # box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
         boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
     else:
@@ -59,7 +65,66 @@ def iou_3d(box3d_1, box3d_2):
     iou = three_d_iou(box3d, boxes3d)
     return iou
 
-def copy_tracking_eval_script(to_path, video_ids, train_split='eval'):
+def iou_2d(box3d_1, box3d_2):
+    plane = np.asarray([0,-1,0,1.65])
+    # convert to [tx, ty, tz, l, w, h, ry]
+    box3d_1 = box3d_1[[3, 4, 5, 0, 1, 2, 6]]
+    box3d_2 = box3d_2[[3, 4, 5, 0, 1, 2, 6]]
+
+    box3d_1[3:6] = 3.8 * box3d_1[3:6]
+    box3d_2[3:6] = 3.8 * box3d_2[3:6]
+    # [x1, x2, x3, x4, z1, z2, z3, z4, h1, h2]
+    box4c_1 = np_box_3d_to_box_4c(box3d_1, plane)
+    box4c_2 = np_box_3d_to_box_4c(box3d_2, plane)
+
+    box2d_1 = [np.min(box4c_1[:4]), np.max(box4c_1[4:8]),
+               np.max(box4c_1[:4]), np.min(box4c_1[4:8])]
+    box2d_1 = np.asarray(box2d_1)
+
+    box2d_2 = [np.min(box4c_2[:4]), np.max(box4c_2[4:8]),
+               np.max(box4c_2[:4]), np.min(box4c_2[4:8])]
+    box2d_2 = np.asarray(box2d_2)
+    box2d_2 = box2d_2[np.newaxis, :]
+    iou = two_d_iou(box2d_1, box2d_2)
+    return iou[0]
+
+def box3d_to_label(box3d):
+    from wavedata.tools.obj_detection.tracking_utils import TrackingLabel
+    # boxes3d [l, w, h, tx, ty, tz, ry]
+    label = TrackingLabel()
+    label.l = box3d[0]
+    label.w = box3d[1]
+    label.h = box3d[2]
+    label.t = (box3d[3], box3d[4], box3d[5])
+    label.ry = box3d[6]
+    return label
+
+def label_to_box3d(label):
+    box3d = [label.l, label.w, label.h, label.t[0],
+            label.t[1], label.t[2], label.ry]
+    box3d = np.asarray(box3d)
+    return box3d
+
+def cal_transformed_ious(dataset, video_id, item1, item2):
+    box3d_1 = item1['boxes3d']
+    box3d_2 = item2['boxes3d']
+    label_1 = box3d_to_label(box3d_1)
+    label_2 = box3d_to_label(box3d_2)
+    label_obj = [[label_1], [label_2]]
+
+    sample_name_1 = str(video_id).zfill(2) + str(item1['frame_id']).zfill(4)
+    sample_name_2 = str(video_id).zfill(2) + str(item2['frame_id']).zfill(4)
+    sample_names = [sample_name_1, sample_name_2]
+
+    transformed_label = dataset.label_transform(label_obj, sample_names)
+
+    trans_box3d_2 = label_to_box3d(transformed_label[-1][0])
+
+    trans_iou_2d = iou_2d(box3d_1, trans_box3d_2)
+
+    return trans_iou_2d
+
+def copy_tracking_eval_script(to_path, video_ids, train_split='val'):
     from_path = avod.root_dir() + '/../scripts/offline_eval/' \
                 'kitti_tracking_native_eval/python/'
     os.makedirs(to_path, exist_ok=True)
@@ -111,10 +176,10 @@ def get_frames(dataset):
     video_frames = {}
     sample_names = dataset.sample_names
     for sample_name in sample_names:
-        video_id = sample_name[:2]
+        video_id = sample_name[0][:2]
         if not video_frames.__contains__(video_id):
             video_frames[video_id] = []
-        video_frames[video_id].append(sample_name)
+        video_frames[video_id].extend(sample_name)
 
     video_frames = collections.OrderedDict(sorted(video_frames.items(),
                                                   key=lambda obj: obj[0]))
@@ -147,11 +212,13 @@ def generate_dets_for_track(frames, root_dir):
         dets_for_track.append(track_item)
     return dets_for_track
 
-def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
+def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min):
     tracks_active = []
     tracks_finished = []
 
-    for frame_num, detections_frame in enumerate(detections, start=1):
+    for frame_num, detections_frame in enumerate(detections):
+        if detections_frame == []:
+            continue
         # apply low threshold to detections
         dets = [det for det in detections_frame if det['scores'] >= sigma_l]
 
@@ -159,8 +226,8 @@ def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
         for track in tracks_active:
             if len(dets) > 0:
                 # get det with highest iou
-                ious = [iou_3d(track['trajectory'][-1]['boxes3d'],
-                               x['boxes3d']) for x in dets]
+                ious = [cal_transformed_ious(dataset, video_id,
+                                             track['trajectory'][-1], x) for x in dets]
                 best_match_id = int(np.argmax(ious))
                 if ious[best_match_id] > sigma_iou:
                     track['trajectory'].append(dets[best_match_id])
@@ -180,7 +247,7 @@ def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
 
         # create new tracks
         new_tracks = [{'trajectory': [det], 'max_score': det['scores'],
-                       'start_frame': frame_num} for det in dets]
+                       'start_frame': det['frame_id']} for det in dets]
         tracks_active = updated_tracks + new_tracks
 
     # finish all remaining active tracks
@@ -190,56 +257,142 @@ def track_iou(detections, sigma_l, sigma_h, sigma_iou, t_min):
     return tracks_finished
 
 
+def track_iou_v2(dataset, video_id, dets_for_track, high_threshold, iou_threshold, t_min, ttl=3):
+    tracks_active = []
+    tracks_finished = []
+
+    for frame_num, dets in enumerate(dets_for_track):
+        # apply low threshold to detections
+        updated_tracks = []
+        for track in tracks_active:
+            if len(dets) > 0:
+                # get det with highest iou
+                ious = [cal_transformed_ious(dataset, video_id,
+                                             track['trajectory'][-1], x) for x in dets]
+
+                best_match_id = int(np.argmax(ious))
+                if ious[best_match_id] > iou_threshold:
+                    # convert virtual dets to valid dets
+                    if track['virtual_len'] != 0:
+                        t = track['virtual_len']
+                        visual_dets = track['trajectory'][-t:]
+                        # update virtual dets boxes coordinate
+                        next_det = dets[best_match_id]
+                        for i in range(t):
+                            visual_dets[i]['boxes2d'] += (i+1)/(t+1)*(next_det['boxes2d']
+                                                                      - visual_dets[i]['boxes2d'])
+                            visual_dets[i]['boxes3d'][[3,4,5]] += (i+1)/(t+1)*(next_det['boxes3d'][[3,4,5]]
+                                                                      - visual_dets[i]['boxes3d'][[3,4,5]])
+
+                        track['trajectory'][-t:] = visual_dets
+                        # update virtual_len
+                        track['virtual_len'] = 0
+
+                    track['trajectory'].append(dets[best_match_id])
+                    track['max_score'] = max(track['max_score'], dets[best_match_id]['scores'])
+                    updated_tracks.append(track)
+                    # remove from best matching detection from detections
+                    del dets[best_match_id]
+                else:
+                    # no match det, add virtual det
+                    if track['virtual_len'] < ttl:
+                        visual_det = deepcopy(track['trajectory'][-1])
+                        visual_det['frame_id'] += 1
+                        track['virtual_len'] += 1
+                        track['trajectory'].append(visual_det)
+                        updated_tracks.append(track)
+            else:
+                # no match det, add virtual det
+                if track['virtual_len'] < ttl:
+                    visual_det = deepcopy(track['trajectory'][-1])
+                    visual_det['frame_id'] += 1
+                    track['virtual_len'] += 1
+                    track['trajectory'].append(visual_det)
+                    updated_tracks.append(track)
+
+            if len(updated_tracks) == 0:
+                track['virtual_len'] = -1
+                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
+                    tracks_finished.append(track)
+
+            # if track was not updated
+            if track['virtual_len'] == ttl:
+                track['trajectory'] = track['trajectory'][:-ttl]
+                track['virtual_len'] = -1
+                # finish track when the conditions are met
+                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
+                    tracks_finished.append(track)
+
+        # create new tracks
+        new_tracks = [{'trajectory': [det], 'max_score': det['scores'],
+                       'start_frame': det['frame_id'], 'virtual_len': 0} for det in dets]
+        updated_tracks = [track for track in updated_tracks if track['virtual_len'] != -1]
+        tracks_active = updated_tracks + new_tracks
+
+    # finish all remaining active tracks
+    tracks_finished += [track for track in tracks_active if track['max_score'] >= high_threshold
+                        and len(track['trajectory']) >= t_min]
+
+    return tracks_finished
+
 def restyle_track(track_kitti_format, frame_list):
-    track_out = [[] for _ in frame_list]
+    frame_len = int(frame_list[-1][2:]) + 1
+    track_out = [[] for _ in range(frame_len)]
     for obj in track_kitti_format:
         frame_id = int(obj[0])
         new_obj = {'obj_id':int(obj[1]),
                    'info':obj[2:6],
-                   'boxes_2d':[float(i) for i in obj[6:10]],
-                   'boxes_3d':[float(i) for i in obj[10:17]],
+                   'boxes_2d':np.asarray([float(i) for i in obj[6:10]]),
+                   'boxes_3d':np.asarray([float(i) for i in obj[10:17]]),
                    'score':float(obj[17])}
         track_out[frame_id].append(new_obj)
     return track_out
 
-
 def label_interpolation(labels, stride):
-    idx_infos = []
-    video_len = len(labels)
-    labels_out = []
-
-    for i in range(video_len):
-        if i % stride == 0:
-            idx_infos.append([i])
-        else:
-            t = i % stride
-            pre_i = i - t
-            next_i = i + (stride - t)
-            if not next_i < video_len:
-                next_i = video_len - 1
-            idx_infos.append([pre_i, next_i, t])
-
-    for idx_info in idx_infos:
-        if len(idx_info) == 1:
-            frame_id = idx_info[0]
-            labels_out.append(labels[frame_id])
-        else:
-            pre_label = labels[idx_info[0]]
-            next_label = labels[idx_info[1]]
-            curr_label = []
-            if pre_label != []:
-                if next_label == []:
-                    curr_label = pre_label
-                else:
-                    curr_label = cal_label(pre_label, next_label, idx_info[2], stride)
+    def add_stride(labels, labels_out, stride):
+        pre_label = labels[temp_stride[0]]
+        next_label = labels[temp_stride[-1]]
+        if pre_label == []:
+            pre_label = next_label
+            labels_out.append(pre_label)
+            if next_label == []:
+                for j in range(1, len(temp_stride) - 1):
+                    curr_label = []
+                    labels_out.append(curr_label)
             else:
-                if next_label != []:
+                for j in range(1, len(temp_stride) - 1):
                     curr_label = next_label
+                    labels_out.append(curr_label)
+        else:
+            labels_out.append(pre_label)
+            if next_label == []:
+                for j in range(1, len(temp_stride) - 1):
+                    curr_label = pre_label
+                    labels_out.append(curr_label)
+                next_label = pre_label
+            else:
+                for j in range(1, len(temp_stride) - 1):
+                    curr_label = cal_label(pre_label, next_label, j, stride)
+                    labels_out.append(curr_label)
+        labels_out.append(next_label)
+        return labels_out
 
-            labels_out.append(curr_label)
+    labels_out = []
+    temp_stride = []
+    for i in range(len(labels)):
+        if len(temp_stride) == stride + 1:
+            labels_out = add_stride(labels, labels_out, stride)
+            temp_stride = []
+        temp_stride.append(i)
+
+    if len(temp_stride) != 0:
+        if len(temp_stride) == stride + 1:
+            labels_out = add_stride(labels, labels_out, stride)
+        else:
+            for idx in temp_stride:
+                labels_out.append(labels[idx])
 
     return labels_out
-
 
 def cal_label(pre_label, next_label, inc, stride):
     new_label = []
@@ -252,17 +405,16 @@ def cal_label(pre_label, next_label, inc, stride):
                 temp_obj['obj_id'] = pre_obj_id
                 temp_obj['info'] = pre_obj['info']
                 temp_obj['score'] = max(pre_obj['score'], next_obj['score'])
-                temp_obj['boxes_2d'] = np.asarray(pre_obj['boxes_2d'],dtype=np.float32) +inc / stride * \
-                                       (np.asarray(next_obj['boxes_2d'],dtype=np.float32)
-                                        -np.asarray(pre_obj['boxes_2d'],dtype=np.float32))
 
-                temp_obj['boxes_2d'] = [round(i, 3) for i in temp_obj['boxes_2d']]
+                temp_obj['boxes_2d'] = deepcopy(pre_obj['boxes_2d'])
+                temp_obj['boxes_2d'] += inc / stride * (next_obj['boxes_2d'] - pre_obj['boxes_2d'])
+                temp_obj['boxes_2d'] = np.asarray([round(i, 3) for i in temp_obj['boxes_2d']])
 
-                temp_obj['boxes_3d'] = np.asarray(pre_obj['boxes_3d'],dtype=np.float32) + inc / stride * \
-                                       (np.asarray(next_obj['boxes_3d'],dtype=np.float32)
-                                        -np.asarray(pre_obj['boxes_3d'],dtype=np.float32))
-
-                temp_obj['boxes_3d'] = [round(i, 3) for i in temp_obj['boxes_3d']]
+                # only update (x,y,z)
+                temp_obj['boxes_3d'] = deepcopy(pre_obj['boxes_3d'])
+                temp_obj['boxes_3d'][[3,4,5]] += inc / stride * (next_obj['boxes_3d'][[3,4,5]]
+                                                               - pre_obj['boxes_3d'][[3,4,5]])
+                temp_obj['boxes_3d'] = np.asarray([round(i, 3) for i in temp_obj['boxes_3d']])
 
                 new_label.append(temp_obj)
     return new_label
@@ -271,22 +423,61 @@ def cal_label(pre_label, next_label, inc, stride):
 def store_final_result(frames, video_id, output_root):
     frame_len = len(frames)
     for i in range(frame_len):
+        # Print progress
+        sys.stdout.write('\rStoring {} / {}'.format(i + 1, frame_len))
+        sys.stdout.flush()
+
         name = video_id + str(i).zfill(4)+ '.txt'
         if frames[i] == []:
             np.savetxt(output_root+name, [])
             continue
         output = []
         for obj in frames[i]:
-            label = obj['info'].tolist() + obj['boxes_2d'] + \
-                    obj['boxes_3d'] + [obj['score']]
+            label = obj['info'].tolist() + obj['boxes_2d'].tolist() + \
+                    obj['boxes_3d'].tolist() + [obj['score']]
             output.append(label)
 
         np.savetxt(output_root+name, output, newline='\r\n', fmt='%s')
 
 
+def run_kitti_native_script(checkpoint_name, score_threshold, global_step):
+    """Runs the kitti native code script."""
+
+    eval_script_dir = avod.root_dir() + '/data/outputs/' + \
+        checkpoint_name + '/predictions'
+    make_script = eval_script_dir + \
+        '/kitti_native_eval/run_eval.sh'
+    script_folder = eval_script_dir + \
+        '/kitti_native_eval/'
+
+    subprocess.call([make_script, script_folder,
+                     str(score_threshold),
+                     str(global_step),
+                     str(checkpoint_name)])
+
+def run_kitti_native_script_with_05_iou(checkpoint_name, score_threshold,
+                                        global_step):
+    """Runs the kitti native code script."""
+
+    eval_script_dir = avod.root_dir() + '/data/outputs/' + \
+        checkpoint_name + '/predictions'
+    make_script = eval_script_dir + \
+        '/kitti_native_eval/run_eval_05_iou.sh'
+    script_folder = eval_script_dir + \
+        '/kitti_native_eval/'
+
+    subprocess.call([make_script, script_folder,
+                     str(score_threshold),
+                     str(global_step),
+                     str(checkpoint_name)])
+
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
-    ckpt_indices = '11000'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
+    ckpt_indices = '7000'
+
+    stride = 2
+
+    kitti_score_threshold = '0.1_' + str(stride)
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -294,10 +485,10 @@ if __name__ == '__main__':
     output_root = avod.root_dir() + '/data/outputs/' + checkpoint_name +\
                   '/predictions/kitti_native_eval/'
 
+    dataset_config.data_stride = stride
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
 
-    stride = 2
     output_root = output_root + '0.1_' + str(stride) + '/' + ckpt_indices + '/data/'
     os.makedirs(output_root, exist_ok=True)
     # copy tracking eval script to tracking_output_dir
@@ -307,8 +498,10 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
-        tracks_finished = track_iou(dets_for_track, sigma_l=0.1, sigma_h=0.5,
-                                                    sigma_iou=0.00, t_min=3)
+        # tracks_finished = track_iou_v2(dataset, video_id, dets_for_track,
+        #                                high_threshold=0.5, iou_threshold=0.00, t_min=1)
+        tracks_finished = track_iou(dataset, video_id, dets_for_track,
+                                       sigma_l=0.1, sigma_h=0.3, sigma_iou=0.00, t_min=1)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
@@ -319,6 +512,16 @@ if __name__ == '__main__':
         track_interploated = label_interpolation(track_new,stride)
 
         # store result
+        print('\nStoring video id: %s' %video_id)
         store_final_result(track_interploated, video_id, output_root)
 
+    # Create a separate processes to run the native evaluation
+    native_eval_proc = Process(target=run_kitti_native_script,
+        args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
 
+    native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
+        args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+    # Don't call join on this cuz we do not want to block
+    # this will cause one zombie process - should be fixed later.
+    native_eval_proc.start()
+    native_eval_proc_05_iou.start()

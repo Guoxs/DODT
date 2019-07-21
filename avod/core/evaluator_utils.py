@@ -3,6 +3,7 @@ import os
 import copy
 import datetime
 import subprocess
+import warnings
 from distutils import dir_util
 
 import numpy as np
@@ -193,8 +194,7 @@ def save_stack_predictions_in_kitti_format(model,
                                      checkpoint_name,
                                      data_split,
                                      score_threshold,
-                                     global_step,
-                                     is_detection_single=True):
+                                     global_step):
     """ Converts a set of network predictions into text files required for
     KITTI evaluation.
     """
@@ -207,11 +207,7 @@ def save_stack_predictions_in_kitti_format(model,
     predictions_root_dir = avod.root_dir() + '/data/outputs/' + \
         checkpoint_name + '/predictions'
 
-    if is_detection_single:
-        final_predictions_root_dir = predictions_root_dir + \
-            '/final_predictions_and_scores/' + dataset.data_split
-    else:
-        final_predictions_root_dir = predictions_root_dir + \
+    final_predictions_root_dir = predictions_root_dir + \
             '/kitti_detection_predictions_and_scores/' + dataset.data_split
 
     final_predictions_dir = final_predictions_root_dir + \
@@ -226,8 +222,16 @@ def save_stack_predictions_in_kitti_format(model,
     if not os.path.exists(kitti_predictions_3d_dir):
         os.makedirs(kitti_predictions_3d_dir)
 
+    # convert sample_names to single names
+    sample_names = dataset.sample_names
+    all_sample_names = []
+    for i in range(len(sample_names)):
+        name = sample_names[i]
+        all_name = dataset.create_all_sample_names(name)
+        all_sample_names += all_name
+
     # Do conversion
-    num_samples = dataset.num_samples
+    num_samples = len(all_sample_names)
     num_valid_samples = 0
 
     print('\nGlobal step:', global_step)
@@ -242,12 +246,9 @@ def save_stack_predictions_in_kitti_format(model,
             sample_idx + 1, num_samples))
         sys.stdout.flush()
 
-        sample_name = dataset.sample_names[sample_idx]
+        sample_name = all_sample_names[sample_idx]
 
-        if is_detection_single:
-            prediction_file = sample_name + '.txt'
-        else:
-            prediction_file = sample_name[0] + '.txt'
+        prediction_file = sample_name + '.txt'
 
         kitti_predictions_3d_file_path = kitti_predictions_3d_dir + \
             '/' + prediction_file
@@ -260,15 +261,20 @@ def save_stack_predictions_in_kitti_format(model,
             np.savetxt(kitti_predictions_3d_file_path, [])
             continue
 
-        all_predictions = np.loadtxt(predictions_file_path)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            all_predictions = np.loadtxt(predictions_file_path)
 
-        score_filter = all_predictions[:, 8] >= score_threshold
-        all_predictions = all_predictions[score_filter]
+        # score_filter = all_predictions[:, 8] >= score_threshold
+        # all_predictions = all_predictions[score_filter]
 
         # If no predictions, skip to next file
         if len(all_predictions) == 0:
             np.savetxt(kitti_predictions_3d_file_path, [])
             continue
+
+        if len(all_predictions.shape) == 1:
+            all_predictions = all_predictions[np.newaxis, :]
 
         # Project to image space
         sample_name = prediction_file.split('.')[0]
@@ -276,15 +282,10 @@ def save_stack_predictions_in_kitti_format(model,
         # Load image for truncation
         image = Image.open(dataset.get_rgb_image_path(sample_name))
 
-        if is_detection_single:
-            img_idx = int(sample_name)
-            stereo_calib_p2 = calib_utils.read_calibration(dataset.calib_dir,
-                                                       img_idx).p2
-        else:
-            img_idx = sample_name
-            video_id = int(img_idx[:2])
-            stereo_calib_p2 = calib_utils.read_tracking_calibration(
-                dataset.calib_dir, video_id).p2
+        img_idx = sample_name
+        video_id = int(img_idx[:2])
+        stereo_calib_p2 = calib_utils.read_tracking_calibration(
+            dataset.calib_dir, video_id).p2
 
         boxes = []
         image_filter = []
@@ -378,9 +379,9 @@ def recovery_predictions(dataset, sample_names, predictions):
                 # convert to TrackingLabel object
                 obj = ObjectLabel()
                 obj.t = top_list[j][1:4]
-                obj.l = top_list[j][6]
+                obj.l = top_list[j][4]
                 obj.w = top_list[j][5]
-                obj.h = top_list[j][4]
+                obj.h = top_list[j][6]
                 obj.ry = top_list[j][7]
 
                 obj.t = dataset.recovery_t(obj, calib, trans, matrix)
@@ -417,17 +418,19 @@ def recovery_coordinate(dataset, samples_names, predictions):
 def interpolate_non_keyframe_predicitons(dataset, sample_names, predictions, threshold):
     def cal_iou(box3d_1, box3d_2):
         # convert to [ry, l, h, w, tx, ty, tz]
-        box3d = box3d_1[[7, 4, 5, 6, 1, 2, 3]]
+        box3d = box3d_1[[7, 4, 6, 5, 1, 2, 3]]
         if len(box3d_2.shape) == 1:
-            boxes3d = box3d_2[[7, 4, 5, 6, 1, 2, 3]]
+            boxes3d = box3d_2[[7, 4, 6, 5, 1, 2, 3]]
         else:
-            boxes3d = box3d_2[:, [7, 4, 5, 6, 1, 2, 3]]
+            boxes3d = box3d_2[:, [7, 4, 6, 5, 1, 2, 3]]
         iou = three_d_iou(box3d, boxes3d)
+        if len(box3d_2) == 1:
+            iou = [iou]
         return iou
 
     all_sample_names = dataset.create_all_sample_names(sample_names)
     num = len(all_sample_names)
-    pred_lists = [predictions[predictions[:, -1] == i] for i in range(num)]
+    pred_lists = [predictions[predictions[:, -1] == i] for i in range(len(sample_names))]
     # only one valid frame
     if num  == 1:
         # [anchor_id, x, y, z, l, w, h, r, score, type]
@@ -458,16 +461,19 @@ def interpolate_non_keyframe_predicitons(dataset, sample_names, predictions, thr
                     trajectories.append([[], obj])
         else:
             next_idx = [i for i in range(len(kept_list[1]))]
-            for i in range(kept_list[0]):
+            for i in range(len(kept_list[0])):
                 curr_obj = kept_list[0][i]
                 temp_track = [curr_obj]
-                ious = cal_iou(curr_obj, kept_list[1])
-                best_match_id = int(np.argmax(ious))
-                if(ious[best_match_id]) > 0:
-                    temp_track.append(kept_list[1][best_match_id])
-                    next_idx.remove(best_match_id)
-                else:
+                if len(next_idx) == 0:
                     temp_track.append([])
+                else:
+                    ious = cal_iou(curr_obj, kept_list[1])
+                    best_match_id = int(np.argmax(ious))
+                    if(ious[best_match_id]) > 0:
+                        temp_track.append(kept_list[1][best_match_id])
+                        next_idx.remove(best_match_id)
+                    else:
+                        temp_track.append([])
                 trajectories.append(temp_track)
             if len(next_idx) != 0:
                 remain_obj = kept_list[1][next_idx]

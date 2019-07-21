@@ -82,8 +82,8 @@ def evaluate(model_config, eval_config, dataset_config):
         if evaluate_repeatedly:
             model_evaluator.repeated_checkpoint_run()
         else:
-            model_evaluator.run_latest_checkpoints()
-        #model_evaluator.run_kitti_native_eval(14000)
+            # model_evaluator.run_latest_checkpoints()
+            model_evaluator.run_kitti_native_eval(90000)
 
 
 def main(_):
