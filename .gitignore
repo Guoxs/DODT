@@ -2,6 +2,7 @@ avod/data
 avod/data_detection
 avod/checkpoints
 avod/logs
+viz/video
 
 # Python
 *.pyc
