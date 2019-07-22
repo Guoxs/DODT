@@ -1,5 +1,6 @@
 avod/data
 avod/data_detection
+avod/data_tracking
 avod/checkpoints
 avod/logs
 viz/video
