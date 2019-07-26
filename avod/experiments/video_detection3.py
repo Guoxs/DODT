@@ -527,6 +527,8 @@ if __name__ == '__main__':
 
         track_new = restyle_track(track_kitti_format, frames)
 
+        print('track_new:')
+        print(track_new)
         # interpolation
         track_interploated = label_interpolation(track_new,stride)
 

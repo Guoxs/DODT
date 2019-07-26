@@ -188,7 +188,7 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
             img = draw_rotate_rectangle(img, gt_bev_boxes_1, color=(0, 255, 255))
 
         # get 0.1_2 labels
-        label_dir_2 = input_dir + '0.1_2/' + iter + '/data/'
+        label_dir_2 = input_dir + '0.1_guoxs_2/' + iter + '/data/'
         boxes3d_pred_2 = load_pred_box3d(label_dir_2, name, score_threshold=0.1)
         gt_bev_boxes_2 = project_label_to_bev_box(boxes3d_pred_2, ground_plane)
 
@@ -253,7 +253,7 @@ def main(_):
 
     dataset = build_dataset(eval_config, dataset_config)
 
-    # draw_prediction(dataset, input_dir, iter, output_dir)
+    draw_prediction(dataset, input_dir, iter, output_dir)
 
     create_video(output_dir)
 

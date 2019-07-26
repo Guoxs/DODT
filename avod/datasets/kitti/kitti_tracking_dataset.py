@@ -265,7 +265,7 @@ class KittiTrackingDataset:
 
         def split_val_test_video_ids(ids, stride, data_list):
             ids = list(map(extract_id, ids))
-            for i in range(0, len(ids), stride+1):
+            for i in range(0, len(ids), stride):
                 cur = ids[i]
                 if i + stride < len(ids):
                     next = ids[i + stride]
