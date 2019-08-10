@@ -23,29 +23,39 @@ def build(avod_layers_config, avod_config, bev_rois, is_training):
                                              max_displacement=disp,
                                              stride_1=1, stride_2=1,
                                              padding=padding)
-    # Flatten
-    fc_drop = slim.flatten(roi_corr_feature_maps)
-    with slim.arg_scope(
-            [slim.fully_connected],
-            weights_regularizer=weights_regularizer):
-        for layer_idx in range(num_layers):
-            fc_name_idx = layer_idx
+    output_names = ['corr_cls', 'corr_off']
+    cls_logits = None
+    offsets = None
 
-            # Use conv2d instead of fully_connected layers.
-            fc_layer = slim.fully_connected(fc_drop, layer_sizes[layer_idx],
-                                            scope='corr_fc{}'.format(fc_name_idx))
+    with slim.arg_scope([slim.fully_connected],
+                        weights_regularizer=weights_regularizer):
+        for output in output_names:
+            # Flatten
+            fc_drop = slim.flatten(roi_corr_feature_maps, scope=output + '_flatten')
 
-            fc_drop = slim.dropout(
-                        fc_layer,
-                        keep_prob=keep_prob,
-                        is_training=is_training,
-                        scope='corr_fc{}_drop'.format(fc_name_idx))
-            fc_name_idx += 1
+            for layer_idx in range(num_layers):
+                fc_name_idx = layer_idx
+                # Use conv2d instead of fully_connected layers.
+                fc_layer = slim.fully_connected(fc_drop, layer_sizes[layer_idx],
+                                                scope=output + 'corr_fc{}'.format(fc_name_idx))
+                fc_drop = slim.dropout(fc_layer,
+                                       keep_prob=keep_prob,
+                                       is_training=is_training,
+                                       scope=output + 'corr_fc{}_drop'.format(fc_name_idx))
+                fc_name_idx += 1
 
-    #[delta_x, delta_z, delta_ry]
-    corr_out_size = 3
-    corr_out = slim.fully_connected( fc_drop,
-                                     corr_out_size,
-                                     activation_fn=None,
-                                     scope='corr_out')
-    return corr_out
+            if output == 'corr_cls':
+                # Classification, [0,1],
+                corr_out_size = 2
+                cls_logits = slim.fully_connected(fc_drop,
+                                                  corr_out_size,
+                                                  activation_fn=None,
+                                                  scope='corr_cls')
+            elif output == 'corr_off':
+                #[delta_x, delta_z, delta_ry]
+                corr_out_size = 3
+                offsets = slim.fully_connected(fc_drop,
+                                               corr_out_size,
+                                               activation_fn=None,
+                                               scope='corr_offsets')
+    return cls_logits, offsets

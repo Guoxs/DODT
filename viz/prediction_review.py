@@ -188,14 +188,14 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
             img = draw_rotate_rectangle(img, gt_bev_boxes_1, color=(0, 255, 255))
 
         # get 0.1_2 labels
-        label_dir_2 = input_dir + '0.1_guoxs_2/' + iter + '/data/'
+        label_dir_2 = input_dir + '0.1_guoxs_kf_1/' + iter + '/data/'
         boxes3d_pred_2 = load_pred_box3d(label_dir_2, name, score_threshold=0.1)
         gt_bev_boxes_2 = project_label_to_bev_box(boxes3d_pred_2, ground_plane)
 
         # draw pred bev_box_2
         if len(gt_bev_boxes_2) > 0:
             cv2.line(img, (50, 90), (100, 90), (255, 0, 255), 1, lineType=cv2.LINE_AA)
-            cv2.putText(img, 'pred_0.1_2', (110, 90), cv2.FONT_HERSHEY_COMPLEX,
+            cv2.putText(img, 'pred_0.1_kf_1', (110, 90), cv2.FONT_HERSHEY_COMPLEX,
                         0.5, (255, 0, 255), 1)
             img = draw_rotate_rectangle(img, gt_bev_boxes_2, color=(255,0,255))
 
@@ -249,7 +249,7 @@ def main(_):
     # Overwrite data split
     dataset_config.data_split = 'val'
     # Set CUDA device id
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     dataset = build_dataset(eval_config, dataset_config)
 

@@ -365,7 +365,7 @@ class KittiTrackingDataset:
             for i in range(len(label_next)):
                 label_next[i].t = cal_new_t(label_next[i],calib, trans, matrix)
                 label_next[i].ry += delta
-            labels[-1] = label_next
+        labels[-1] = label_next
         return labels
 
     def recovery_t(self, label_obj, calib, trans, matrix):

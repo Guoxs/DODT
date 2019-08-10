@@ -40,7 +40,7 @@ class StackRpnModelTest(tf.test.TestCase):
         with self.test_session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
-            for i in range(10):
+            for i in range(20):
                 loss_dict_out = sess.run(loss, feed_dict=feed_dict)
                 print('Losses ', loss_dict_out)
 

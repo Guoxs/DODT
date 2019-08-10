@@ -8,7 +8,7 @@ from avod.builders.dataset_builder import DatasetBuilder
 from avod.core import constants
 from avod.datasets.kitti.kitti_dataset import KittiDataset
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 class KittiDatasetTest(unittest.TestCase):
     @classmethod
@@ -31,9 +31,9 @@ class KittiDatasetTest(unittest.TestCase):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
         indices_to_load = [1, 5, 9]
-        expected_samples = [['010001', '010003'],
-                            ['010005', '010007'],
-                            ['010009', '010009']]
+        expected_samples = [['010001', '010005'],
+                            ['010005', '010009'],
+                            ['020034', '020038']]
 
         # Load samples before shuffling
         samples = dataset.load_samples(indices_to_load)
@@ -96,20 +96,20 @@ class KittiDatasetTest(unittest.TestCase):
 
         # Train split
         train_dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
-        self.assertEqual(train_dataset.num_samples, 10)
+        self.assertEqual(train_dataset.num_samples, 22)
 
         # Validation split
         validation_dataset = self.get_fake_dataset('val', self.fake_kitti_dir)
-        self.assertEqual(validation_dataset.num_samples, 15)
+        self.assertEqual(validation_dataset.num_samples, 2)
 
         # Train + validation split
         trainval_dataset = self.get_fake_dataset('trainval',
                                                  self.fake_kitti_dir)
-        self.assertEqual(trainval_dataset.num_samples, 40)
+        self.assertEqual(trainval_dataset.num_samples, 28)
 
         # Test split
         test_dataset = self.get_fake_dataset('test', self.fake_kitti_dir)
-        self.assertEqual(test_dataset.num_samples, 5)
+        self.assertEqual(test_dataset.num_samples, 2)
 
     def test_batch_loading(self):
         # Training split
@@ -136,20 +136,20 @@ class KittiDatasetTest(unittest.TestCase):
     def test_batch_wrapping(self):
         dataset = self.get_fake_dataset('train', self.fake_kitti_dir)
 
-        batch = dataset.next_batch(10)
-        self.assertEqual(len(batch), 10)
+        batch = dataset.next_batch(22)
+        self.assertEqual(len(batch), 22)
         self.assertEqual(dataset.epochs_completed, 1)
 
         # Should not wrap
-        batch = dataset.next_batch(3)
-        self.assertEqual(len(batch), 3)
+        batch = dataset.next_batch(13)
+        self.assertEqual(len(batch), 13)
         self.assertEqual(dataset.epochs_completed, 1)
 
         # Should wrap, and provide a full batch
-        batch = dataset.next_batch(8)
-        self.assertEqual(len(batch), 8)
+        batch = dataset.next_batch(18)
+        self.assertEqual(len(batch), 18)
         self.assertEqual(dataset.epochs_completed, 2)
-        self.assertEqual(dataset._index_in_epoch, 1)
+        self.assertEqual(dataset._index_in_epoch, 9)
 
 if __name__ == '__main__':
     unittest.main()

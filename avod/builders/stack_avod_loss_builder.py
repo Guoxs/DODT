@@ -5,7 +5,8 @@ from avod.core import orientation_encoder
 
 KEY_CLASSIFICATION_LOSS = 'classification_loss'
 KEY_REGRESSION_LOSS = 'regression_loss'
-KEY_CORRELATION_LOSS = 'correlation_loss'
+KEY_CORRELATION_COEXISTS_LOSS = 'correlation_coexists_loss'
+KEY_CORRELATION_OFFSETS_LOSS = 'correlation_offsets_loss'
 KEY_AVOD_LOSS = 'avod_loss'
 
 KEY_OFFSET_LOSS_NORM = 'offset_loss_norm'
@@ -68,6 +69,23 @@ def _get_cls_loss(model, cls_logits, cls_gt):
 
     return cls_loss
 
+def _get_corr_cls_loss(model, corr_cls_logits, corr_cls_gt):
+    # Cross-entropy loss for classification
+    weighted_softmax_classification_loss = losses.WeightedSoftmaxLoss()
+    corr_cls_loss_weight = 1
+    corr_cls_loss = weighted_softmax_classification_loss(
+        corr_cls_logits, corr_cls_gt, weight=corr_cls_loss_weight)
+
+    # Normalize by the size of the minibatch
+    with tf.variable_scope('cls_norm'):
+        corr_cls_loss = corr_cls_loss / tf.cast(
+            tf.shape(corr_cls_gt)[0], dtype=tf.float32)
+
+    # Add summary scalar during training
+    if model._train_val_test == 'train':
+        tf.summary.scalar('corr_coexists', corr_cls_loss)
+
+    return corr_cls_loss
 
 def _get_positive_mask(positive_selection, cls_softmax, cls_gt):
     """Gets the positive mask based on the ground truth box classifications
@@ -332,14 +350,18 @@ def _build_cls_off_ang_loss(model, prediction_dict):
     mb_cls_logits = prediction_dict[model.PRED_MB_CLASSIFICATION_LOGITS]
     mb_cls_softmax = prediction_dict[model.PRED_MB_CLASSIFICATION_SOFTMAX]
     mb_offsets = prediction_dict[model.PRED_MB_OFFSETS]
-    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
     mb_angle_vectors = prediction_dict[model.PRED_MB_ANGLE_VECTORS]
+
+    mb_corr_coexists_logits = prediction_dict[model.PRED_MB_CORR_COEXISTS_LOGITS]
+    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
 
     # Ground Truth
     mb_cls_gt = prediction_dict[model.PRED_MB_CLASSIFICATIONS_GT]
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
-    mb_corr_offsets_gt = prediction_dict[model.PRED_MB_CORR_OFFSETS_GT]
     mb_orientations_gt = prediction_dict[model.PRED_MB_ORIENTATIONS_GT]
+
+    mb_corr_coexists_gt = prediction_dict[model.PRED_MB_CORR_COEXISTS_GT]
+    mb_corr_offsets_gt = prediction_dict[model.PRED_MB_CORR_OFFSETS_GT]
 
     size = len(mb_cls_gt)
 
@@ -365,15 +387,20 @@ def _build_cls_off_ang_loss(model, prediction_dict):
                                     mb_angle_vectors[i], mb_angle_vectors_gt[i],
                                     mb_cls_softmax[i], mb_cls_gt[i])
 
-        with tf.variable_scope('correlation'):
-            corr_loss = [_get_correlation_loss(model, mb_corr_offsets[i], mb_corr_offsets_gt[i],
+        with tf.variable_scope('correlation_coexists'):
+            corr_cls_loss = [_get_corr_cls_loss(model, mb_corr_coexists_logits[i],
+                                                mb_corr_coexists_gt[i]) for i in range(size)]
+
+        with tf.variable_scope('correlation_offsets'):
+            corr_off_loss = [_get_correlation_loss(model, mb_corr_offsets[i], mb_corr_offsets_gt[i],
                                               mb_cls_softmax[i], mb_cls_gt[i])
                          for i in range(size)]
 
         with tf.variable_scope('avod_loss'):
             avod_loss = [None] * size
             for i in range(size):
-                avod_loss[i] = cls_loss[i] + final_reg_loss[i] + corr_loss[i]
+                avod_loss[i] = cls_loss[i] + final_reg_loss[i] + \
+                               corr_cls_loss[i] + corr_off_loss[i]
                 tf.summary.scalar('avod_loss_%d' % i, avod_loss[i])
 
     # Loss dictionary
@@ -381,7 +408,8 @@ def _build_cls_off_ang_loss(model, prediction_dict):
 
     losses_output[KEY_CLASSIFICATION_LOSS] = cls_loss
     losses_output[KEY_REGRESSION_LOSS] = final_reg_loss
-    losses_output[KEY_CORRELATION_LOSS] = corr_loss
+    losses_output[KEY_CORRELATION_COEXISTS_LOSS] = corr_cls_loss
+    losses_output[KEY_CORRELATION_OFFSETS_LOSS] = corr_off_loss
     losses_output[KEY_AVOD_LOSS] = avod_loss
 
     # Separate losses for plotting
@@ -405,12 +433,15 @@ def _build_cls_off_loss(model, prediction_dict):
     # Predictions
     mb_cls_logits = prediction_dict[model.PRED_MB_CLASSIFICATION_LOGITS]
     mb_cls_softmax = prediction_dict[model.PRED_MB_CLASSIFICATION_SOFTMAX]
-    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
     mb_offsets = prediction_dict[model.PRED_MB_OFFSETS]
+
+    mb_corr_coexists_logits = prediction_dict[model.PRED_MB_CORR_COEXISTS_LOGITS]
+    mb_corr_offsets = prediction_dict[model.PRED_MB_CORR_OFFSETS]
 
     # Ground truth
     mb_cls_gt = prediction_dict[model.PRED_MB_CLASSIFICATIONS_GT]
     mb_offsets_gt = prediction_dict[model.PRED_MB_OFFSETS_GT]
+    mb_corr_coexists_gt = prediction_dict[model.PRED_MB_CORR_COEXISTS_GT]
     mb_corr_offsets_gt = prediction_dict[model.PRED_MB_CORR_OFFSETS_GT]
 
     size = len(mb_cls_gt)
@@ -427,22 +458,29 @@ def _build_cls_off_loss(model, prediction_dict):
                 final_reg_loss[i], offset_loss_norm[i] = _get_offset_only_loss(
                     model, mb_offsets[i], mb_offsets_gt[i], mb_cls_softmax[i], mb_cls_gt[i])
 
-        with tf.variable_scope('correlation'):
-            corr_loss = [_get_correlation_loss(model, mb_corr_offsets[i], mb_corr_offsets_gt[i],
-                                              mb_cls_softmax[i], mb_cls_gt[i])
-                         for i in range(size)]
+        with tf.variable_scope('correlation_coexists'):
+            corr_cls_loss = [_get_corr_cls_loss(model, mb_corr_coexists_logits[i],
+                                                mb_corr_coexists_gt[i]) for i in range(size)]
+
+        with tf.variable_scope('correlation_offsets'):
+            corr_off_loss = [_get_correlation_loss(model, mb_corr_offsets[i],
+                                                   mb_corr_offsets_gt[i],
+                                                   mb_cls_softmax[i], mb_cls_gt[i])
+                            for i in range(size)]
 
         with tf.variable_scope('avod_loss'):
             avod_loss = [None] * size
             for i in range(size):
-                avod_loss[i] = cls_loss[i] + final_reg_loss[i] + corr_loss[i]
+                avod_loss[i] = cls_loss[i] + final_reg_loss[i] + \
+                               corr_cls_loss[i] + corr_off_loss[i]
                 tf.summary.scalar('avod_loss_%d' % i, avod_loss[i])
 
     losses_output = dict()
 
     losses_output[KEY_CLASSIFICATION_LOSS] = cls_loss
     losses_output[KEY_REGRESSION_LOSS] = final_reg_loss
-    losses_output[KEY_CORRELATION_LOSS] = corr_loss
+    losses_output[KEY_CORRELATION_COEXISTS_LOSS] = corr_cls_loss
+    losses_output[KEY_CORRELATION_OFFSETS_LOSS] = corr_off_loss
     losses_output[KEY_AVOD_LOSS] = avod_loss
 
     losses_output[KEY_OFFSET_LOSS_NORM] = offset_loss_norm

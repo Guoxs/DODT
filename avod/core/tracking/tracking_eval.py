@@ -51,23 +51,21 @@ def build_dataset(dataset_config):
 
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
-    box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
-    box3d[1:4] = 4 * box3d[1:4]
+    box3d = box3d_1[[-1, 2, 0, 1, 3, 4, 5]]
+    # box3d[1:4] = 1.5 * box3d[1:4]
     if len(box3d_2.shape) == 1:
-        boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[[-1, 2, 0, 1, 3, 4, 5]]
     else:
-        boxes3d = box3d_2[:, [-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[:, [-1, 2, 0, 1, 3, 4, 5]]
     iou = three_d_iou(box3d, boxes3d)
     return iou
 
 def iou_2d(box3d_1, box3d_2):
     plane = np.asarray([0,-1,0,1.65])
     # convert to [tx, ty, tz, l, w, h, ry]
-    box3d_1 = box3d_1[[3, 4, 5, 0, 1, 2, 6]]
-    box3d_2 = box3d_2[[3, 4, 5, 0, 1, 2, 6]]
+    box3d_1 = box3d_1[[3, 4, 5, 2, 1, 0, 6]]
+    box3d_2 = box3d_2[[3, 4, 5, 2, 1, 0, 6]]
 
-    box3d_1[3:6] = 3.8 * box3d_1[3:6]
-    box3d_2[3:6] = 3.8 * box3d_2[3:6]
     # [x1, x2, x3, x4, z1, z2, z3, z4, h1, h2]
     box4c_1 = np_box_3d_to_box_4c(box3d_1, plane)
     box4c_2 = np_box_3d_to_box_4c(box3d_2, plane)
@@ -87,15 +85,15 @@ def box3d_to_label(box3d):
     from wavedata.tools.obj_detection.tracking_utils import TrackingLabel
     # boxes3d [l, w, h, tx, ty, tz, ry]
     label = TrackingLabel()
-    label.l = box3d[0]
+    label.l = box3d[2]
     label.w = box3d[1]
-    label.h = box3d[2]
+    label.h = box3d[0]
     label.t = (box3d[3], box3d[4], box3d[5])
     label.ry = box3d[6]
     return label
 
 def label_to_box3d(label):
-    box3d = [label.l, label.w, label.h, label.t[0],
+    box3d = [label.h, label.w, label.l, label.t[0],
             label.t[1], label.t[2], label.ry]
     box3d = np.asarray(box3d)
     return box3d
@@ -116,9 +114,9 @@ def cal_transformed_ious(dataset, video_id, item1, item2):
 
     trans_box3d_2 = label_to_box3d(transformed_label[-1][0])
 
-    trans_iou_2d = iou_2d(box3d_1, trans_box3d_2)
+    trans_iou_3d = iou_3d(box3d_1, trans_box3d_2)
 
-    return trans_iou_2d
+    return trans_iou_3d
 
 def copy_tracking_eval_script(to_path, video_ids, train_split='val'):
     from_path = avod.root_dir() + '/../scripts/offline_eval/' \
@@ -219,8 +217,8 @@ def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min)
         for track in tracks_active:
             if len(dets) > 0:
                 # get det with highest iou
-                # ious = [cal_transformed_ious(dataset, video_id, track['trajectory'][-1], x) for x in dets]
-                ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
+                ious = [cal_transformed_ious(dataset, video_id, track['trajectory'][-1], x) for x in dets]
+                # ious = [iou_3d(track['trajectory'][-1]['boxes3d'], x['boxes3d']) for x in dets]
                 # print(ious)
 
                 best_match_id = int(np.argmax(ious))
@@ -247,10 +245,6 @@ def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min)
                         and len(track['trajectory']) >= t_min]
 
     return tracks_finished
-
-
-def create_visual_det():
-    pass
 
 
 
@@ -335,13 +329,13 @@ def track_iou_v2(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_m
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
     ckpt_indices = '7000'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
 
-    dataset_config.data_stride = 0
+    dataset_config.data_stride = 1
 
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
@@ -354,7 +348,7 @@ if __name__ == '__main__':
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
         tracks_finished = track_iou_v2(dataset, video_id, dets_for_track, sigma_l=0.1,
-                                    sigma_h=0.2, sigma_iou=0.0, t_min=2)
+                                    sigma_h=0.5, sigma_iou=0.1, t_min=3)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

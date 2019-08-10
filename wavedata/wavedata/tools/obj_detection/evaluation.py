@@ -5,37 +5,34 @@ from PIL import Image, ImageDraw
 
 def two_d_iou(box, boxes):
     """Compute 2D IOU between a 2D bounding box 'box' and a list
-
     :param box: a numpy array in the form of [x1, y1, x2, y2] where (x1,y1) are
     image coordinates of the top-left corner of the bounding box, and (x2,y2)
     are the image coordinates of the bottom-right corner of the bounding box.
-
     :param boxes: a numpy array formed as a list of boxes in the form
     [[x1, y1, x2, y2], [x1, y1, x2, y2]].
-
     :return iou: a numpy array containing 2D IOUs between box and every element
     in numpy array boxes.
     """
     iou = np.zeros(len(boxes), np.float64)
 
     x1_int = np.maximum(box[0], boxes[:, 0])
-    y1_int = np.minimum(box[1], boxes[:, 1])
+    y1_int = np.maximum(box[1], boxes[:, 1])
     x2_int = np.minimum(box[2], boxes[:, 2])
-    y2_int = np.maximum(box[3], boxes[:, 3])
+    y2_int = np.minimum(box[3], boxes[:, 3])
 
     w_int = x2_int - x1_int
-    h_int = y1_int - y2_int
+    h_int = y2_int - y1_int
 
     non_empty = np.logical_and(w_int > 0, h_int > 0)
 
     if non_empty.any():
         intersection_area = np.multiply(w_int[non_empty], h_int[non_empty])
 
-        box_area = (box[2] - box[0]) * (box[1] - box[3])
+        box_area = (box[2] - box[0]) * (box[3] - box[1])
 
         boxes_area = np.multiply(
             boxes[non_empty, 2] - boxes[non_empty, 0],
-            boxes[non_empty, 1] - boxes[non_empty, 3])
+            boxes[non_empty, 3] - boxes[non_empty, 1])
 
         union_area = box_area + boxes_area - intersection_area
 

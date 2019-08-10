@@ -127,6 +127,18 @@ def cal_label_death(labels):
         offsets.append(offset)
     return offsets
 
+def birth_and_death_offsets(labels, prefix='death'):
+    offsets = []
+    flag = 1 if prefix == 'birth' else -1
+    for i in range(len(labels)):
+        temp_label = deepcopy(labels[i])
+        death_offset = temp_label[[0,2,3,4,6,7]]
+        # object death, offset: [0, 0, -1, -1, 0, obj_id]
+        death_offset[[0, 1, 4]] = 0.0
+        death_offset[[2, 3]] = flag
+        offsets.append(death_offset)
+    return offsets
+
 
 def cal_label_offsets(label_1, label_2):
     '''calculate (delta_x, delta_z, delta_ry) between two adjacent key frames.
@@ -148,9 +160,13 @@ def cal_label_offsets(label_1, label_2):
                     # object match
                     if int(obj_id) == int(next_off[-1]):
                         offset = next_off - pre_off
+                        # (delta_x, delta_z, delta_l, delta_w, delta_ry, obj_id)
+                        offset = offset[[0,2,3,4,6,7]]
+                        # delta_x /= w, delta_z /= l, delta_ry /= ry
+                        offset[[0,1,4]] /= pre_off[[4,3,6]]
+                        # set delta_l, delta_w to zero
+                        offset[[2,3]] = 0.0
                         offset[-1] = obj_id
-                        # only need (delta_x, delta_z, delta_ry, obj_id)
-                        offset = offset[[0,2,6,7]]
                         offsets.append(offset)
                         # remove match idx
                         pre_label_idx.remove(i)
@@ -158,19 +174,25 @@ def cal_label_offsets(label_1, label_2):
                         continue
             if len(pre_label_idx) > 0:
                 # object death
-                death_offsets = cal_label_death(label_1[pre_label_idx])
+                #death_offsets = cal_label_death(label_1[pre_label_idx])
+                death_offsets = birth_and_death_offsets(
+                                label_1[pre_label_idx], prefix='death')
                 offsets += death_offsets
             if len(next_label_idx) > 0:
                 # object birth
-                birth_offsets = cal_label_birth(label_2[next_label_idx])
+                # birth_offsets = cal_label_birth(label_2[next_label_idx])
+                birth_offsets = birth_and_death_offsets(
+                                label_2[next_label_idx], prefix='birth')
                 offsets += birth_offsets
         else:
             # objects death, assume objects death just before next frame
-            death_offsets = cal_label_death(label_1)
+            death_offsets = birth_and_death_offsets(label_1, prefix='death')
             offsets += death_offsets
     else:
         if len(label_2) > 0:
             # objects birth, assume objects birth just after pre frame
-            birth_offsets = cal_label_birth(label_2)
+            birth_offsets = birth_and_death_offsets(label_2, prefix='birth')
             offsets += birth_offsets
+    # sort
+    offsets.sort(key=lambda offset: offset[-1])
     return np.asarray(offsets)

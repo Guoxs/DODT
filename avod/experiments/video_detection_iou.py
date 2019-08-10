@@ -163,20 +163,20 @@ def iou_3d(box3d_1, box3d_2):
     box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
     # box3d[1:4] = 4 * box3d[1:4]
     if len(box3d_2.shape) == 1:
-        boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[[-1, 2, 0, 1, 3, 4, 5]]
     else:
-        boxes3d = box3d_2[:, [-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[:, [-1, 2, 0, 1, 3, 4, 5]]
     iou = three_d_iou(box3d, boxes3d)
     return iou
 
 def iou_2d(box3d_1, box3d_2):
     plane = np.asarray([0,-1,0,1.65])
     # convert to [tx, ty, tz, l, w, h, ry]
-    box3d_1 = box3d_1[[3, 4, 5, 0, 1, 2, 6]]
-    box3d_2 = box3d_2[[3, 4, 5, 0, 1, 2, 6]]
+    box3d_1 = box3d_1[[3, 4, 5, 2, 1, 0, 6]]
+    box3d_2 = box3d_2[[3, 4, 5, 2, 1, 0, 6]]
 
-    box3d_1[3:6] = 3.8 * box3d_1[3:6]
-    box3d_2[3:6] = 3.8 * box3d_2[3:6]
+    # box3d_1[3:6] = 3.8 * box3d_1[3:6]
+    # box3d_2[3:6] = 3.8 * box3d_2[3:6]
     # [x1, x2, x3, x4, z1, z2, z3, z4, h1, h2]
     box4c_1 = np_box_3d_to_box_4c(box3d_1, plane)
     box4c_2 = np_box_3d_to_box_4c(box3d_2, plane)
@@ -196,35 +196,36 @@ def box3d_to_label(box3d):
     from wavedata.tools.obj_detection.tracking_utils import TrackingLabel
     # boxes3d [l, w, h, tx, ty, tz, ry]
     label = TrackingLabel()
-    label.l = box3d[0]
+    label.l = box3d[2]
     label.w = box3d[1]
-    label.h = box3d[2]
+    label.h = box3d[0]
     label.t = (box3d[3], box3d[4], box3d[5])
     label.ry = box3d[6]
     return label
 
 def label_to_box3d(label):
-    box3d = [label.l, label.w, label.h, label.t[0],
+    box3d = [label.h, label.w, label.l, label.t[0],
             label.t[1], label.t[2], label.ry]
     box3d = np.asarray(box3d)
     return box3d
 
-def cal_transformed_ious(dataset, video_id, item1, item2):
-    box3d_1 = item1['boxes3d']
-    box3d_2 = item2['boxes3d']
+def cal_transformed_ious(dataset, video_id, track, detection):
+    box3d_1 = track['dets'][-1]['boxes3d']
+    box3d_2 = detection['boxes3d']
     label_1 = box3d_to_label(box3d_1)
     label_2 = box3d_to_label(box3d_2)
     label_obj = [[label_1], [label_2]]
 
-    sample_name_1 = str(video_id).zfill(2) + str(item1['frame_id']).zfill(4)
-    sample_name_2 = str(video_id).zfill(2) + str(item2['frame_id']).zfill(4)
+    pre_frame_id = track['dets'][-1]['frame_id']
+    sample_name_1 = str(video_id).zfill(2) + str(pre_frame_id).zfill(4)
+    sample_name_2 = str(video_id).zfill(2) + str(detection['frame_id']).zfill(4)
     sample_names = [sample_name_1, sample_name_2]
 
     transformed_label = dataset.label_transform(label_obj, sample_names)
 
     trans_box3d_2 = label_to_box3d(transformed_label[-1][0])
 
-    trans_iou_2d = iou_2d(box3d_1, trans_box3d_2)
+    trans_iou_2d = iou_3d(box3d_1, trans_box3d_2)
 
     return trans_iou_2d
 
@@ -242,7 +243,7 @@ def inside(det):
     z_inside = (z > 0) & (z < 70)
     x_inside = (x > -40) & (x < 40)
     if x_inside and z_inside:
-        if (x + z) > 0 or (z - x) > 0:
+        if (z + 1.3*x) > 0 and (z - 1.3*x) > 0:
             return True
     return False
 
@@ -263,18 +264,18 @@ def get_absolute_speed(dataset, pre_det, next_det):
 
     trans_box3d_2 = label_to_box3d(transformed_label[-1][0])
 
-    speed = trans_box3d_2[[3, 5]] - box3d_1[[3, 5]]
+    speed = trans_box3d_2[[3, 5, 6]] - box3d_1[[3, 5, 6]]
 
-    delta_ang = trans_box3d_2[-1] - box3d_1[-1]
-    if abs(trans_box3d_2[-1] - box3d_1[-1]) > np.pi / 4:
-        delta_ang = 0
-    return speed, delta_ang
+    if abs(speed[-1]) > np.pi / 4:
+        speed[-1] = 0
+
+    return speed
 
 def update_with_speed(dataset, speed, pre_det, next_id):
     pre_box3d = pre_det['boxes3d']
     pre_label = box3d_to_label(pre_box3d)
     next_box3d = pre_box3d
-    next_box3d[[3,5]] += speed
+    next_box3d[[3,5,6]] += speed
     next_label = box3d_to_label(next_box3d)
 
     labels = [[pre_label], [next_label]]
@@ -307,12 +308,19 @@ def interpolate_det(dataset, track, next_det, frame_num):
         # [x,y,z]
         new_det['boxes3d'][3:6] += i / stride * (next_det['boxes3d'][3:6]
                                                    - pre_det['boxes3d'][3:6])
+        if next_det['boxes3d'][-1] * pre_det['boxes3d'][-1] > 0:
+            new_det['boxes3d'][-1] += i / stride * (next_det['boxes3d'][-1] -
+                                                    pre_det['boxes3d'][-1])
+        else:
+            new_det['boxes3d'][-1] = next_det['boxes3d'][-1]
         track['dets'].append(new_det)
 
     # update speed
-    track['speed'] = next_det['boxes3d'][[3, 5]] - pre_det['boxes3d'][[3, 5]]
+    track['speed'] = next_det['boxes3d'][[3, 5, 6]] - \
+                     pre_det['boxes3d'][[3, 5, 6]]
+
     # if int(next_det['frame_id']) < frame_num:
-    #     speed, delta_ang = get_absolute_speed(dataset, pre_det, next_det)
+    #     speed = get_absolute_speed(dataset, pre_det, next_det)
     #     track['speed'] = speed / stride
     return track
 
@@ -326,14 +334,15 @@ def extend_track_start(trajectories, stride):
             continue
         if first_id == 0:
             continue
-        speed = track['dets'][1]['boxes3d'][[3,5]] - first_det['boxes3d'][[3,5]]
+        speed = track['dets'][1]['boxes3d'][[3,5, 6]] - \
+                first_det['boxes3d'][[3,5, 6]]
 
         for i in range(stride):
             pre_det = deepcopy(track['dets'][0])
             pre_det['frame_id'] -= 1
             if pre_det['frame_id'] < 0:
                 break
-            pre_det['boxes3d'][[3, 5]] -= speed
+            pre_det['boxes3d'][[3, 5, 6]] -= speed
             track['dets'].insert(0, pre_det)
     return trajectories
 
@@ -343,21 +352,15 @@ def extend_track_end(trajectories, stride, frame_num):
             continue
         last_det = track['dets'][-1]
         last_id = last_det['frame_id']
-        if last_id >= frame_num:
+        if not inside(last_det):
             continue
-        min_dis = get_boundary_dis(last_det)
-        if min_dis < last_det['boxes3d'][0]:
-            while inside(track['dets'][-1]):
-                next_det = deepcopy(track['dets'][-1])
-                next_det['frame_id'] += 1
-                next_det['boxes3d'][[3, 5]] += track['speed']
-                track['dets'].append(next_det)
-        else:
-            for i in range(stride):
-                next_det = deepcopy(track['dets'][-1])
-                next_det['frame_id'] += 1
-                next_det['boxes3d'][[3, 5]] += track['speed']
-                track['dets'].append(next_det)
+        if last_id >= frame_num-1:
+            continue
+        for i in range(stride):
+            next_det = deepcopy(track['dets'][-1])
+            next_det['frame_id'] += 1
+            next_det['boxes3d'][[3, 5, 6]] += track['speed']
+            track['dets'].append(next_det)
     return trajectories
 
 def predict_det(track, tracks_finished, frame_num, stride, sigma_h, t_min, extend_len):
@@ -372,11 +375,11 @@ def predict_det(track, tracks_finished, frame_num, stride, sigma_h, t_min, exten
             #         tracks_finished.append(track)
             #     is_update = False
             #     break
-
+            #
             # next_det['boxes3d'] = update_with_speed(dataset, speed,
             #                                         next_det, next_det['frame_id']+1)
             next_det['frame_id'] += 1
-            next_det['boxes3d'][[3, 5]] += speed
+            next_det['boxes3d'][[3, 5, 6]] += speed
             track['extend_len'] += 1
             track['dets'].append(next_det)
         else:
@@ -391,6 +394,19 @@ def predict_det(track, tracks_finished, frame_num, stride, sigma_h, t_min, exten
         return None, tracks_finished
 
 
+def update_dierection(track, det):
+    directions = track['direction']
+    angle = det['boxes3d'][-1]
+    flag = 1 if angle > 0 else -1
+    track['direction'].append(flag)
+    if len(directions) >= 3:
+        if sum(directions) > 0:
+            det['boxes3d'][-1] = abs(angle)
+        else:
+            det['boxes3d'][-1] = -abs(angle)
+    return track, det
+
+
 def interpolate_by_track(dataset, video_id, detections, stride, frame_num,
                          sigma_l, sigma_h, sigma_iou, t_min, extend_len):
     tracks_active = []
@@ -401,18 +417,18 @@ def interpolate_by_track(dataset, video_id, detections, stride, frame_num,
         for track in tracks_active:
             if len(dets) > 0:
                 # get det with highest iou
-                ious = [cal_transformed_ious(dataset, video_id,
-                                             track['dets'][-1], x) for x in dets]
+                ious = [cal_transformed_ious(dataset, video_id, track, x) for x in dets]
                 # ious = [iou_2d(track['dets'][-1]['boxes3d'], x['boxes3d']) for x in dets]
                 best_match_id = int(np.argmax(ious))
                 # has det in next frame matches
                 if ious[best_match_id] > sigma_iou:
                     if track['extend_len'] > 0: track['extend_len'] = 0
+                    # update and correct direction
+                    # track, dets[best_match_id] = update_dierection(track, dets[best_match_id])
                     # interpolate intermediate dets and update speed
                     track = interpolate_det(dataset, track, dets[best_match_id], frame_num)
                     # append next dets
                     track['dets'].append(dets[best_match_id])
-                    track['direction'].append(dets[best_match_id]['boxes3d'][-1])
                     track['max_score'] = max(track['max_score'], dets[best_match_id]['score'])
 
                     updated_tracks.append(track)
@@ -432,8 +448,8 @@ def interpolate_by_track(dataset, video_id, detections, stride, frame_num,
                     updated_tracks.append(track)
 
         # create new tracks
-        new_tracks = [{'dets': [det], 'direction': [det['boxes3d'][-1]], 'max_score': det['score'],
-                       'speed': [0.0, 0.0], 'extend_len': 0} for det in dets]
+        new_tracks = [{'dets': [det], 'direction': [1 if det['boxes3d'][-1] > 0 else -1],
+                       'max_score': det['score'], 'speed': [0.0, 0.0, 0.0], 'extend_len': 0} for det in dets]
         tracks_active = updated_tracks + new_tracks
 
     # finish all remaining active tracks
@@ -443,10 +459,10 @@ def interpolate_by_track(dataset, video_id, detections, stride, frame_num,
     # improve direction
 
     # extend trajectory start
-    # tracks_finished = extend_track_start(tracks_finished, stride)
+    tracks_finished = extend_track_start(tracks_finished, stride)
 
     # extend trajectory end
-    # tracks_finished = extend_track_end(tracks_finished, stride, frame_num)
+    tracks_finished = extend_track_end(tracks_finished, stride, frame_num)
 
     return tracks_finished
 
@@ -510,7 +526,7 @@ if __name__ == '__main__':
     checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
     ckpt_indices = '7000'
 
-    stride = 2
+    stride = 1
 
     kitti_score_threshold = '0.1_guoxs_' + str(stride)
 
@@ -524,7 +540,7 @@ if __name__ == '__main__':
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
 
-    output_root = output_root + '0.1_guoxs_' + str(stride) + '/' + ckpt_indices + '/data/'
+    output_root = output_root + kitti_score_threshold + '/' + ckpt_indices + '/data/'
     os.makedirs(output_root, exist_ok=True)
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
@@ -534,18 +550,26 @@ if __name__ == '__main__':
         frame_num = int(frames[-1][2:]) + 1
         dets_for_track = generate_dets_for_track(video_id, frames, root_dir)
         tracks_finished = interpolate_by_track(dataset, video_id, dets_for_track, stride, frame_num,
-                                    sigma_l=0.1, sigma_h=0.3, sigma_iou=0.1, t_min=3, extend_len=3)
+                                    sigma_l=0.1, sigma_h=0.5, sigma_iou=0.1, t_min=3, extend_len=3)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
 
-        track_new = restyle_track(track_kitti_format, frames)
+        # store tracking result
+        # create txt to store tracking predictions
+        video_result_path = tracking_output_dir + video_id.zfill(4) + '.txt'
+        np.savetxt(video_result_path, track_kitti_format, newline='\r\n', fmt='%s')
+        print('store prediction results:', video_result_path)
 
-        # store result
+        # store detection result
+        track_new = restyle_track(track_kitti_format, frames)
         print('\nStoring video id: %s' % video_id)
         store_final_result(track_new, video_id, output_root)
 
-        # Create a separate processes to run the native evaluation
+    # run eval script for tracking evaluation
+    run_kitti_tracking_script(checkpoint_name, ckpt_indices)
+
+    # Create a separate processes to run the native evaluation
     native_eval_proc = Process(target=run_kitti_native_script,
                                args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
 

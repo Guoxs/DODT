@@ -60,6 +60,17 @@ J.~Ku, M.~Mozifian, J.~Lee, A.~Harakeh, and S.~L. Waslander, ``Joint 3d
   \emph{2018 IEEE/RSJ International Conference on Intelligent Robots and
   Systems (IROS)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2018, pp. 1--8.
 
+\bibitem{feichtenhofer2017detect}
+C.~Feichtenhofer, A.~Pinz, and A.~Zisserman, ``Detect to track and track to
+  detect,'' in \emph{Proceedings of the IEEE International Conference on
+  Computer Vision}, 2017, pp. 3038--3046.
+
+\bibitem{dosovitskiy2015flownet}
+A.~Dosovitskiy, P.~Fischer, E.~Ilg, P.~Hausser, C.~Hazirbas, V.~Golkov, P.~Van
+  Der~Smagt, D.~Cremers, and T.~Brox, ``Flownet: Learning optical flow with
+  convolutional networks,'' in \emph{Proceedings of the IEEE international
+  conference on computer vision}, 2015, pp. 2758--2766.
+
 \bibitem{lenz2015followme}
 P.~Lenz, A.~Geiger, and R.~Urtasun, ``Followme: Efficient online min-cost flow
   tracking with bounded memory and computation,'' in \emph{Proceedings of the
@@ -78,21 +89,16 @@ M.~Engelcke, D.~Rao, D.~Z. Wang, C.~H. Tong, and I.~Posner, ``Vote3deep: Fast
   Automation (ICRA)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2017, pp.
   1355--1361.
 
-\bibitem{luo2018fast}
-W.~Luo, B.~Yang, and R.~Urtasun, ``Fast and furious: Real time end-to-end 3d
-  detection, tracking and motion forecasting with a single convolutional net,''
-  in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
-  Recognition}, 2018, pp. 3569--3577.
+\bibitem{Simon_2019_CVPR_Workshops}
+M.~Simon, K.~Amende, A.~Kraus, J.~Honer, T.~Samann, H.~Kaulbersch, S.~Milz, and
+  H.~Michael~Gross, ``Complexer-yolo: Real-time 3d object detection and
+  tracking on semantic point clouds,'' in \emph{The IEEE Conference on Computer
+  Vision and Pattern Recognition (CVPR) Workshops}, June 2019.
 
 \bibitem{qi2018frustum}
 C.~R. Qi, W.~Liu, C.~Wu, H.~Su, and L.~J. Guibas, ``Frustum pointnets for 3d
   object detection from rgb-d data,'' in \emph{Proceedings of the IEEE
   Conference on Computer Vision and Pattern Recognition}, 2018, pp. 918--927.
-
-\bibitem{ren2015faster}
-S.~Ren, K.~He, R.~Girshick, and J.~Sun, ``Faster r-cnn: Towards real-time
-  object detection with region proposal networks,'' in \emph{Advances in neural
-  information processing systems}, 2015, pp. 91--99.
 
 \bibitem{zhu2017flow}
 X.~Zhu, Y.~Wang, J.~Dai, L.~Yuan, and Y.~Wei, ``Flow-guided feature aggregation
@@ -115,10 +121,11 @@ W.~Han, P.~Khorrami, T.~L. Paine, P.~Ramachandran, M.~Babaeizadeh, H.~Shi,
   J.~Li, S.~Yan, and T.~S. Huang, ``Seq-nms for video object detection,''
   \emph{arXiv preprint arXiv:1602.08465}, 2016.
 
-\bibitem{feichtenhofer2017detect}
-C.~Feichtenhofer, A.~Pinz, and A.~Zisserman, ``Detect to track and track to
-  detect,'' in \emph{Proceedings of the IEEE International Conference on
-  Computer Vision}, 2017, pp. 3038--3046.
+\bibitem{luo2018fast}
+W.~Luo, B.~Yang, and R.~Urtasun, ``Fast and furious: Real time end-to-end 3d
+  detection, tracking and motion forecasting with a single convolutional net,''
+  in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
+  Recognition}, 2018, pp. 3569--3577.
 
 \bibitem{frossard2018end}
 D.~Frossard and R.~Urtasun, ``End-to-end learning of multi-sensor 3d tracking
@@ -126,19 +133,14 @@ D.~Frossard and R.~Urtasun, ``End-to-end learning of multi-sensor 3d tracking
   Automation (ICRA)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2018, pp.
   635--642.
 
-\bibitem{bochinski2018extending}
-E.~Bochinski, T.~Senst, and T.~Sikora, ``Extending iou based multi-object
-  tracking by visual information,'' \emph{AVSS. IEEE}, 2018.
+\bibitem{geiger2013vision}
+A.~Geiger, P.~Lenz, C.~Stiller, and R.~Urtasun, ``Vision meets robotics: The
+  kitti dataset,'' \emph{The International Journal of Robotics Research},
+  vol.~32, no.~11, pp. 1231--1237, 2013.
 
-\bibitem{dosovitskiy2015flownet}
-A.~Dosovitskiy, P.~Fischer, E.~Ilg, P.~Hausser, C.~Hazirbas, V.~Golkov, P.~Van
-  Der~Smagt, D.~Cremers, and T.~Brox, ``Flownet: Learning optical flow with
-  convolutional networks,'' in \emph{Proceedings of the IEEE international
-  conference on computer vision}, 2015, pp. 2758--2766.
-
-\bibitem{girshick2015fast}
-R.~Girshick, ``Fast r-cnn,'' in \emph{Proceedings of the IEEE international
-  conference on computer vision}, 2015, pp. 1440--1448.
+\bibitem{kingma2014adam}
+D.~P. Kingma and J.~Ba, ``Adam: A method for stochastic optimization,''
+  \emph{arXiv preprint arXiv:1412.6980}, 2014.
 
 \bibitem{Milan2014PAMI}
 A.~Milan, S.~Roth, and K.~Schindler, ``Continuous energy minimization for
@@ -186,14 +188,5 @@ A.~Milan, K.~Schindler, and S.~Roth, ``Detection- and trajectory-level
 Y.~Xiang, W.~Choi, Y.~Lin, and S.~Savarese, ``Subcategory-aware convolutional
   neural networks for object proposals and detection,'' in \emph{IEEE Winter
   Conference on Applications of Computer Vision (WACV)}, 2017.
-
-\bibitem{geiger2013vision}
-A.~Geiger, P.~Lenz, C.~Stiller, and R.~Urtasun, ``Vision meets robotics: The
-  kitti dataset,'' \emph{The International Journal of Robotics Research},
-  vol.~32, no.~11, pp. 1231--1237, 2013.
-
-\bibitem{kingma2014adam}
-D.~P. Kingma and J.~Ba, ``Adam: A method for stochastic optimization,''
-  \emph{arXiv preprint arXiv:1412.6980}, 2014.
 
 \end{thebibliography}

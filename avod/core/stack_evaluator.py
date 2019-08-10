@@ -27,7 +27,8 @@ KEY_SUM_RPN_OBJ_ACC = 'sum_rpn_obj_accuracy'
 
 KEY_SUM_AVOD_CLS_LOSS = 'sum_avod_cls_loss'
 KEY_SUM_AVOD_REG_LOSS = 'sum_avod_reg_loss'
-KEY_SUM_AVOD_CORR_LOSS = 'sum_avod_corr_loss'
+KEY_SUM_AVOD_CORR_COEXISTS_LOSS = 'sum_avod_corr_coexists_loss'
+KEY_SUM_AVOD_CORR_OFFSETS_LOSS = 'sum_avod_corr_offsets_loss'
 KEY_SUM_AVOD_TOTAL_LOSS = 'sum_avod_total_loss'
 KEY_SUM_AVOD_LOC_LOSS = 'sum_avod_loc_loss'
 KEY_SUM_AVOD_ANG_LOSS = 'sum_avod_ang_loss'
@@ -594,7 +595,8 @@ class StackEvaluator:
         # Get the loss sums from the losses dict
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_coexists_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_COEXISTS_LOSS]
+        sum_avod_corr_offsets_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_OFFSETS_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -603,8 +605,10 @@ class StackEvaluator:
             eval_losses[StackAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_REGRESSION]
-        avod_correlation_loss = \
-            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION]
+        avod_correlation_coexists_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION_COEXISTS]
+        avod_correlation_offsets_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION_OFFSETS]
 
         avod_localization_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_LOCALIZATION]
@@ -613,7 +617,8 @@ class StackEvaluator:
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
-        sum_avod_corr_loss += avod_correlation_loss
+        sum_avod_corr_coexists_loss += avod_correlation_coexists_loss
+        sum_avod_corr_offsets_loss += avod_correlation_offsets_loss
         sum_avod_total_loss += eval_total_loss
 
         # update the losses sums
@@ -623,8 +628,11 @@ class StackEvaluator:
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
 
-        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
-                                     sum_avod_corr_loss})
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_COEXISTS_LOSS:
+                                     sum_avod_corr_coexists_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_OFFSETS_LOSS:
+                                     sum_avod_corr_offsets_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -653,12 +661,14 @@ class StackEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
-              "correlation {: .3f},"
+              "correlation_coexists {: .3f},"
+              "correlation_offsets {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
-                avod_correlation_loss,
+                avod_correlation_coexists_loss,
+                avod_correlation_offsets_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -689,7 +699,8 @@ class StackEvaluator:
 
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_coexists_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_COEXISTS_LOSS]
+        sum_avod_corr_offsets_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_OFFSETS_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         # for the full model, we expect a total of 4 losses
@@ -698,14 +709,17 @@ class StackEvaluator:
             eval_losses[StackAvodModel.LOSS_FINAL_CLASSIFICATION]
         avod_regression_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_REGRESSION]
-        avod_correlation_loss = \
-            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION]
+        avod_correlation_coexists_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION_COEXISTS]
+        avod_correlation_offsets_loss = \
+            eval_losses[StackAvodModel.LOSS_FINAL_CORRELATION_OFFSETS]
         avod_localization_loss = \
             eval_losses[StackAvodModel.LOSS_FINAL_LOCALIZATION]
 
         sum_avod_cls_loss += avod_classification_loss
         sum_avod_reg_loss += avod_regression_loss
-        sum_avod_corr_loss += avod_correlation_loss
+        sum_avod_corr_coexists_loss += avod_correlation_coexists_loss
+        sum_avod_corr_offsets_loss += avod_correlation_offsets_loss
         sum_avod_total_loss += eval_total_loss
 
         eval_avod_losses.update({KEY_SUM_AVOD_CLS_LOSS:
@@ -714,8 +728,11 @@ class StackEvaluator:
         eval_avod_losses.update({KEY_SUM_AVOD_REG_LOSS:
                                  sum_avod_reg_loss})
 
-        eval_avod_losses.update({KEY_SUM_AVOD_CORR_LOSS:
-                                     sum_avod_corr_loss})
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_COEXISTS_LOSS:
+                                     sum_avod_corr_coexists_loss})
+
+        eval_avod_losses.update({KEY_SUM_AVOD_CORR_OFFSETS_LOSS:
+                                     sum_avod_corr_offsets_loss})
 
         eval_avod_losses.update({KEY_SUM_AVOD_TOTAL_LOSS:
                                  sum_avod_total_loss})
@@ -739,12 +756,14 @@ class StackEvaluator:
         print("Step {}: Eval AVOD Loss: "
               "classification {:.3f}, "
               "regression {:.3f}, "
-              "correlation {: .3f},"
+              "correlation_coexists {: .3f},"
+              "correlation_offsets {: .3f},"
               "total {:.3f}".format(
                 global_step,
                 avod_classification_loss,
                 avod_regression_loss,
-                avod_correlation_loss,
+                avod_correlation_coexists_loss,
+                avod_correlation_offsets_loss,
                 eval_total_loss))
 
         print("Step {}: Eval AVOD Loss: "
@@ -817,7 +836,8 @@ class StackEvaluator:
         """
         sum_avod_cls_loss = eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS]
         sum_avod_reg_loss = eval_avod_losses[KEY_SUM_AVOD_REG_LOSS]
-        sum_avod_corr_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS]
+        sum_avod_corr_coexists_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_COEXISTS_LOSS]
+        sum_avod_corr_offsets_loss = eval_avod_losses[KEY_SUM_AVOD_CORR_COEXISTS_LOSS]
         sum_avod_total_loss = eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS]
 
         sum_avod_loc_loss = eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS]
@@ -829,7 +849,8 @@ class StackEvaluator:
 
         avg_avod_cls_loss = sum_avod_cls_loss / num_valid_samples
         avg_avod_reg_loss = sum_avod_reg_loss / num_valid_samples
-        avg_avod_corr_loss = sum_avod_corr_loss / num_valid_samples
+        avg_avod_corr_coexists_loss = sum_avod_corr_coexists_loss
+        avg_avod_corr_offsets_loss = sum_avod_corr_offsets_loss / num_valid_samples
         avg_avod_total_loss = sum_avod_total_loss / num_valid_samples
 
         if num_valid_regression_samples > 0:
@@ -855,8 +876,12 @@ class StackEvaluator:
             avg_avod_reg_loss,
             self.summary_writer, global_step)
         summary_utils.add_scalar_summary(
-            'avod_losses/correlation/correlation_total',
-            avg_avod_corr_loss,
+            'avod_losses/correlation/correlation_coexists',
+            avg_avod_corr_coexists_loss,
+            self.summary_writer, global_step)
+        summary_utils.add_scalar_summary(
+            'avod_losses/correlation/correlation_offsets',
+            avg_avod_corr_coexists_loss,
             self.summary_writer, global_step)
 
         summary_utils.add_scalar_summary(
@@ -872,12 +897,14 @@ class StackEvaluator:
         print("Step {}: Average AVOD Losses: "
               "cls {:.5f}, "
               "reg {:.5f}, "
-              "corr {: .5},"
+              "corr_coexists {: .5},"
+              "corr_coexists {: .5},"
               "total {:.5f} ".format(
                 global_step,
                 avg_avod_cls_loss,
                 avg_avod_reg_loss,
-                avg_avod_corr_loss,
+                avg_avod_corr_coexists_loss,
+                avg_avod_corr_offsets_loss,
                 avg_avod_total_loss,
                   ))
 
@@ -910,13 +937,14 @@ class StackEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
-                                avg_avod_corr_loss,
+                                avg_avod_corr_coexists_loss,
+                                avg_avod_corr_offsets_loss,
                                 avg_avod_total_loss,
                                 avg_avod_loc_loss,
                                 avg_avod_ang_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
         elif box_rep in ['box_8c', 'box_8co', 'box_4c']:
             with open(avg_loss_file_path, 'ba') as fp:
                 np.savetxt(fp,
@@ -924,12 +952,13 @@ class StackEvaluator:
                             [global_step,
                                 avg_avod_cls_loss,
                                 avg_avod_reg_loss,
-                                avg_avod_corr_loss,
+                                avg_avod_corr_coexists_loss,
+                                avg_avod_corr_offsets_loss,
                                 avg_avod_total_loss,
                                 avg_avod_loc_loss,
                              ]
                             )],
-                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f')
+                           fmt='%d, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f')
         else:
             raise NotImplementedError('Saving losses not implemented')
 
@@ -948,7 +977,8 @@ class StackEvaluator:
         # Initialize Avod average losses
         eval_avod_losses[KEY_SUM_AVOD_CLS_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_REG_LOSS] = 0
-        eval_avod_losses[KEY_SUM_AVOD_CORR_LOSS] = 0
+        eval_avod_losses[KEY_SUM_AVOD_CORR_COEXISTS_LOSS] = 0
+        eval_avod_losses[KEY_SUM_AVOD_CORR_OFFSETS_LOSS] = 0
         eval_avod_losses[KEY_SUM_AVOD_TOTAL_LOSS] = 0
 
         eval_avod_losses[KEY_SUM_AVOD_LOC_LOSS] = 0
@@ -1113,10 +1143,10 @@ class StackEvaluator:
 
         Returns:
             predictions_and_scores: A numpy array of shape
-                (number_of_predicted_boxes, 13), containing the final prediction
+                (number_of_predicted_boxes, 14), containing the final prediction
                 boxes, orientations, scores, and types, frame no.
                 [anchor_id, x, y, z, l, w, h, r, score, type,
-                delta_x, delta_z, delta_ry, frame_mark]
+                delta_x, delta_z, delta_ry, coexists, frame_mark]
         """
         if box_rep == 'box_3d':
             # Convert anchors + orientation to box_3d
@@ -1187,6 +1217,10 @@ class StackEvaluator:
         else:
             raise NotImplementedError('Parse predictions not implemented for', box_rep)
 
+        # correlation coexists
+        final_pred_corr_coexists_softmax = predictions[StackAvodModel.PRED_TOP_CORR_COEXISTS_SOFTMAX]
+        final_pred_corr_coexists = [np.argmax(coexist, axis=1)
+                                    for coexist in final_pred_corr_coexists_softmax]
         # correlation offsets
         final_pre_corr_offsets = predictions[StackAvodModel.PRED_TOP_CORR_OFFSETS]
         # Append score and class index (object type)
@@ -1218,6 +1252,7 @@ class StackEvaluator:
                  final_pred_scores,
                  final_pred_types[i],
                  final_pre_corr_offsets[i],
+                 final_pred_corr_coexists[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)
@@ -1237,6 +1272,10 @@ class StackEvaluator:
 
         # correlation offsets
         final_pre_corr_offsets = predictions[StackAvodModel.PRED_TOP_CORR_OFFSETS]
+        # correlation coexists
+        final_pred_corr_coexists_softmax = predictions[StackAvodModel.PRED_TOP_CORR_COEXISTS_SOFTMAX]
+        final_pred_corr_coexists = [np.argmax(coexist, axis=1)
+                                    for coexist in final_pred_corr_coexists_softmax]
 
         # Find max class score index
         not_bkg_scores = [pred_softmax[:, 1:]
@@ -1265,6 +1304,7 @@ class StackEvaluator:
                  final_pred_scores,
                  final_pred_types[i],
                  final_pre_corr_offsets[i],
+                 final_pred_corr_coexists[i],
                  frame_mark])
 
         predictions_and_scores = np.concatenate(predictions_and_scores, axis=0)

@@ -33,3 +33,4 @@ KEY_INTEGRATED_LABEL_CLASS = 'integrated_label_class'
 # for correlation
 KEY_SINGLE_BEV_MAPS = 'single_bev_maps'
 KEY_CORR_OFFSETS = 'correlation_offsets'
+KEY_CORR_COEXISTS = 'correlation_coexists'

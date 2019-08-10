@@ -271,6 +271,7 @@ class KittiTrackingStackDataset:
 
         def split_train_video_ids(ids, num, data_list):
             ids = list(map(extract_id, ids))
+            end_flag = False
             for i in range(len(ids)):
                 temp = []
                 for j in range(num):
@@ -278,7 +279,10 @@ class KittiTrackingStackDataset:
                         next = ids[i+j]
                     else:
                         next = ids[-1]
+                        end_flag = True
                     temp.append(next)
+                if end_flag:
+                    break
                 data_list.append([temp[0], temp[-1]])
             return data_list
 
@@ -478,6 +482,8 @@ class KittiTrackingStackDataset:
 
                 # append to merged_labels
                 merged_labels.append(base_labels)
+                # sort
+                merged_labels.sort(key=lambda label:label.object_id)
         return merged_labels
 
 
@@ -550,7 +556,7 @@ class KittiTrackingStackDataset:
                 integrated_anchors_info = [[]]
                 integrated_label_anchor = np.zeros((1,7))
                 integrated_label_box_3d = np.zeros((1,8))
-                corr_offsets = np.zeros((1, 4))
+                corr_offsets = np.zeros((1, 6))
 
             # Load image (BGR -> RGB)
             cv_bgr_image = [cv2.imread(self.get_rgb_image_path(name))
@@ -676,11 +682,7 @@ class KittiTrackingStackDataset:
 
                 # caluate correlation offsets
                 if len(integrated_label_box_3d) == 0:
-                    if self.train_on_all_samples:
-                        dummy_offsets = [[-1000, -1000, -1000, 0]]
-                        corr_offsets = np.asarray(dummy_offsets)
-                    else:
-                        corr_offsets = np.zeros((1, 4))
+                    corr_offsets = np.zeros((1, 6))
                 else:
                     corr_offsets = cal_label_offsets(label_boxes_3d[0],
                                                      label_boxes_3d[1])
@@ -736,6 +738,8 @@ class KittiTrackingStackDataset:
 
             point_cloud_mask, point_cloud = self.list_align(point_cloud)
 
+            offsets, coexists = self.decoder_corr_offset(corr_offsets)
+
             sample_dict = {
                 constants.KEY_LABEL_BOXES_3D: label_boxes_3d,
                 constants.KEY_LABEL_ANCHORS: label_anchors,
@@ -758,7 +762,8 @@ class KittiTrackingStackDataset:
 
                 # for correlation
                 constants.KEY_SINGLE_BEV_MAPS: single_bev_maps,
-                constants.KEY_CORR_OFFSETS: corr_offsets,
+                constants.KEY_CORR_OFFSETS: offsets,
+                constants.KEY_CORR_COEXISTS: coexists,
 
                 constants.KEY_SAMPLE_NAME: sample_names,
                 constants.KEY_SAMPLE_AUGS: sample.augs
@@ -766,6 +771,29 @@ class KittiTrackingStackDataset:
             sample_dicts.append(sample_dict)
 
         return sample_dicts
+
+
+    def decoder_corr_offset(self, corr_offsets):
+        # corr_offsets: [delta_x, delta_z, delta_h, delta_w, delta_ry, obj_id]
+        offsets = corr_offsets[:, [0,1,4]]     # [delta_x, delta_z,delta_ry]
+        coexists = corr_offsets[:, [2,3]]      # [delta_h, delta_w]
+        coexists = np.mean(coexists, axis=1).astype(np.int32)   # [0,0,1, -1, 0,...],
+
+        idx1 = np.where(coexists != 1)[0]
+        idx2 = np.where(coexists != -1)[0]
+
+        offset1 = offsets[idx1]
+        offset2 = offsets[idx2]
+        offsets = np.concatenate([offset1, offset2], axis=0)
+
+        coexist1 = coexists[idx1]
+        # change -1 to 1
+        coexist1 = 1 - (coexist1 + 1)
+        coexist2 = coexists[idx2]
+        coexists = np.concatenate([coexist1,coexist2], axis=0)
+
+        return offsets, coexists
+
 
     def align_anchors(self, anchors):
         indices, ious, offsets, classes = [], [], [], []

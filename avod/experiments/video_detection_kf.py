@@ -3,9 +3,11 @@ import collections
 import subprocess
 import sys
 import warnings
+import copy
 from copy import deepcopy
 from distutils import dir_util
 from multiprocessing import Process
+from collections import deque
 
 import numpy as np
 import avod
@@ -13,6 +15,8 @@ import avod.builders.config_builder_util as config_builder
 from avod.builders.dataset_builder import DatasetBuilder
 from avod.core.box_4c_encoder import np_box_3d_to_box_4c
 from wavedata.tools.obj_detection.evaluation import three_d_iou, two_d_iou
+
+from avod.utils.kalman_tracker import Tracker
 
 
 def config_setting(checkpoint_name, ckpt_indices):
@@ -56,23 +60,20 @@ def build_dataset(dataset_config):
 
 def iou_3d(box3d_1, box3d_2):
     # convert to [ry, l, h, w, tx, ty, tz]
-    box3d = box3d_1[[-1, 0, 2, 1, 3, 4, 5]]
-    box3d[1:4] = 4 * box3d[1:4]
+    box3d = box3d_1[[-1, 2, 0, 1, 3, 4, 5]]
     if len(box3d_2.shape) == 1:
-        boxes3d = box3d_2[[-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[[-1, 2, 0, 1, 3, 4, 5]]
     else:
-        boxes3d = box3d_2[:, [-1, 0, 2, 1, 3, 4, 5]]
+        boxes3d = box3d_2[:, [-1, 2, 0, 1, 3, 4, 5]]
     iou = three_d_iou(box3d, boxes3d)
     return iou
 
 def iou_2d(box3d_1, box3d_2):
     plane = np.asarray([0,-1,0,1.65])
     # convert to [tx, ty, tz, l, w, h, ry]
-    box3d_1 = box3d_1[[3, 4, 5, 0, 1, 2, 6]]
-    box3d_2 = box3d_2[[3, 4, 5, 0, 1, 2, 6]]
+    box3d_1 = box3d_1[[3, 4, 5, 2, 1, 0, 6]]
+    box3d_2 = box3d_2[[3, 4, 5, 2, 1, 0, 6]]
 
-    box3d_1[3:6] = 3.8 * box3d_1[3:6]
-    box3d_2[3:6] = 3.8 * box3d_2[3:6]
     # [x1, x2, x3, x4, z1, z2, z3, z4, h1, h2]
     box4c_1 = np_box_3d_to_box_4c(box3d_1, plane)
     box4c_2 = np_box_3d_to_box_4c(box3d_2, plane)
@@ -92,15 +93,15 @@ def box3d_to_label(box3d):
     from wavedata.tools.obj_detection.tracking_utils import TrackingLabel
     # boxes3d [l, w, h, tx, ty, tz, ry]
     label = TrackingLabel()
-    label.l = box3d[0]
+    label.l = box3d[2]
     label.w = box3d[1]
-    label.h = box3d[2]
+    label.h = box3d[0]
     label.t = (box3d[3], box3d[4], box3d[5])
     label.ry = box3d[6]
     return label
 
 def label_to_box3d(label):
-    box3d = [label.l, label.w, label.h, label.t[0],
+    box3d = [label.h, label.w, label.l, label.t[0],
             label.t[1], label.t[2], label.ry]
     box3d = np.asarray(box3d)
     return box3d
@@ -157,9 +158,10 @@ def convert_trajectory_to_kitti_format(trajectories):
     trace_len = len(trajectories)
     for id in range(trace_len):
         trace = trajectories[id]
-        trajectory = trace['trajectory']
-        score = trace['max_score']
-        for obj in trajectory:
+        dets = trace.dets
+        scores = [det['scores'] for det in dets]
+        score = max(scores)
+        for obj in dets:
             frame_id = obj['frame_id']
             info     = obj['info'].tolist()
             boxes2d  = [round(i, 3) for i in obj['boxes2d']]
@@ -185,25 +187,6 @@ def get_frames(dataset):
                                                   key=lambda obj: obj[0]))
     return video_frames
 
-# def get_frames(dataset):
-#     video_frames = {}
-#     sample_names = dataset.sample_names
-#     for sample_name in sample_names:
-#         video_id = sample_name[0][:2]
-#         if not video_frames.__contains__(video_id):
-#             video_frames[video_id] = set()
-#         video_frames[video_id].add(sample_name[0])
-#         video_frames[video_id].add(sample_name[1])
-#
-#     for (id, frames) in video_frames.items():
-#         video_frames[id] = list(frames)
-#         video_frames[id].sort()
-#
-#     video_frames = collections.OrderedDict(sorted(video_frames.items(),
-#                                                   key=lambda obj: obj[0]))
-#     return video_frames
-
-
 def generate_dets_for_track(frames, root_dir):
     frames.sort()
     frame_num = len(frames)
@@ -222,143 +205,23 @@ def generate_dets_for_track(frames, root_dir):
         else:
             if len(pred_kitti.shape) == 1:
                 pred_kitti = np.expand_dims(pred_kitti, axis=0)
-            track_item = [{'frame_id':   int(frames[i][2:]),
-                           'info'    :   detection[:4],
-                           'boxes2d' :   np.array(detection[4:8], dtype=np.float32),
-                           'boxes3d' :   np.array(detection[8:-1], dtype=np.float32),
-                           'scores'  :   np.array(detection[-1], dtype=np.float32)}
+            track_item = [{'frame_id'  :   int(frames[i][2:]),
+                           'info'      :   detection[:4],
+                           'is_virtual':   False,
+                           'boxes2d'   :   np.array(detection[4:8], dtype=np.float32),
+                           'boxes3d'   :   np.array(detection[8:-1], dtype=np.float32),
+                           'scores'    :   np.array(detection[-1], dtype=np.float32)}
                            for detection in pred_kitti]
         dets_for_track.append(track_item)
     return dets_for_track
-
-def track_iou(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_min):
-    tracks_active = []
-    tracks_finished = []
-
-    for frame_num, detections_frame in enumerate(detections):
-        if detections_frame == []:
-            continue
-        # apply low threshold to detections
-        dets = [det for det in detections_frame if det['scores'] >= sigma_l]
-
-        updated_tracks = []
-        for track in tracks_active:
-            if len(dets) > 0:
-                # get det with highest iou
-                ious = [cal_transformed_ious(dataset, video_id,
-                                             track['trajectory'][-1], x) for x in dets]
-                best_match_id = int(np.argmax(ious))
-                if ious[best_match_id] > sigma_iou:
-                    track['trajectory'].append(dets[best_match_id])
-                    track['max_score'] = max(track['max_score'],
-                                             dets[best_match_id]['scores'])
-
-                    updated_tracks.append(track)
-
-                    # remove from best matching detection from detections
-                    del dets[best_match_id]
-
-            # if track was not updated
-            if len(updated_tracks) == 0 or track is not updated_tracks[-1]:
-                # finish track when the conditions are met
-                if track['max_score'] >= sigma_h and len(track['trajectory']) >= t_min:
-                    tracks_finished.append(track)
-
-        # create new tracks
-        new_tracks = [{'trajectory': [det], 'max_score': det['scores'],
-                       'start_frame': det['frame_id']} for det in dets]
-        tracks_active = updated_tracks + new_tracks
-
-    # finish all remaining active tracks
-    tracks_finished += [track for track in tracks_active if track['max_score'] >= sigma_h
-                        and len(track['trajectory']) >= t_min]
-
-    return tracks_finished
-
-
-def track_iou_v2(dataset, video_id, dets_for_track, high_threshold, iou_threshold, t_min, ttl=3):
-    tracks_active = []
-    tracks_finished = []
-
-    for frame_num, dets in enumerate(dets_for_track):
-        # apply low threshold to detections
-        updated_tracks = []
-        for track in tracks_active:
-            if len(dets) > 0:
-                # get det with highest iou
-                ious = [cal_transformed_ious(dataset, video_id,
-                                             track['trajectory'][-1], x) for x in dets]
-
-                best_match_id = int(np.argmax(ious))
-                if ious[best_match_id] > iou_threshold:
-                    # convert virtual dets to valid dets
-                    if track['virtual_len'] != 0:
-                        t = track['virtual_len']
-                        visual_dets = track['trajectory'][-t:]
-                        # update virtual dets boxes coordinate
-                        next_det = dets[best_match_id]
-                        for i in range(t):
-                            visual_dets[i]['boxes2d'] += (i+1)/(t+1)*(next_det['boxes2d']
-                                                                      - visual_dets[i]['boxes2d'])
-                            visual_dets[i]['boxes3d'][[3,4,5]] += (i+1)/(t+1)*(next_det['boxes3d'][[3,4,5]]
-                                                                      - visual_dets[i]['boxes3d'][[3,4,5]])
-
-                        track['trajectory'][-t:] = visual_dets
-                        # update virtual_len
-                        track['virtual_len'] = 0
-
-                    track['trajectory'].append(dets[best_match_id])
-                    track['max_score'] = max(track['max_score'], dets[best_match_id]['scores'])
-                    updated_tracks.append(track)
-                    # remove from best matching detection from detections
-                    del dets[best_match_id]
-                else:
-                    # no match det, add virtual det
-                    if track['virtual_len'] < ttl:
-                        visual_det = deepcopy(track['trajectory'][-1])
-                        visual_det['frame_id'] += 1
-                        track['virtual_len'] += 1
-                        track['trajectory'].append(visual_det)
-                        updated_tracks.append(track)
-            else:
-                # no match det, add virtual det
-                if track['virtual_len'] < ttl:
-                    visual_det = deepcopy(track['trajectory'][-1])
-                    visual_det['frame_id'] += 1
-                    track['virtual_len'] += 1
-                    track['trajectory'].append(visual_det)
-                    updated_tracks.append(track)
-
-            if len(updated_tracks) == 0:
-                track['virtual_len'] = -1
-                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
-                    tracks_finished.append(track)
-
-            # if track was not updated
-            if track['virtual_len'] == ttl:
-                track['trajectory'] = track['trajectory'][:-ttl]
-                track['virtual_len'] = -1
-                # finish track when the conditions are met
-                if track['max_score'] >= high_threshold and len(track['trajectory']) >= t_min:
-                    tracks_finished.append(track)
-
-        # create new tracks
-        new_tracks = [{'trajectory': [det], 'max_score': det['scores'],
-                       'start_frame': det['frame_id'], 'virtual_len': 0} for det in dets]
-        updated_tracks = [track for track in updated_tracks if track['virtual_len'] != -1]
-        tracks_active = updated_tracks + new_tracks
-
-    # finish all remaining active tracks
-    tracks_finished += [track for track in tracks_active if track['max_score'] >= high_threshold
-                        and len(track['trajectory']) >= t_min]
-
-    return tracks_finished
 
 def restyle_track(track_kitti_format, frame_list):
     frame_len = int(frame_list[-1][2:]) + 1
     track_out = [[] for _ in range(frame_len)]
     for obj in track_kitti_format:
         frame_id = int(obj[0])
+        if frame_id >= frame_len:
+            break
         new_obj = {'obj_id':int(obj[1]),
                    'info':obj[2:6],
                    'boxes_2d':np.asarray([float(i) for i in obj[6:10]]),
@@ -490,13 +353,171 @@ def run_kitti_native_script_with_05_iou(checkpoint_name, score_threshold,
                      str(global_step),
                      str(checkpoint_name)])
 
+
+
+def assign_detections_to_trackers(dataset, video_id, trackers,
+                                  detections, iou_threshold=0.1):
+    from sklearn.utils.linear_assignment_ import linear_assignment
+
+    if len(trackers) == 0:
+        if len(detections) == 0:
+            return np.asarray([]), [], []
+        else:
+            unmatched_detections = [i for i in range(len(detections))]
+            return np.asarray([]), unmatched_detections, []
+    else:
+        if len(detections) == 0:
+            unmatched_trackers = [i for i in range(len(trackers))]
+            return np.asarray([]), [], unmatched_trackers
+
+    IOU_mat = np.zeros((len(trackers), len(detections)), dtype=np.float32)
+
+    for t, trk in enumerate(trackers):
+        for d, det in enumerate(detections):
+            IOU_mat[t, d] = cal_transformed_ious(dataset, video_id, trk, det)
+
+    # Produces matches
+    # Solve the maximizing the sum of IOU assignment problem using the
+    # Hungarian algorithm (also known as Munkres algorithm)
+    matched_idx = linear_assignment(-IOU_mat)
+
+    unmatched_trackers, unmatched_detections = [], []
+    for t, trk in enumerate(trackers):
+        if (t not in matched_idx[:, 0]):
+            unmatched_trackers.append(t)
+
+    for d, det in enumerate(detections):
+        if (d not in matched_idx[:, 1]):
+            unmatched_detections.append(d)
+
+    matches = []
+
+    # For creating trackers we consider any detection with an
+    # overlap less than iou_thrd to signifiy the existence of
+    # an untracked object
+
+    for m in matched_idx:
+        if (IOU_mat[m[0], m[1]] < iou_threshold):
+            unmatched_trackers.append(m[0])
+            unmatched_detections.append(m[1])
+        else:
+            matches.append(m.reshape(1, 2))
+
+    if (len(matches) == 0):
+        matches = np.empty((0, 2), dtype=int)
+    else:
+        matches = np.concatenate(matches, axis=0)
+
+    return matches, unmatched_detections, unmatched_trackers
+
+
+def kf_pipeline(dataset, video_id, frame_num, detections, sigma_l):
+    '''
+       Pipeline function for detection and tracking
+       '''
+    frame_count = 0
+    tracker_list = []
+    max_age = 4
+    min_hits = 3
+    track_id_list = deque([i for i in range(200)])
+
+    final_tracker_list = []
+
+    for frame_num, detections_frame in enumerate(detections):
+        frame_count += 1
+        # apply low threshold to detections
+        dets = [det for det in detections_frame if det['scores'] >= sigma_l]
+
+        trackers = []
+
+        if len(tracker_list) > 0:
+            for trk in tracker_list:
+                trackers.append(trk.dets[-1])
+
+        matched, unmatched_dets, unmatched_trks = \
+            assign_detections_to_trackers(dataset, video_id, trackers, dets, iou_threshold=0.0)
+
+        # Deal with matched detections
+        if matched.size > 0:
+            for trk_idx, det_idx in matched:
+                det = dets[det_idx]
+                z = det['boxes3d'][[3,4,5,6]]
+                z = np.expand_dims(z, axis=0).T
+                tmp_trk = tracker_list[trk_idx]
+                tmp_trk.kalman_filter(z)
+                xx = tmp_trk.x_state.T[0].tolist()
+                xx = [xx[0], xx[2], xx[4], xx[6]]
+                trackers[trk_idx] = det
+                tmp_trk.dets.append(det)
+                tmp_trk.box = xx
+                tmp_trk.hits += 1
+                tmp_trk.no_losses = 0
+
+        # Deal with unmatched detections
+        if len(unmatched_dets) > 0:
+            for idx in unmatched_dets:
+                # [l, w, h, tx, ty, tz, ry]
+                det = dets[idx]
+                z = np.expand_dims(det['boxes3d'], axis=0).T
+                # [dx,dy,dz,dry]
+                x = np.array([[z[3], 0, z[4], 0, z[5], 0, z[6], 0]]).T
+                tmp_trk = Tracker()  # Create a new tracker
+                tmp_trk.dets.append(det)
+                tmp_trk.x_state = x
+                tmp_trk.predict_only()
+                xx = tmp_trk.x_state
+                xx = xx.T[0].tolist()
+                xx = [xx[0], xx[2], xx[4], xx[6]]
+                tmp_trk.box = xx
+                tmp_trk.id = track_id_list.popleft()  # assign an ID for the tracker
+                tracker_list.append(tmp_trk)
+                trackers.append(det)
+
+        # Deal with unmatched tracks
+        if len(unmatched_trks) > 0:
+            for trk_idx in unmatched_trks:
+                tmp_trk = tracker_list[trk_idx]
+                tmp_trk.no_losses += 1
+                tmp_trk.predict_only()
+                xx = tmp_trk.x_state
+                xx = xx.T[0].tolist()
+                xx = [xx[0], xx[2], xx[4], xx[6]]
+                tmp_trk.box = xx
+
+                new_det = copy.deepcopy(tmp_trk.dets[-1])
+                if new_det['frame_id'] < frame_num:
+                    new_det['boxes3d'][[3,4,5,6]] = xx
+                    new_det['frame_id'] += 1
+                    new_det['is_virtual'] = True
+                    tmp_trk.dets.append(new_det)
+
+                trackers[trk_idx] = new_det
+
+        # Book keeping
+        deleted_tracks = filter(lambda x: x.no_losses > max_age, tracker_list)
+
+        for trk in deleted_tracks:
+            track_id_list.append(trk.id)
+            if trk.hits >= min_hits:
+                final_tracker_list.append(trk)
+
+        tracker_list = [x for x in tracker_list if x.no_losses <= max_age]
+
+    for trk in tracker_list:
+        if trk.hits >= min_hits:
+            final_tracker_list.append(trk)
+
+    return final_tracker_list
+
+
+
 if __name__ == '__main__':
     checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
     ckpt_indices = '7000'
 
-    stride = 2
+    stride = 1
 
-    kitti_score_threshold = '0.1_' + str(stride)
+    kitti_score_threshold = '0.1_guoxs_kf_' + str(stride)
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -508,19 +529,18 @@ if __name__ == '__main__':
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
 
-    output_root = output_root + '0.1_guoxs_' + str(stride) + '/' + ckpt_indices + '/data/'
+    output_root = output_root + '0.1_guoxs_kf_' + str(stride) + '/' + ckpt_indices + '/data/'
     os.makedirs(output_root, exist_ok=True)
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
     copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
 
     for (video_id, frames) in video_frames.items():
+        frame_num = int(frames[-1][2:]) + 1
+
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
-        # tracks_finished = track_iou_v2(dataset, video_id, dets_for_track,
-        #                                high_threshold=0.5, iou_threshold=0.00, t_min=1)
-        tracks_finished = track_iou(dataset, video_id, dets_for_track,
-                                       sigma_l=0.1, sigma_h=0.3, sigma_iou=0.1, t_min=1)
+        tracks_finished = kf_pipeline(dataset, video_id, frame_num, dets_for_track, sigma_l=0.1)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

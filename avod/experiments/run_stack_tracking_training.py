@@ -22,6 +22,7 @@ def train(model_config, train_config, dataset_config):
 
     dataset = DatasetBuilder.build_kitti_tracking_stack_dataset(
                                     dataset_config, use_defaults=False)
+    # print(len(dataset.sample_names), dataset.sample_names)
     train_val_test = 'train'
     model_name = model_config.model_name
 
@@ -47,7 +48,7 @@ def main(_):
     default_pipeline_config_path = avod.root_dir() + \
         '/configs/avod_stack_tracking_pretrained.config'
     default_data_split = 'train'
-    default_device = '2'
+    default_device = '3'
 
     parser.add_argument('--pipeline_config',
                         type=str,
