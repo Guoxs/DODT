@@ -53,10 +53,12 @@ def compute_corner_box3d(gt_labels):
 
 dataset = build_datasets()
 print(dataset.sample_names)
-samples = dataset.load_samples([7])
+samples = dataset.load_samples([15])
 integrated_pc = samples[0][constants.KEY_INTEGRATED_POINT_CLOUD]
 integrated_boxes3d = samples[0][constants.KEY_INTEGRATED_LABEL_BOX_3D]
 sepaprated_boxes3d = samples[0][constants.KEY_LABEL_BOXES_3D]
+
+print(sepaprated_boxes3d)
 
 integrated_box_id = integrated_boxes3d[:,-1]
 separated_box_id = sepaprated_boxes3d[:,-1]
@@ -64,9 +66,10 @@ separated_box_id = sepaprated_boxes3d[:,-1]
 integrated_corner_box3d = compute_corner_box3d(integrated_boxes3d)
 separated_corner_box3d = compute_corner_box3d(sepaprated_boxes3d)
 
-fig = mlab.figure(figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1600, 1000))
+fig = mlab.figure(figure=None, bgcolor=(1, 1, 1), fgcolor=None, engine=None, size=(1600, 1000))
 fig = draw_lidar_simple(integrated_pc, fig=fig)
-fig = draw_gt_boxes3d(integrated_corner_box3d, fig, box_id=integrated_box_id, color=(0,1,0))
-fig = draw_gt_boxes3d(separated_corner_box3d, fig, draw_text=False, color=(1,1,1))
+#fig = draw_gt_boxes3d(integrated_corner_box3d, fig, box_id=integrated_box_id, color=(0,1,0))
+fig = draw_gt_boxes3d(integrated_corner_box3d, fig, draw_text=False, color=(1,0,0))
+fig = draw_gt_boxes3d(separated_corner_box3d, fig, draw_text=False, color=(0,1,0))
 mlab.show()
 input()

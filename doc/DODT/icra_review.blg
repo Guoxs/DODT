@@ -28,47 +28,48 @@ I'm skipping whatever remains of this entry
 -- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
 -- http://www.michaelshell.org/tex/ieeetran/bibtex/
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
+Warning--empty booktitle in Hu3DT19
 
 Done.
-You've used 32 entries,
+You've used 24 entries,
             4087 wiz_defined-function locations,
-            1511 strings with 24205 characters,
-and the built_in function-call counts, 26279 in all, are:
-= -- 1945
-> -- 752
+            1471 strings with 22889 characters,
+and the built_in function-call counts, 22775 in all, are:
+= -- 1678
+> -- 675
 < -- 207
-+ -- 412
-- -- 136
-* -- 1243
-:= -- 3623
-add.period$ -- 69
-call.type$ -- 32
-change.case$ -- 32
-chr.to.int$ -- 537
-cite$ -- 32
-duplicate$ -- 1859
-empty$ -- 2295
-format.name$ -- 166
-if$ -- 6238
++ -- 378
+- -- 118
+* -- 1090
+:= -- 3019
+add.period$ -- 54
+call.type$ -- 24
+change.case$ -- 24
+chr.to.int$ -- 543
+cite$ -- 25
+duplicate$ -- 1548
+empty$ -- 1920
+format.name$ -- 141
+if$ -- 5430
 int.to.chr$ -- 0
-int.to.str$ -- 32
-missing$ -- 340
-newline$ -- 119
-num.names$ -- 32
-pop$ -- 893
+int.to.str$ -- 24
+missing$ -- 279
+newline$ -- 95
+num.names$ -- 24
+pop$ -- 732
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 2021
+skip$ -- 1735
 stack$ -- 0
-substring$ -- 1285
-swap$ -- 1460
-text.length$ -- 28
+substring$ -- 1291
+swap$ -- 1294
+text.length$ -- 26
 text.prefix$ -- 0
 top$ -- 5
-type$ -- 32
-warning$ -- 0
-while$ -- 111
-width$ -- 34
-write$ -- 306
+type$ -- 24
+warning$ -- 1
+while$ -- 103
+width$ -- 26
+write$ -- 239
 (There were 4 error messages)

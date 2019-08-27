@@ -389,6 +389,13 @@ class DtEvaluator:
                     )
 
         else:
+            evaluator_utils.save_predictions_in_kitti_format(
+                self.model,
+                self.model_config.checkpoint_name,
+                self.dataset_config.data_split,
+                self.eval_config.kitti_score_threshold,
+                global_step,
+                is_detection_single=False)
             # Test mode --> train_val_test == 'test'
             evaluator_utils.print_inference_time_statistics(
                 total_feed_dict_time, total_inference_time)

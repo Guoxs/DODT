@@ -29,76 +29,65 @@
 \citation{han2016seq}
 \citation{feichtenhofer2017detect}
 \citation{luo2018fast}
+\citation{scheidegger2018mono}
 \citation{frossard2018end}
 \citation{chen2017multi}
 \citation{chen2017multi}
 \citation{ku2018joint}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces DODT architecture. Blue area is \textit  {Tracking module}, it does not use image features since information in BEV is sufficient for tracking.\relax }}{2}}
+\citation{chen2017multi}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces DODT architecture. Blue area is \textit  {Temporal module}, it does not use image features since information in BEV is sufficient for tracking.\relax }}{2}}
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{fig:dodt}{{1}{2}}
 \@writefile{toc}{\contentsline {section}{\numberline {III}METHODOLOGY}{2}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {III-A}DODT Model Structure}{2}}
 \citation{ku2018joint}
 \citation{ku2018joint}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces RPN structure.\relax }}{3}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Shared RPN module.\relax }}{3}}
 \newlabel{fig:rpn}{{2}{3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-B}Shared RPN Module}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {III-B}Shared RPN}{3}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Five consecutive point clouds in the same coordinate system. Green boxes are default labels of five frames, while red boxes are the axis-aligned new labels for RPN training. The numbers are object id.\relax }}{3}}
 \newlabel{fig:integrated_boxes}{{3}{3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-C}Tracking Module}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {III-C}Temporal Module}{3}}
 \citation{ku2018joint}
 \citation{geiger2013vision}
 \citation{ku2018joint}
-\citation{ku2018joint}
-\citation{kingma2014adam}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Motion model of objects that in the start or end of a trajectory.\relax }}{4}}
-\newlabel{fig:motion}{{4}{4}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {III-D}3D Streaming Object Detection and Tracking}{4}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {1}{\ignorespaces Motion based Interpolation Algorithm\relax }}{4}}
 \newlabel{alg:interpolation}{{1}{4}}
-\newlabel{offsets}{{4}{4}}
 \@writefile{toc}{\contentsline {section}{\numberline {IV}EXPERIMENTS}{4}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {IV-A}Datasets and Training}{4}}
 \citation{ku2018joint}
+\citation{kingma2014adam}
 \citation{ku2018joint}
-\citation{Milan2014PAMI}
-\citation{Yoon2015WACV}
-\citation{Geiger2014PAMI}
-\citation{Lenz2015ICCV}
-\citation{Yoon2016CVPR}
-\citation{Lenz2015ICCV}
-\citation{Gaidon2015BMVC}
-\citation{Choi2015ICCV}
-\citation{Wang2016IJCV}
-\citation{Yoon2015WACV}
-\citation{Choi2015ICCV}
-\citation{Milan2013CVPR}
-\citation{Lenz2015ICCV}
-\citation{Lenz2015ICCV}
-\citation{Choi2015ICCV}
-\citation{Yoon2016CVPR}
-\citation{xiang2017subcategory}
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces We report $AP_{3D}/AP_{BEV}$ (in \%) of the \textbf  {Car} category on our KITTI tracking evaluation datasets, corresponding to average precision of the bird’s-eye view and 3D object detection. T is \textit  {Treacking Module}, M is \textit  {motion based interpolation algorithm}. $*$ means the network was first pretrained on KITTI object detection datasets, and then fine-tuned on our tracking training datasets. $\tau $ is temporal stride.\relax }}{5}}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces We report $AP_{3D}/AP_{BEV}$ (in \%) of the \textbf  {Car} category on evaluation datasets, corresponding to average precision of the bird’s-eye view and 3D object detection. T is \textit  {Treacking Module}, M is \textit  {Motion based interpolation algorithm}. $\tau $ is temporal stride.\relax }}{5}}
 \newlabel{table:result_detection}{{I}{5}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {IV-B}Results}{5}}
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Comparison of proposal prediction accuracy.\relax }}{5}}
 \newlabel{table:rpn_result}{{II}{5}}
+\citation{Simon_2019_CVPR_Workshops}
+\citation{frossard2018end}
+\citation{scheidegger2018mono}
+\citation{Hu3DT19}
+\citation{Simon_2019_CVPR_Workshops}
+\citation{frossard2018end}
+\citation{scheidegger2018mono}
+\citation{Hu3DT19}
 \bibstyle{IEEEtran}
 \bibdata{IEEEabrv,egbib}
 \bibcite{7780605}{1}
-\bibcite{chen20183d}{2}
-\bibcite{zhou2018voxelnet}{3}
-\bibcite{yang2018pixor}{4}
-\bibcite{simon2018complex}{5}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Visualization of a set of trajectories produced by the tracker. Trajectories are color coded, such that having the same color means it's the same object.\relax }}{6}}
-\newlabel{fig:examples}{{5}{6}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Tracking performance comparison of origin AVOD and our Bi-AVOD on KITTI tracking evaluation datasets.\relax }}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Visualization of labels and our predictions in sequences 0. Boxes in \leavevmode {\color  {green}\textbf  {Green}} are official ground truth, boxes in \leavevmode {\color  {yellow}\textbf  {Yellow}} are results predicted with temporal stride $\tau = 1$, and boxes in \leavevmode {\color  {magenta}\textbf  {Magenta}} are results predicted with temporal stride $\tau = 3$. Best viewed in color.\relax }}{6}}
+\newlabel{fig:examples}{{4}{6}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Ablation study on KITTI Tracking test datasets.\relax }}{6}}
 \newlabel{label:result_tracking}{{III}{6}}
-\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Tracking performance comparison of publicly available methods in the KITTI Tracking Benchmark.\relax }}{6}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Comparison of publicly available methods in the KITTI Tracking Benchmark. The time for object detection is not included in the specified runtime.\relax }}{6}}
 \newlabel{label:result_kitti}{{IV}{6}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}CONCLUSIONS}{6}}
 \newlabel{sec:conclusions}{{V}{6}}
 \@writefile{toc}{\contentsline {section}{References}{6}}
+\bibcite{chen20183d}{2}
+\bibcite{zhou2018voxelnet}{3}
+\bibcite{yang2018pixor}{4}
+\bibcite{simon2018complex}{5}
 \bibcite{chen2017multi}{6}
 \bibcite{ku2018joint}{7}
 \bibcite{feichtenhofer2017detect}{8}
@@ -113,16 +102,8 @@
 \bibcite{kang2016object}{17}
 \bibcite{han2016seq}{18}
 \bibcite{luo2018fast}{19}
-\bibcite{frossard2018end}{20}
-\bibcite{geiger2013vision}{21}
-\bibcite{kingma2014adam}{22}
-\bibcite{Milan2014PAMI}{23}
-\bibcite{Yoon2015WACV}{24}
-\bibcite{Geiger2014PAMI}{25}
-\bibcite{Lenz2015ICCV}{26}
-\bibcite{Yoon2016CVPR}{27}
-\bibcite{Gaidon2015BMVC}{28}
-\bibcite{Choi2015ICCV}{29}
-\bibcite{Wang2016IJCV}{30}
-\bibcite{Milan2013CVPR}{31}
-\bibcite{xiang2017subcategory}{32}
+\bibcite{scheidegger2018mono}{20}
+\bibcite{frossard2018end}{21}
+\bibcite{geiger2013vision}{22}
+\bibcite{kingma2014adam}{23}
+\bibcite{Hu3DT19}{24}

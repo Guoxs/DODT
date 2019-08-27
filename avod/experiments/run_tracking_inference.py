@@ -74,23 +74,22 @@ def main(_):
     parser = argparse.ArgumentParser()
 
     # Example usage
-    # --checkpoint_name='avod_cars_example'
-    # --data_split='test'
-    # --ckpt_indices=50 100 112
+    checkpoint_name='pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
+    data_split='test'
+    ckpt_indices=[7]
     # Optional arg:
-    # --device=0
 
     parser.add_argument('--checkpoint_name',
                         type=str,
                         dest='checkpoint_name',
-                        required=True,
+                        default=checkpoint_name,
                         help='Checkpoint name must be specified as a str\
                         and must match the experiment config file name.')
 
     parser.add_argument('--data_split',
                         type=str,
                         dest='data_split',
-                        required=True,
+                        default=data_split,
                         help='Data split must be specified e.g. val or test')
 
     parser.add_argument('--dataset',
@@ -99,25 +98,22 @@ def main(_):
                         default='',
                         help='Dataset for training')
 
-    parser.add_argument(
-        '--ckpt_indices',
-        type=int,
-        nargs='+',
-        dest='ckpt_indices',
-        required=True,
-        help='Checkpoint indices must be a set of \
-        integers with space in between -> 0 10 20 etc')
+    parser.add_argument('--ckpt_indices',
+                        type=int,
+                        nargs='+',
+                        dest='ckpt_indices',
+                        default=ckpt_indices,
+                        help='Checkpoint indices must be a set of \
+                        integers with space in between -> 0 10 20 etc')
 
     parser.add_argument('--device',
                         type=str,
                         dest='device',
-                        default='0',
+                        default='3',
                         help='CUDA device id')
 
     args = parser.parse_args()
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
+
 
     experiment_config = args.checkpoint_name + '.config'
 

@@ -3,6 +3,7 @@ import collections
 import subprocess
 import sys
 import warnings
+import time
 from distutils import dir_util
 from collections import deque
 from multiprocessing import Process
@@ -41,13 +42,15 @@ def config_setting(checkpoint_name, ckpt_indices):
 
     return root_dir, tracking_output_dir, tracking_eval_script_dir, dataset_config
 
-def build_dataset(dataset_config):
+def build_dataset(dataset_config, data_split='val'):
     # Overwrite the defaults
     dataset_config = config_builder.proto_to_obj(dataset_config)
-    dataset_config.data_split = 'val'
-    dataset_config.data_split_dir = 'training'
-    # dataset_config.data_split = 'test'
-    # dataset_config.data_split_dir = 'testing'
+    if data_split == 'val':
+        dataset_config.data_split = 'val'
+        dataset_config.data_split_dir = 'training'
+    else:
+        dataset_config.data_split = 'test'
+        dataset_config.data_split_dir = 'testing'
     dataset_config.has_labels = False
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
@@ -337,9 +340,9 @@ def kf_pipeline(dataset, video_id, detections, sigma_l, iou_threshold):
        '''
     frame_count = 0
     tracker_list = []
-    max_age = 4
+    max_age = 2
     min_hits = 3
-    track_id_list = deque([i for i in range(200)])
+    track_id_list = deque([i for i in range(500)])
 
     final_tracker_list = []
 
@@ -473,12 +476,13 @@ def store_final_result(frames, video_id, output_root):
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
-    ckpt_indices = '7000'
+    checkpoint_name = 'pyramid_cars_with_aug_example_trainval'
+    ckpt_indices = '120000'
+    data_split = 'val'
 
     stride = 1
 
-    kitti_score_threshold = '0.1_guoxs_kf_' + str(stride)
+    kitti_score_threshold = '0.1_kf_' + str(stride)
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -487,7 +491,7 @@ if __name__ == '__main__':
                  '/predictions/kitti_native_eval/'
 
     dataset_config.data_stride = stride
-    dataset = build_dataset(dataset_config)
+    dataset = build_dataset(dataset_config, data_split)
     video_frames = get_frames(dataset)
 
     output_root = output_root + kitti_score_threshold + '/' + ckpt_indices + '/data/'
@@ -500,8 +504,17 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
+        # valid_frames = []
+        # for frame in frames:
+        #     if frame != []:
+        #         valid_frames.append(frame)
+        start = time.time()
+
         tracks_finished = kf_pipeline(dataset, video_id, dets_for_track,
                                       sigma_l=0.1, iou_threshold=0.1)
+        end = time.time()
+        fps = 1 / ((end-start) / len(frames))
+        print(fps)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

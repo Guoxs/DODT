@@ -2,6 +2,7 @@ import os
 import collections
 import subprocess
 import sys
+import time
 import warnings
 from copy import deepcopy
 from distutils import dir_util
@@ -38,13 +39,15 @@ def config_setting(checkpoint_name, ckpt_indices):
 
     return root_dir, tracking_output_dir, tracking_eval_script_dir, dataset_config
 
-def build_dataset(dataset_config):
+def build_dataset(dataset_config, data_split='val'):
     # Overwrite the defaults
     dataset_config = config_builder.proto_to_obj(dataset_config)
-    # dataset_config.data_split = 'val'
-    # dataset_config.data_split_dir = 'training'
-    dataset_config.data_split = 'val'
-    dataset_config.data_split_dir = 'training'
+    if data_split == 'val':
+        dataset_config.data_split = 'val'
+        dataset_config.data_split_dir = 'training'
+    else:
+        dataset_config.data_split = 'test'
+        dataset_config.data_split_dir = 'testing'
     dataset_config.has_labels = False
     # Remove augmentation during evaluation in test mode
     dataset_config.aug_list = []
@@ -523,12 +526,13 @@ def store_final_result(frames, video_id, output_root):
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
-    ckpt_indices = '7000'
+    checkpoint_name = 'avod_stack_tracking_pretrained'
+    ckpt_indices = '60000'
+    data_split = 'val'
 
     stride = 1
 
-    kitti_score_threshold = '0.1_guoxs_' + str(stride)
+    kitti_score_threshold = '0.1_' + str(stride)
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -537,7 +541,7 @@ if __name__ == '__main__':
                   '/predictions/kitti_native_eval/'
 
     dataset_config.data_stride = stride
-    dataset = build_dataset(dataset_config)
+    dataset = build_dataset(dataset_config, data_split)
     video_frames = get_frames(dataset)
 
     output_root = output_root + kitti_score_threshold + '/' + ckpt_indices + '/data/'
@@ -549,8 +553,18 @@ if __name__ == '__main__':
     for (video_id, frames) in video_frames.items():
         frame_num = int(frames[-1][2:]) + 1
         dets_for_track = generate_dets_for_track(video_id, frames, root_dir)
+
+        valid_frames = []
+        for frame in frames:
+            if frame != []:
+                valid_frames.append(frame)
+
+        start = time.time()
         tracks_finished = interpolate_by_track(dataset, video_id, dets_for_track, stride, frame_num,
                                     sigma_l=0.1, sigma_h=0.5, sigma_iou=0.1, t_min=3, extend_len=3)
+        end = time.time()
+        fps = len(valid_frames) / (end-start)
+        print("FPS: \n", fps)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)
@@ -562,20 +576,20 @@ if __name__ == '__main__':
         print('store prediction results:', video_result_path)
 
         # store detection result
-        track_new = restyle_track(track_kitti_format, frames)
-        print('\nStoring video id: %s' % video_id)
-        store_final_result(track_new, video_id, output_root)
+        # track_new = restyle_track(track_kitti_format, frames)
+        # print('\nStoring video id: %s' % video_id)
+        # store_final_result(track_new, video_id, output_root)
 
     # run eval script for tracking evaluation
     run_kitti_tracking_script(checkpoint_name, ckpt_indices)
 
     # Create a separate processes to run the native evaluation
-    native_eval_proc = Process(target=run_kitti_native_script,
-                               args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
-
-    native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
-                                      args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
-    # Don't call join on this cuz we do not want to block
-    # this will cause one zombie process - should be fixed later.
-    native_eval_proc.start()
-    native_eval_proc_05_iou.start()
+    # native_eval_proc = Process(target=run_kitti_native_script,
+    #                            args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+    #
+    # native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
+    #                                   args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+    # # Don't call join on this cuz we do not want to block
+    # # this will cause one zombie process - should be fixed later.
+    # native_eval_proc.start()
+    # native_eval_proc_05_iou.start()

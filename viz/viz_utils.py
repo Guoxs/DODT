@@ -123,7 +123,7 @@ def draw_lidar(pc, color=None, fig=None, bgcolor=(0, 0, 0), pts_scale=1, pts_mod
     return fig
 
 
-def draw_gt_boxes3d(gt_boxes3d, fig, box_id=0, color=(1, 1, 1), line_width=1, draw_text=True, text_scale=(1, 1, 1),
+def draw_gt_boxes3d(gt_boxes3d, fig, box_id=0, color=(1, 1, 1), line_width=2, draw_text=True, text_scale=(1, 1, 1),
                     color_list=None, text_color=None, text_type='name'):
     ''' Draw 3D bounding boxes
     Args:

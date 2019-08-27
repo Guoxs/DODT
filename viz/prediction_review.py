@@ -133,10 +133,11 @@ def drawline(img,pt1,pt2,color,thickness=1,style='dotted',gap=5):
                 cv2.line(img,s,e,color,thickness)
             i+=1
 
-def draw_rotate_rectangle(img, boxes_2d, line_type='normal', color=(255,255,255)):
+def draw_rotate_rectangle(img, boxes_2d, track_id=None, line_type='normal', color=(255,255,255), thinkness=1):
     if len(boxes_2d.shape) == 1:
         boxes_2d = boxes_2d[np.newaxis,:]
-    for box2d in boxes_2d:
+    for k in range(len(boxes_2d)):
+        box2d = boxes_2d[k]
         for (i, j) in zip([0,1,2,3], [1,2,3,0]):
             if line_type == 'dotted':
                 drawline(img, (box2d[i], box2d[i+4]),
@@ -144,6 +145,10 @@ def draw_rotate_rectangle(img, boxes_2d, line_type='normal', color=(255,255,255)
             else:
                 cv2.line(img, (box2d[i], box2d[i+4]),
                      (box2d[j], box2d[j+4]), color, 1, lineType=cv2.LINE_AA)
+        # add track_id
+        if track_id is not None:
+            location = (box2d[0]+1, box2d[4]+1)
+            cv2.putText(img, str(track_id[k]), location, cv2.FONT_HERSHEY_COMPLEX, 0.5, color, thinkness)
     return img
 
 def draw_prediction(dataset, input_dir, iter, output_dir):
@@ -157,7 +162,7 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
         bev_input = create_bev_map(dataset, name, image_shape, ground_plane)
         cv2.imwrite(output_dir + name + '.png', bev_input)
 
-        # draw bev_boxes in img
+        #draw bev_boxes in img
         img = cv2.imread(output_dir + name + '.png')
         cv2.putText(img,'frame No. ' + str(name[2:]), (50, 120),
                     cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
@@ -165,7 +170,8 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
         gt_label = tracking_utils.read_labels(dataset.label_dir, name)
         gt_label = dataset.kitti_utils.filter_labels(gt_label)
         gt_boxes3d = [box_3d_encoder.object_label_to_box_3d(obj) for obj in gt_label]
-        # project label to bev
+        gt_track_id = [obj.object_id for obj in gt_label]
+        # # project label to bev
         gt_bev_boxes = project_label_to_bev_box(gt_boxes3d, ground_plane)
 
         # draw gt bev_box
@@ -173,7 +179,7 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
             cv2.line(img, (50,50), (100,50), (0, 255, 0), 1, lineType=cv2.LINE_AA)
             cv2.putText(img, 'gt', (110, 50), cv2.FONT_HERSHEY_COMPLEX,
                                         0.5, (0, 255, 0), 1)
-            img = draw_rotate_rectangle(img, gt_bev_boxes, color=(0, 255, 0))
+            img = draw_rotate_rectangle(img, gt_bev_boxes, gt_track_id, color=(0, 255, 0))
 
         # get 0.1 labels
         label_dir_1 = input_dir + '0.1/' + iter + '/data/'
@@ -197,6 +203,8 @@ def draw_prediction(dataset, input_dir, iter, output_dir):
             cv2.line(img, (50, 90), (100, 90), (255, 0, 255), 1, lineType=cv2.LINE_AA)
             cv2.putText(img, 'pred_0.1_kf_1', (110, 90), cv2.FONT_HERSHEY_COMPLEX,
                         0.5, (255, 0, 255), 1)
+            # add a shift
+            gt_bev_boxes_2 += 1
             img = draw_rotate_rectangle(img, gt_bev_boxes_2, color=(255,0,255))
 
         cv2.imwrite(output_dir + name + '.png', img)
@@ -228,7 +236,7 @@ def create_video(img_dir):
         video.release()
 
 
-def main(_):
+if __name__ == '__main__':
     checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
     default_pipeline_config_path = avod.root_dir() + \
         '/configs/' + checkpoint_name + '.config'
@@ -255,8 +263,4 @@ def main(_):
 
     draw_prediction(dataset, input_dir, iter, output_dir)
 
-    create_video(output_dir)
-
-
-if __name__ == '__main__':
-    tf.app.run()
+    # create_video(output_dir)

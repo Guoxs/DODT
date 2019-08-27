@@ -3,8 +3,11 @@ import numpy as np
 import math
 import time
 from tensorflow.contrib import slim
+import os
 
 from avod.core.corr_layers.correlation import correlation
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 tf.set_random_seed(0)
 np.random.seed(0)
@@ -79,11 +82,13 @@ np.random.seed(0)
 #
 # pyramid_corr_fusion = pyramid_corr_fusion[:, 4:]
 
-bev_iou1 = tf.Variable(np.random.random((1024, 7, 7, 32)), dtype=tf.float32)
-bev_iou2 = tf.Variable(np.random.random((1024, 7, 7, 32)), dtype=tf.float32)
+bev_iou1 = tf.Variable(np.random.random((1, 7, 7, 1)), dtype=tf.float32)
+bev_iou2 = tf.Variable(np.random.random((1, 7, 7, 1)), dtype=tf.float32)
 
-bev_corr = correlation(bev_iou1, bev_iou2, 1, 7, 1, 1, 7)
+bev_corr1 = correlation(bev_iou1, bev_iou2, 1, 7, 1, 1, 7)
+bev_corr2 = correlation(bev_iou2, bev_iou1, 1, 7, 1, 1, 7)
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
-print(sess.run(tf.shape(bev_corr)))
+print(sess.run(tf.reduce_sum(bev_corr1-bev_corr2, [0,1,2, 3])))
+# print(sess.run(tf.shape(bev_corr2)))

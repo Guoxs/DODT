@@ -299,7 +299,7 @@ class StackEvaluator:
                 # Interpolating non-keyframe result and save
                 all_predicitons_and_scores, all_names = \
                     evaluator_utils.interpolate_non_keyframe_predicitons(
-                    self.model.dataset, sample_name, predictions_and_scores, threshold=0.1)
+                    self.model.dataset, sample_name, predictions_and_scores, threshold=0.2)
                 # kitti detection native eval
                 kitti_eval_file_path = [kitti_detection_eval_prediction_dir + \
                                        '/{}.txt'.format(name) for name in all_names]
@@ -390,6 +390,13 @@ class StackEvaluator:
                     )
 
         else:
+            evaluator_utils.save_predictions_in_kitti_format(
+                self.model,
+                self.model_config.checkpoint_name,
+                self.dataset_config.data_split,
+                self.eval_config.kitti_score_threshold,
+                global_step,
+                is_detection_single=False)
             # Test mode --> train_val_test == 'test'
             evaluator_utils.print_inference_time_statistics(
                 total_feed_dict_time, total_inference_time)
@@ -849,7 +856,7 @@ class StackEvaluator:
 
         avg_avod_cls_loss = sum_avod_cls_loss / num_valid_samples
         avg_avod_reg_loss = sum_avod_reg_loss / num_valid_samples
-        avg_avod_corr_coexists_loss = sum_avod_corr_coexists_loss
+        avg_avod_corr_coexists_loss = sum_avod_corr_coexists_loss / num_valid_samples
         avg_avod_corr_offsets_loss = sum_avod_corr_offsets_loss / num_valid_samples
         avg_avod_total_loss = sum_avod_total_loss / num_valid_samples
 

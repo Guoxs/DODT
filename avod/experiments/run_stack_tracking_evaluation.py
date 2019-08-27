@@ -83,7 +83,12 @@ def evaluate(model_config, eval_config, dataset_config):
             model_evaluator.repeated_checkpoint_run()
         else:
             model_evaluator.run_latest_checkpoints()
-            # model_evaluator.run_kitti_native_eval(4000)
+            #model_evaluator.run_kitti_native_eval(4000)
+            # global_step = 120000
+            # predictions_base_dir = model.model_config.paths_config.pred_dir
+            # root_dir =  predictions_base_dir + '/final_predictions_and_scores/val/{}/'.format(global_step)
+            # output_dir = predictions_base_dir + '/kitti_tracking_native_eval/results/{}/data/'.format(global_step)
+            # model_evaluator.run_kitti_native_tracking_eval(root_dir, output_dir, global_step)
 
 
 def main(_):
@@ -92,7 +97,7 @@ def main(_):
     default_pipeline_config_path = avod.root_dir() + \
         '/configs/avod_stack_tracking_pretrained.config'
 
-    default_device = '3'
+    default_device = '0'
 
     parser.add_argument('--pipeline_config',
                         type=str,

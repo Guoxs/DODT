@@ -24,7 +24,7 @@ def save_predictions_in_kitti_format(model,
                                      data_split,
                                      score_threshold,
                                      global_step,
-                                     is_detection_single=True):
+                                     is_detection_single=False):
     """ Converts a set of network predictions into text files required for
     KITTI evaluation.
     """
@@ -48,10 +48,16 @@ def save_predictions_in_kitti_format(model,
         '/' + str(global_step)
 
     # 3D prediction directories
-    kitti_predictions_3d_dir = predictions_root_dir + \
-        '/kitti_native_eval/' + \
-        str(score_threshold) + '/' + \
-        str(global_step) + '/data'
+    if data_split == 'val':
+        kitti_predictions_3d_dir = predictions_root_dir + \
+                                    '/kitti_native_eval/' + \
+                                    str(score_threshold) + '/' + \
+                                    str(global_step) + '/data'
+    else:
+        kitti_predictions_3d_dir = predictions_root_dir + \
+                                   '/kitti_native_eval/' + \
+                                   str(score_threshold) + '_test/' + \
+                                   str(global_step) + '/data'
 
     if not os.path.exists(kitti_predictions_3d_dir):
         os.makedirs(kitti_predictions_3d_dir)
@@ -419,6 +425,8 @@ def interpolate_non_keyframe_predicitons(dataset, sample_names, predictions, thr
     def cal_iou(box3d_1, box3d_2):
         # convert to [ry, l, h, w, tx, ty, tz]
         box3d = box3d_1[[7, 4, 6, 5, 1, 2, 3]]
+        offsets = box3d_1[-5:-2]
+        box3d[[0,4,6]] += offsets[[-1,0,1]]
         if len(box3d_2.shape) == 1:
             boxes3d = box3d_2[[7, 4, 6, 5, 1, 2, 3]]
         else:
@@ -434,12 +442,12 @@ def interpolate_non_keyframe_predicitons(dataset, sample_names, predictions, thr
     # only one valid frame
     if num  == 1:
         # [anchor_id, x, y, z, l, w, h, r, score, type]
-        final_predictions = [pred_lists[0][:, :-4]]
+        final_predictions = [pred_lists[0][:, :-5]]
         return final_predictions, all_sample_names
     # two adjacent valid frame, no need for interpolation
     if num == 2:
         # convert frame 2 to it own coordinate
-        final_predictions = [pred[:, :-4] for pred in pred_lists]
+        final_predictions = [pred[:, :-5] for pred in pred_lists]
         final_predictions[1] = recovery_coordinate(dataset, sample_names,
                                                    final_predictions[1])
         assert len(final_predictions) == len(all_sample_names)
@@ -504,8 +512,8 @@ def interpolate_trajectory(trajectories, num):
     for track in trajectories:
         new_track = []
         if track[0] != [] and track[1] != []:
-            track[0] = track[0][:-4]
-            track[1] = track[1][:-4]
+            track[0] = track[0][:-5]
+            track[1] = track[1][:-5]
             new_track.append(track[0])
             # [delta_x, delta_z, delta_ry]
             offsets = track[1][[1, 3, 7]] - track[0][[1, 3, 7]]
@@ -519,14 +527,11 @@ def interpolate_trajectory(trajectories, num):
             track[1][8] = score
             new_track.append(track[1])
         elif track[0] == []:
-            offsets = track[1][-4:-1]
-            track[1] = track[1][:-4]
-            d = np.sqrt(offsets[0]**2 + offsets[1]**2)
-            # d > l/2, do interpolation
-            if d <= track[1][4] / 2:
-                ry = track[1][7]
-                delta_x = d * np.cos(ry)
-                delta_z = d * np.sin(ry)
+            offsets = track[1][-5:-2]
+            track[1] = track[1][:-5]
+            coexists = track[1][-2]
+            if coexists <= 0.5:
+                delta_x, delta_z, delta_ry = offsets
                 for i in range(num-1):
                     new_obj = copy.deepcopy(track[1])
                     new_obj[1] -= delta_x * (num - i - 2) / (num - 1)
@@ -543,14 +548,11 @@ def interpolate_trajectory(trajectories, num):
                         new_track.append(new_obj)
                 new_track.append(track[1])
         elif track[1] == []:
-            offsets = track[0][-4:-1]
-            track[0] = track[0][:-4]
-            d = np.sqrt(offsets[0] ** 2 + offsets[1] ** 2)
-            # d > l/2, do interpolation
-            if d <= track[0][4] / 2:
-                ry = track[0][7]
-                delta_x = d * np.cos(ry)
-                delta_z = d * np.sin(ry)
+            offsets = track[0][-5:-2]
+            track[0] = track[0][:-5]
+            coexists = track[0][-2]
+            if coexists <= 0.5:
+                delta_x, delta_z, delta_ry = offsets
                 new_track.append(track[0])
                 for i in range(num - 1):
                     new_obj = copy.deepcopy(track[0])

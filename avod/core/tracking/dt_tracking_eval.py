@@ -97,6 +97,7 @@ def decode_tracking_file(root_dir, file_name, dataset, threshold=0.1):
     # frame_0
     pred_frame_kitti_0 = convert_pred_to_kitti_format(
         pred_frame_0, sample_name_0, dataset, threshold)
+
     # frame_1
     pred_frame_kitti_1 = convert_pred_to_kitti_format(
         pred_frame_1, sample_name_1, dataset, threshold)
@@ -171,6 +172,8 @@ def generate_dets_for_dt_track(frames, root_dir):
         # get kitti type predicted label and offsets
         pred_frame_kitti_0, pred_frame_kitti_1, rect_pred_frame_kitti_0 = \
             decode_tracking_file(root_dir, frames[i], dataset)
+
+
 
         if len(pred_frame_kitti_0) == 0 and len(pred_frame_kitti_1) == 0:
             continue

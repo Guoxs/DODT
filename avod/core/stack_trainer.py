@@ -78,7 +78,7 @@ def train(model, train_config):
         variable_to_train = None
     else:
         trainable_variables = tf.trainable_variables()
-        #variable_to_train = trainable_variables
+        # variable_to_train = trainable_variables
         variable_to_train = trainable_variables[92:]
 
 

@@ -1,4 +1,5 @@
 from tensorflow.contrib import slim
+import tensorflow as tf
 from avod.core.corr_layers.correlation import correlation
 
 
@@ -18,11 +19,15 @@ def build(avod_layers_config, avod_config, bev_rois, is_training):
     disp = avod_config.avod_proposal_roi_crop_size
     padding = avod_config.avod_proposal_roi_crop_size
     # output_size: [N, 7, 7, 225] // testing [N, 3, 3, 49]
-    roi_corr_feature_maps = correlation(bev_rois[0], bev_rois[1],
-                                             kernel_size=1,
-                                             max_displacement=disp,
-                                             stride_1=1, stride_2=1,
-                                             padding=padding)
+    # roi_corr_feature_maps = correlation(bev_rois[0], bev_rois[1],
+    #                                          kernel_size=1,
+    #                                          max_displacement=disp,
+    #                                          stride_1=1, stride_2=1,
+    #                                          padding=padding)
+
+    fusion_feature_maps = tf.concat(bev_rois, axis=1)
+    roi_corr_feature_maps = slim.conv2d(fusion_feature_maps, 256, [1, 1], scope='corr_fused')
+
     output_names = ['corr_cls', 'corr_off']
     cls_logits = None
     offsets = None

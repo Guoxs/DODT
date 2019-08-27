@@ -127,6 +127,13 @@ W.~Luo, B.~Yang, and R.~Urtasun, ``Fast and furious: Real time end-to-end 3d
   in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
   Recognition}, 2018, pp. 3569--3577.
 
+\bibitem{scheidegger2018mono}
+S.~Scheidegger, J.~Benjaminsson, E.~Rosenberg, A.~Krishnan, and
+  K.~Granstr{\"o}m, ``Mono-camera 3d multi-object tracking using deep learning
+  detections and pmbm filtering,'' in \emph{2018 IEEE Intelligent Vehicles
+  Symposium (IV)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2018, pp.
+  433--440.
+
 \bibitem{frossard2018end}
 D.~Frossard and R.~Urtasun, ``End-to-end learning of multi-sensor 3d tracking
   by detection,'' in \emph{2018 IEEE International Conference on Robotics and
@@ -142,51 +149,8 @@ A.~Geiger, P.~Lenz, C.~Stiller, and R.~Urtasun, ``Vision meets robotics: The
 D.~P. Kingma and J.~Ba, ``Adam: A method for stochastic optimization,''
   \emph{arXiv preprint arXiv:1412.6980}, 2014.
 
-\bibitem{Milan2014PAMI}
-A.~Milan, S.~Roth, and K.~Schindler, ``Continuous energy minimization for
-  multitarget tracking,'' \emph{IEEE TPAMI}, vol.~36, no.~1, pp. 58--72, 2014.
-
-\bibitem{Yoon2015WACV}
-J.~H. Yoon, M.-H. Yang, J.~Lim, and K.-J. Yoon, ``Bayesian multi-object
-  tracking using motion context from multiple objects,'' in \emph{IEEE Winter
-  Conference on Applications of Computer Vision (WACV)}, 2015.
-
-\bibitem{Geiger2014PAMI}
-A.~Geiger, M.~Lauer, C.~Wojek, C.~Stiller, and R.~Urtasun, ``3d traffic scene
-  understanding from movable platforms,'' \emph{Pattern Analysis and Machine
-  Intelligence (PAMI)}, 2014.
-
-\bibitem{Lenz2015ICCV}
-P.~Lenz, A.~Geiger, and R.~Urtasun, ``Followme: Efficient online min-cost flow
-  tracking with bounded memory and computation,'' in \emph{International
-  Conference on Computer Vision (ICCV)}, 2015.
-
-\bibitem{Yoon2016CVPR}
-J.~H. Yoon, C.-R. Lee, M.-H. Yang, and K.-J. Yoon, ``Online multi-object
-  tracking via structural constraint event aggregation,'' in \emph{IEEE
-  International Conference on Computer Vision and Pattern Recognition (CVPR)},
-  2016.
-
-\bibitem{Gaidon2015BMVC}
-A.~Gaidon and E.~Vig, ``{Online Domain Adaptation for Multi-Object Tracking},''
-  in \emph{British Machine Vision Conference (BMVC)}, 2015.
-
-\bibitem{Choi2015ICCV}
-W.~Choi, ``Near-online multi-target tracking with aggregated local flow
-  descriptor,'' \emph{ICCV}, 2015.
-
-\bibitem{Wang2016IJCV}
-S.~Wang and C.~Fowlkes, ``Learning optimal parameters for multi-target tracking
-  with contextual interactions,'' \emph{International Journal of Computer
-  Vision}, 2016.
-
-\bibitem{Milan2013CVPR}
-A.~Milan, K.~Schindler, and S.~Roth, ``Detection- and trajectory-level
-  exclusion in multiple object tracking,'' in \emph{CVPR}, 2013.
-
-\bibitem{xiang2017subcategory}
-Y.~Xiang, W.~Choi, Y.~Lin, and S.~Savarese, ``Subcategory-aware convolutional
-  neural networks for object proposals and detection,'' in \emph{IEEE Winter
-  Conference on Applications of Computer Vision (WACV)}, 2017.
+\bibitem{Hu3DT19}
+H.-N. Hu, Q.-Z. Cai, D.~Wang, J.~Lin, M.~Sun, P.~Krähenbühl, T.~Darrell, and
+  F.~Yu, ``Joint monocular 3d detection and tracking,'' 2019.
 
 \end{thebibliography}

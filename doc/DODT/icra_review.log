@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.12)  9 AUG 2019 22:59
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.12)  26 AUG 2019 22:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -427,14 +427,49 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 )))
-(/usr/share/texlive/texmf-dist/tex/latex/algorithm2e/algorithm2e.sty
-Package: algorithm2e 2013/01/06 v5.00 algorithms environments
-\c@AlgoLine=\count131
+(/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
+Package: xcolor 2007/01/21 v2.11 LaTeX color extensions (UK)
+
+(/usr/share/texlive/texmf-dist/tex/latex/latexconfig/color.cfg
+File: color.cfg 2007/01/18 v1.5 color configuration of teTeX/TeXLive
+)
+Package xcolor Info: Driver file: pdftex.def on input line 225.
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1337.
+Package xcolor Info: Model `hsb' substituted by `rgb' on input line 1341.
+Package xcolor Info: Model `RGB' extended on input line 1353.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1355.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1356.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1357.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1358.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1359.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1360.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/algorithmicx/algpseudocode.sty
+Package: algpseudocode 
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ifthen.sty
 Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
 )
-\algocf@hangindent=\skip58
+(/usr/share/texlive/texmf-dist/tex/latex/algorithmicx/algorithmicx.sty
+Package: algorithmicx 2005/04/27 v1.2 Algorithmicx
+
+Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style
+\c@ALG@line=\count131
+\c@ALG@rem=\count132
+\c@ALG@nested=\count133
+\ALG@tlm=\skip58
+\ALG@thistlm=\skip59
+\c@ALG@Lnr=\count134
+\c@ALG@blocknr=\count135
+\c@ALG@storecount=\count136
+\c@ALG@tmpcounter=\count137
+\ALG@tmplength=\skip60
+)
+Document Style - pseudocode environments for use with the `algorithmicx' style
+) (/usr/share/texlive/texmf-dist/tex/latex/algorithm2e/algorithm2e.sty
+Package: algorithm2e 2013/01/06 v5.00 algorithms environments
+\c@AlgoLine=\count138
+\algocf@hangindent=\skip61
 
 (/usr/share/texlive/texmf-dist/tex/latex/tools/xspace.sty
 Package: xspace 2014/10/28 v1.13 Space after command names (DPC,MH)
@@ -449,38 +484,38 @@ Package `algorithm2e' Release 5.1 -- october 19 2015 --
 subscribe by emailing sympa@lirmm.fr with 'subscribe <list> <firstname name>'
 - Author: Christophe Fiorio (christophe.fiorio@umontpellier.fr)
 ********************************************************
-\skiptotal=\skip59
-\skiplinenumber=\skip60
-\skiprule=\skip61
-\skiphlne=\skip62
-\skiptext=\skip63
-\skiplength=\skip64
-\algomargin=\skip65
-\skipalgocfslide=\skip66
+\skiptotal=\skip62
+\skiplinenumber=\skip63
+\skiprule=\skip64
+\skiphlne=\skip65
+\skiptext=\skip66
+\skiplength=\skip67
+\algomargin=\skip68
+\skipalgocfslide=\skip69
 \algowidth=\dimen157
 \inoutsize=\dimen158
 \inoutindent=\dimen159
 \interspacetitleruled=\dimen160
 \interspacealgoruled=\dimen161
 \interspacetitleboxruled=\dimen162
-\algocf@ruledwidth=\skip67
+\algocf@ruledwidth=\skip70
 \algocf@inoutbox=\box33
 \algocf@inputbox=\box34
-\AlCapSkip=\skip68
-\AlCapHSkip=\skip69
-\algoskipindent=\skip70
+\AlCapSkip=\skip71
+\AlCapHSkip=\skip72
+\algoskipindent=\skip73
 \algocf@nlbox=\box35
 \algocf@hangingbox=\box36
 \algocf@untilbox=\box37
-\algocf@skipuntil=\skip71
+\algocf@skipuntil=\skip74
 \algocf@capbox=\box38
-\algoheightruledefault=\skip72
-\algoheightrule=\skip73
-\algotitleheightruledefault=\skip74
-\algotitleheightrule=\skip75
-\c@algocfline=\count132
-\c@algocfproc=\count133
-\c@algocf=\count134
+\algoheightruledefault=\skip75
+\algoheightrule=\skip76
+\algotitleheightruledefault=\skip77
+\algotitleheightrule=\skip78
+\c@algocfline=\count139
+\c@algocfproc=\count140
+\c@algocf=\count141
 \algocf@algoframe=\box39
 \algocf@algobox=\box40
 ) (/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
@@ -512,50 +547,50 @@ mpboxa \hbox {\footnotesize #1.~~ }\parbox [t]{\hsize }{\footnotesize \noindent
  \unhbox \@tempboxa #2}\else \ifcenterfigcaptions \hbox to\hsize {\footnotesize
  \hfil \box \@tempboxa \hfil }\else \hbox to\hsize {\footnotesize \box \@tempbo
 xa \hfil }\fi \fi \fi .
-\c@ContinuedFloat=\count135
+\c@ContinuedFloat=\count142
 Package caption Info: subfigure package is loaded.
 ) (/usr/share/texlive/texmf-dist/tex/latex/etoolbox/etoolbox.sty
 Package: etoolbox 2015/08/02 v2.2a e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count136
+\etb@tempcnta=\count143
 )
 (./icra_review.aux)
 \openout1 = `icra_review.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 75.
-LaTeX Font Info:    ... okay on input line 75.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 78.
+LaTeX Font Info:    ... okay on input line 78.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count137
+\scratchcounter=\count144
 \scratchdimen=\dimen170
 \scratchbox=\box41
-\nofMPsegments=\count138
-\nofMParguments=\count139
+\nofMPsegments=\count145
+\nofMParguments=\count146
 \everyMPshowfont=\toks24
-\MPscratchCnt=\count140
+\MPscratchCnt=\count147
 \MPscratchDim=\dimen171
-\MPnumerator=\count141
-\makeMPintoPDFobject=\count142
+\MPnumerator=\count148
+\makeMPintoPDFobject=\count149
 \everyMPtoPDFconversion=\toks25
 )
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: End \AtBeginDocument code.
-LaTeX Font Info:    Calculating math sizes for size <11> on input line 77.
-LaTeX Font Info:    Try loading font information for U+msa on input line 77.
+LaTeX Font Info:    Calculating math sizes for size <11> on input line 80.
+LaTeX Font Info:    Try loading font information for U+msa on input line 80.
  (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 77.
+LaTeX Font Info:    Try loading font information for U+msb on input line 80.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -563,124 +598,69 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 <images/structure.pdf, id=1, 963.6pt x 542.025pt>
 File: images/structure.pdf Graphic file (type pdf)
  <use images/structure.pdf>
-Package pdftex.def Info: images/structure.pdf used on input line 112.
+Package pdftex.def Info: images/structure.pdf used on input line 137.
 (pdftex.def)             Requested size: 505.89pt x 200.87186pt.
 
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 
-] [2 <./images/structure.pdf>] <images/rpn.pdf, id=41, 963.6pt x 542.025pt>
-File: images/rpn.pdf Graphic file (type pdf)
- <use images/rpn.pdf>
-Package pdftex.def Info: images/rpn.pdf used on input line 155.
-(pdftex.def)             Requested size: 252.94499pt x 182.43611pt.
+]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-Overfull \hbox (7.22688pt too wide) in paragraph at lines 155--156
+ [2 <./images/structure.pdf>] <images/rpn.pdf, id=53, 963.6pt x 542.025pt>
+File: images/rpn.pdf Graphic file (type pdf)
+
+<use images/rpn.pdf>
+Package pdftex.def Info: images/rpn.pdf used on input line 180.
+(pdftex.def)             Requested size: 252.94499pt x 199.65977pt.
+
+Overfull \hbox (7.22688pt too wide) in paragraph at lines 180--181
  [] 
  []
 
-<images/integrated_boxes.png, id=43, 779.91376pt x 560.0925pt>
+<images/integrated_boxes.png, id=55, 779.91376pt x 560.0925pt>
 File: images/integrated_boxes.png Graphic file (type png)
 
 <use images/integrated_boxes.png>
-Package pdftex.def Info: images/integrated_boxes.png used on input line 168.
-(pdftex.def)             Requested size: 202.3529pt x 145.31294pt.
-
-
-LaTeX Font Warning: Command \small invalid in math mode on input line 180.
-
-
-Overfull \hbox (7.83511pt too wide) detected at line 187
-\OT1/cmr/m/n/9 (^^A[]\OML/cmm/m/it/9 ; \OT1/cmr/m/n/9 ^^A[]\OML/cmm/m/it/9 ; \O
-T1/cmr/m/n/9 ^^A[]) = []
- []
-
-LaTeX Font Info:    Calculating math sizes for size <> on input line 187.
-
-LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <0.7> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <0.5> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <0.7> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <0.5> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <0.7> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <0.5> not available
-(Font)              size <5> substituted on input line 187.
-
-
-LaTeX Font Warning: Command \small invalid in math mode on input line 189.
-
-[3 <./images/rpn.pdf> <./images/integrated_boxes.png>]
-<images/motion.pdf, id=83, 963.6pt x 542.025pt>
-File: images/motion.pdf Graphic file (type pdf)
- <use images/motion.pdf>
-Package pdftex.def Info: images/motion.pdf used on input line 206.
-(pdftex.def)             Requested size: 252.94499pt x 184.13145pt.
-
-Overfull \hbox (7.22688pt too wide) in paragraph at lines 206--207
- [] 
- []
-
+Package pdftex.def Info: images/integrated_boxes.png used on input line 191.
+(pdftex.def)             Requested size: 227.64894pt x 163.4824pt.
+ [3 <./images/rpn.pdf> <./images/integrated_boxes.png>]
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6.25002> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 238.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 255.
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
-[4 <./images/motion.pdf>]
+ [4]
 
-pdfTeX warning: /usr/bin/pdflatex (file ./images/example.pdf): PDF inclusion: f
-ound PDF version <1.7>, but at most version <1.5> allowed
-<images/example.pdf, id=108, 963.6pt x 542.025pt>
-File: images/example.pdf Graphic file (type pdf)
- <use images/example.pdf>
-Package pdftex.def Info: images/example.pdf used on input line 327.
-(pdftex.def)             Requested size: 505.89pt x 245.7329pt.
+pdfTeX warning: /usr/bin/pdflatex (file ./images/examples.pdf): PDF inclusion: 
+found PDF version <1.7>, but at most version <1.5> allowed
+<images/examples.pdf, id=104, 963.6pt x 542.025pt>
+File: images/examples.pdf Graphic file (type pdf)
+ <use images/examples.pdf>
+Package pdftex.def Info: images/examples.pdf used on input line 353.
+(pdftex.def)             Requested size: 505.89pt x 288.79404pt.
 
-Overfull \hbox (7.2333pt too wide) in paragraph at lines 336--344
-[][] 
- []
-
-
-Overfull \hbox (7.23404pt too wide) in paragraph at lines 349--374
-[][] 
- []
-
-
-Underfull \vbox (badness 2435) has occurred while \output is active []
+Underfull \vbox (badness 4353) has occurred while \output is active []
 
  [5]
-Underfull \vbox (badness 3482) has occurred while \output is active []
+Overfull \hbox (7.23143pt too wide) in paragraph at lines 366--376
+[][] 
+ []
 
 
-(./icra_review.bbl [6 <./images/example.pdf>])
+Overfull \hbox (7.23499pt too wide) in paragraph at lines 382--394
+[][] 
+ []
+
+(./icra_review.bbl [6 <./images/examples.pdf>]
+Missing character: There is no Ã in font ptmr7t!
+Missing character: There is no ¤ in font ptmr7t!
+Missing character: There is no Ã in font ptmr7t!
+Missing character: There is no ¼ in font ptmr7t!
+)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -692,42 +672,40 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the US letter (8.5in X 11in) paper size.
 
-[7] (./icra_review.aux)
-
-LaTeX Font Warning: Size substitutions with differences
-(Font)              up to 4.5pt have occurred.
-
- ) 
+[7] (./icra_review.aux) ) 
 Here is how much of TeX's memory you used:
- 6697 strings out of 493029
- 97927 string characters out of 6136233
- 217471 words of memory out of 5000000
- 10080 multiletter control sequences out of 15000+600000
- 52395 words of font info for 118 fonts, out of 8000000 for 9000
+ 7571 strings out of 493029
+ 109231 string characters out of 6136233
+ 230905 words of memory out of 5000000
+ 10942 multiletter control sequences out of 15000+600000
+ 49405 words of font info for 107 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,17n,39p,1701b,509s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb></usr/share/texlive/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmmi9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
-onts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmr5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pf
-b></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/
-share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/te
-xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texlive/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/font
-s/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1
-/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb
-i8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/s
-hare/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on icra_review.pdf (7 pages, 674696 bytes).
+ 42i,18n,39p,1904b,520s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r
+.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
+/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/s
+hare/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/te
+xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-di
+st/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/font
+s/type1/public/amsfonts/cm/cmmi9.pfb></usr/share/texlive/texmf-dist/fonts/type1
+/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmr5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr
+7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></
+usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/u
+rw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8
+a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on icra_review.pdf (7 pages, 670223 bytes).
 PDF statistics:
- 197 PDF objects out of 1000 (max. 8388607)
- 121 compressed objects within 2 object streams
+ 210 PDF objects out of 1000 (max. 8388607)
+ 115 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 50 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 39 words of extra memory for PDF output out of 10000 (max. 10000000)
 
