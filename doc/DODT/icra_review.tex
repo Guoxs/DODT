@@ -134,9 +134,9 @@ To generate predictions of every frame, a motion based interpolation algorithm i
 	\rule{0pt}{1ex}
 	%\setlength{\abovecaptionskip}{-0.1cm}
 	\begin{center}
-		\includegraphics[trim={0.5cm, 3cm, 0.5cm, 3cm}, clip, width=\textwidth]{images/structure.pdf}
+		\includegraphics[trim={1.1cm, 2.8cm, 1.5cm, 3cm}, clip, width=\textwidth]{images/structure02.pdf}
 	\end{center}
-	\caption{DODT architecture. Blue area is \textit{Temporal module}, it does not use image features since information in BEV is sufficient for tracking.}
+	\caption{DODT architecture. Blue area is \textit{Temporal module}, information in BEV space is sufficient for tracking.}
 	\label{fig:dodt}
 	\vspace{-0.5cm}
 \end{figure*}
@@ -177,7 +177,7 @@ The whole network is designed in an end-to-end form. The multi-task objective co
 	\rule{0pt}{1ex}
 	%\setlength{\abovecaptionskip}{-0.1cm}
 	\begin{center}
-		\includegraphics[trim={7cm, 2cm, 7.8cm, 2cm}, clip,width=0.45\textwidth]{images/rpn.pdf}
+		\includegraphics[trim={7cm, 2cm, 8cm, 1.8cm}, clip,width=0.5\textwidth]{images/rpn.pdf}
 	\end{center}
 	\caption{Shared RPN module.}
 	\label{fig:rpn}
@@ -248,6 +248,7 @@ Multi-object tracking can be accomplished with streaming level object detection 
 
 %The motion model is illustrated in \figurename \, \ref{fig:motion}. Rectangle BCEF is the range of selected point clouds with size of $[-40,40] \times [0, 70]$ meters along $X, Z$ axis respectively. While OABCD is the range contains points within the field of view of the camera. Taking $Car$ 0 as a example, it's a trajectory birth and is not detected in first keyframe, but is detected in second keyframe. We hold the hypothesis that $Car$ 0 is just outside OABCD and located in $d$ in first keyframe and its steering angle $ry$ is not change, thus the offset can be obtained by Equation (\ref{offsets}). Then the detections in intermediate frames can be calculated. Trajectory death case shows in $Car$ 1 can be handled in the similar way. 
 
+\vspace{-0.3cm}
 \begin{algorithm}
 	\small
 	\caption{Motion based Interpolation Algorithm}
