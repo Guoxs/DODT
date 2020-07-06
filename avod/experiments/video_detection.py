@@ -1,4 +1,5 @@
 import os
+import argparse
 import collections
 import subprocess
 import sys
@@ -491,24 +492,45 @@ def run_kitti_native_script_with_05_iou(checkpoint_name, score_threshold,
                      str(checkpoint_name)])
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
-    ckpt_indices = '7000'
+    parser = argparse.ArgumentParser()
 
-    stride = 2
+    default_checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking'
+    default_ckpt_indices = '120000'
+    default_stride = 3
 
-    kitti_score_threshold = '0.1_' + str(stride)
+    parser.add_argument('--pipeline_config',
+                        type=str,
+                        dest='pipeline_config',
+                        default=default_checkpoint_name,
+                        help='Name of the pipeline config')
+
+    parser.add_argument('--ckpt_indices',
+                        type=str,
+                        dest='ckpt_indices',
+                        default=default_ckpt_indices,
+                        help='index of checkpoints')
+
+    parser.add_argument('--stride',
+                        type=int,
+                        dest='stride',
+                        default=default_stride,
+                        help='temporal stride of keyframes')
+
+    args = parser.parse_args()
+
+    kitti_score_threshold = '0.1_' + str(args.stride)
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
-    dataset_config = config_setting(checkpoint_name, ckpt_indices)
+    dataset_config = config_setting(args.pipeline_config, args.ckpt_indices)
 
-    output_root = avod.root_dir() + '/data/outputs/' + checkpoint_name +\
+    output_root = avod.root_dir() + '/data/outputs/' + args.pipeline_config +\
                   '/predictions/kitti_native_eval/'
 
-    dataset_config.data_stride = stride
+    dataset_config.data_stride = args.stride
     dataset = build_dataset(dataset_config)
     video_frames = get_frames(dataset)
 
-    output_root = output_root + '0.1_guoxs_' + str(stride) + '/' + ckpt_indices + '/data/'
+    output_root = output_root + '0.1_guoxs_' + str(args.stride) + '/' + args.ckpt_indices + '/data/'
     os.makedirs(output_root, exist_ok=True)
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
@@ -528,7 +550,7 @@ if __name__ == '__main__':
         track_new = restyle_track(track_kitti_format, frames)
 
         # interpolation
-        track_interploated = label_interpolation(track_new,stride)
+        track_interploated = label_interpolation(track_new, args.stride)
 
         # store result
         print('\nStoring video id: %s' %video_id)
@@ -536,10 +558,10 @@ if __name__ == '__main__':
 
     # Create a separate processes to run the native evaluation
     native_eval_proc = Process(target=run_kitti_native_script,
-        args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+        args=(args.pipeline_config, kitti_score_threshold, args.ckpt_indices))
 
     native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
-        args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+        args=(args.pipeline_config, kitti_score_threshold, args.ckpt_indices))
     # Don't call join on this cuz we do not want to block
     # this will cause one zombie process - should be fixed later.
     native_eval_proc.start()
