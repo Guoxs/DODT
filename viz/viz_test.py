@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 
 import sys
-sys.path.append('/home/mooyu/Project/avod/')
-sys.path.append('/home/mooyu/Project/avod/wavedata')
+sys.path.append('/home/guoxs/Documents/Project/avod/')
+sys.path.append('/home/guoxs/Documents/Project/avod/wavedata')
 
 import avod.tests as tests
 import mayavi.mlab as mlab
@@ -23,6 +23,7 @@ def test_oxts_coordinate_transform():
     raw_point_cloud = []
     raw_label = []
     calibs = []
+    colors = [(0,1,0),(1,1,1)]
 
     fig = mlab.figure(figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1600, 1000))
     for i in range(2):
@@ -34,7 +35,7 @@ def test_oxts_coordinate_transform():
         raw_point_cloud.append(point_cloud)
         raw_label.append(obj_label)
         calibs.append(calib)
-        fig = draw_lidar_and_boxes(point_cloud, obj_label, calib, fig)
+        fig = draw_lidar_and_boxes(point_cloud, obj_label, calib, fig, colors[i])
     mlab.show()
     input()
 
@@ -46,7 +47,7 @@ def test_oxts_coordinate_transform():
     ct_obj_label = dataset.label_transform(raw_label, sample_names)
     ct_point_cloud = dataset.point_cloud_transform(raw_point_cloud, sample_names)
     for i in range(2):
-        ct_fig = draw_lidar_and_boxes(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig)
+        ct_fig = draw_lidar_and_boxes(ct_point_cloud[i], ct_obj_label[i], calibs[i], ct_fig, colors[i])
     mlab.show()
     input()
 
@@ -64,10 +65,10 @@ def test_oxts_coordinate_transform():
 
 
 def test_normal():
-    root_dir = '/media/mooyu/Guoxs_Data/Datasets/3D_Object_Tracking_Evaluation_2012'
+    root_dir = '/media/guoxs/Guoxs_Data/Datasets/3D_Object_Tracking_Evaluation_2012'
     lidar_file1 = root_dir + '/training/velodyne/0000/000000.bin'
     lidar_file2 = root_dir + '/training/velodyne/0000/000005.bin'
-    lidar1 = np.fromfile(lidar_file1,dtype=np.single).reshape(-1,4)
+    lidar1 = np.fromfile(lidar_file1,dtype=np.single).reshape(-1, 4)
     lidar2 = np.fromfile(lidar_file2, dtype=np.single).reshape(-1, 4)
     merge_lidar = np.concatenate([lidar1[:, :3], lidar2[:, :3]], axis=0)
 

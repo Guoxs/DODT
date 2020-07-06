@@ -526,8 +526,8 @@ def store_final_result(frames, video_id, output_root):
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'avod_stack_tracking_pretrained'
-    ckpt_indices = '60000'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
+    ckpt_indices = '7000'
     data_split = 'val'
 
     stride = 1

@@ -1,0 +1,46 @@
+Reviewer 5 of ICRA 2020 submission 61
+
+Comments to the author
+======================
+
+The paper proposes a new 3D object detection and tracking
+methods using point clouds and RGB images.  A neural
+network is designed to take two images in two different
+time steps, and generate 3D bounding box detections in both
+images separately, as well as predict the offsets of the
+two sets of detections using a temporal module in the
+network. As a result, the temporal module performs data
+association across video frames, and the data association
+is used in a tracking by detection framework to track
+multiple objects in videos.
+
+Positives:
+- The idea of using a temporal module to predict offsets
+between detections in different time steps is novel.
+- The temporal module is used to link detections, which is
+also helpful in removing false detections and fixing
+missing true positives.
+ - The shared RPN module reduces computation cost, and
+improves data association.
+- The paper conducts thorough experimental evaluations on
+both 3D object detection and multi-object tracking using
+the KITTI dataset for cars.
+- The paper improves over the state-of-the-art for car
+detection in the KITTI dataset, and show competitive
+results on multi-object tracking.
+
+Negatives:
+- It is unclear how BEV is computed in the paper. Please
+make sure the paper is self-contained.
+- All authors should be included instead of using "et al.".
+- Please make it clear how different frames are transformed
+into the same coordinate system in the shared RPN, using
+ground truth camera poses?
+- Conclusion seems to be too short. Please discuss
+limitations of the proposed method and possibly future
+works. 
+
+Comments on the Video Attachment
+================================
+
+The video looks great.

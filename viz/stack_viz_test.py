@@ -1,7 +1,7 @@
 import sys
 import numpy as np
-sys.path.append('/home/mooyu/Project/avod/')
-sys.path.append('/home/mooyu/Project/avod/wavedata')
+sys.path.append('/home/guoxs/Documents/Project/avod/')
+sys.path.append('/home/guoxs/Documents/Project/avod/wavedata')
 
 from avod.core import constants
 from avod.protos import pipeline_pb2

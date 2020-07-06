@@ -6,10 +6,15 @@
 \citation{simon2018complex}
 \citation{chen2017multi}
 \citation{ku2018joint}
+\citation{chen2017multi}
+\citation{ku2018joint}
 \citation{feichtenhofer2017detect}
+\citation{ku2018joint}
 \citation{feichtenhofer2017detect}
 \citation{dosovitskiy2015flownet}
 \citation{lenz2015followme}
+\citation{feichtenhofer2017detect}
+\citation{dosovitskiy2015flownet}
 \citation{7780605}
 \citation{chen20183d}
 \citation{li20173d}
@@ -21,6 +26,7 @@
 \citation{qi2018frustum}
 \citation{chen2017multi}
 \citation{ku2018joint}
+\providecommand \oddpage@label [2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {I}INTRODUCTION}{1}}
 \@writefile{toc}{\contentsline {section}{\numberline {II}RELATED WORK}{1}}
 \citation{zhu2017flow}
@@ -32,10 +38,11 @@
 \citation{scheidegger2018mono}
 \citation{frossard2018end}
 \citation{chen2017multi}
+\citation{bochinski2018extending}
 \citation{chen2017multi}
 \citation{ku2018joint}
 \citation{chen2017multi}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces DODT architecture. Blue area is \textit  {Temporal module}, information in BEV space is sufficient for tracking.\relax }}{2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces DODT architecture. The structure in light yellow is \textit  {Temporal module}. Best viewed in color.\relax }}{2}}
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{fig:dodt}{{1}{2}}
 \@writefile{toc}{\contentsline {section}{\numberline {III}METHODOLOGY}{2}}
@@ -45,7 +52,7 @@
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Shared RPN module.\relax }}{3}}
 \newlabel{fig:rpn}{{2}{3}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {III-B}Shared RPN}{3}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Five consecutive point clouds in the same coordinate system. Green boxes are default labels of five frames, while red boxes are the axis-aligned new labels for RPN training.\relax }}{3}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Five consecutive point clouds in the same coordinate system. \leavevmode {\color  {green}Green} boxes illustrate default labels of five frames, while \leavevmode {\color  {red}red} boxes are the new axis-aligned labels for RPN training.\relax }}{3}}
 \newlabel{fig:integrated_boxes}{{3}{3}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {III-C}Temporal Module}{3}}
 \citation{ku2018joint}
@@ -59,11 +66,12 @@
 \citation{ku2018joint}
 \citation{kingma2014adam}
 \citation{ku2018joint}
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces We report $AP_{3D}/AP_{BEV}$ (in \%) of the \textbf  {Car} category on evaluation datasets, corresponding to average precision of the bird’s-eye view and 3D object detection. T is \textit  {Treacking Module}, M is \textit  {Motion based interpolation algorithm}. $\tau $ is temporal stride.\relax }}{5}}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces We report $AP_{3D}/AP_{BEV}$ (in \%) of the \textbf  {Car} category on validation datasets, corresponding to average precision of 3D object detection and the bird's eye view. T is \textit  {Temporal Module}, M is \textit  {Motion based interpolation algorithm}. $\tau $ is temporal stride.\relax }}{5}}
 \newlabel{table:result_detection}{{I}{5}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {IV-B}Results}{5}}
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Comparison of proposal prediction accuracy.\relax }}{5}}
 \newlabel{table:rpn_result}{{II}{5}}
+\citation{ku2018joint}
 \citation{Simon_2019_CVPR_Workshops}
 \citation{frossard2018end}
 \citation{scheidegger2018mono}
@@ -72,11 +80,11 @@
 \citation{frossard2018end}
 \citation{scheidegger2018mono}
 \citation{Hu3DT19}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Visualization of labels and our predictions in sequences 0. Boxes in \leavevmode {\color  {green}\textbf  {Green}} are official ground truth, boxes in \leavevmode {\color  {yellow}\textbf  {Yellow}} are results predicted with temporal stride $\tau = 1$, and boxes in \leavevmode {\color  {magenta}\textbf  {Magenta}} are results predicted with temporal stride $\tau = 3$. Best viewed in color.\relax }}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Visualization of labels and our predictions in sequences 0. Boxes in \leavevmode {\color  {green}green} are official ground truth, boxes in \leavevmode {\color  {yellow}yellow} are results predicted with temporal stride $\tau = 1$, and boxes in \leavevmode {\color  {magenta}magenta} are results predicted with temporal stride $\tau = 3$. Boxes in mixed color are magenta boxes overlapped with yellow boxes. Best viewed in color.\relax }}{6}}
 \newlabel{fig:examples}{{4}{6}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Ablation study on KITTI Tracking test datasets.\relax }}{6}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Ablation study on KITTI Tracking validation datasets.\relax }}{6}}
 \newlabel{label:result_tracking}{{III}{6}}
-\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Comparison of publicly available methods in the KITTI Tracking Benchmark. The time for object detection is not included in the specified runtime.\relax }}{6}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Comparison of publicly available methods of 3D multi-object tracking in the KITTI Tracking Benchmark. The time for object detection is not included in the specified runtime.\relax }}{6}}
 \newlabel{label:result_kitti}{{IV}{6}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}CONCLUSIONS}{6}}
 \newlabel{sec:conclusions}{{V}{6}}
@@ -103,7 +111,8 @@
 \bibcite{luo2018fast}{19}
 \bibcite{scheidegger2018mono}{20}
 \bibcite{frossard2018end}{21}
-\bibcite{geiger2013vision}{22}
-\bibcite{kingma2014adam}{23}
-\bibcite{Hu3DT19}{24}
+\bibcite{bochinski2018extending}{22}
+\bibcite{geiger2013vision}{23}
+\bibcite{kingma2014adam}{24}
+\bibcite{Hu3DT19}{25}
 \@writefile{toc}{\contentsline {section}{References}{7}}

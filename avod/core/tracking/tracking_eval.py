@@ -13,7 +13,7 @@ from avod.core.box_4c_encoder import np_box_3d_to_box_4c
 
 def config_setting(checkpoint_name, ckpt_indices):
     root_dir = avod.root_dir() + '/data/outputs/' + checkpoint_name + \
-               '/predictions/kitti_native_eval/0.1_test/' + ckpt_indices + '/data/'
+               '/predictions/kitti_native_eval/0.1/' + ckpt_indices + '/data/'
 
     # Read the config from the experiment folder
     experiment_config_path = avod.root_dir() + '/data/outputs/' + \
@@ -331,9 +331,9 @@ def track_iou_v2(dataset, video_id, detections, sigma_l, sigma_h, sigma_iou, t_m
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_trainval'
-    ckpt_indices = '120000'
-    data_split = 'test'
+    checkpoint_name = 'pyramid_cars_with_aug_dt_5_tracking_corr_pretrained_new'
+    ckpt_indices = '7000'
+    data_split = 'val'
 
     root_dir, tracking_output_dir, tracking_eval_script_dir, \
     dataset_config = config_setting(checkpoint_name, ckpt_indices)
@@ -345,7 +345,7 @@ if __name__ == '__main__':
 
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
-    # copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
+    copy_tracking_eval_script(tracking_eval_script_dir, video_ids)
 
     for (video_id, frames) in video_frames.items():
         dets_for_track = generate_dets_for_track(frames, root_dir)
@@ -362,4 +362,4 @@ if __name__ == '__main__':
         print('store prediction results:', video_result_path)
 
     # run eval script for evaluation
-    # run_kitti_tracking_script(checkpoint_name, ckpt_indices)
+    run_kitti_tracking_script(checkpoint_name, ckpt_indices)

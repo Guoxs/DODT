@@ -140,6 +140,10 @@ D.~Frossard and R.~Urtasun, ``End-to-end learning of multi-sensor 3d tracking
   Automation (ICRA)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2018, pp.
   635--642.
 
+\bibitem{bochinski2018extending}
+E.~Bochinski, T.~Senst, and T.~Sikora, ``Extending iou based multi-object
+  tracking by visual information,'' \emph{AVSS. IEEE}, 2018.
+
 \bibitem{geiger2013vision}
 A.~Geiger, P.~Lenz, C.~Stiller, and R.~Urtasun, ``Vision meets robotics: The
   kitti dataset,'' \emph{The International Journal of Robotics Research},

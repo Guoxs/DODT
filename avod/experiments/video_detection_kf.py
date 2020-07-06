@@ -2,6 +2,7 @@ import os
 import collections
 import subprocess
 import sys
+import time
 import warnings
 from distutils import dir_util
 from collections import deque
@@ -202,7 +203,7 @@ def convert_trajectory_to_kitti_format(trajectories):
             label = [frame_id] + [id] + info + boxes2d + boxes3d + [score]
             final_pred_label.append(label)
 
-    final_pred_label.sort(key = lambda obj: 100*int(obj[0])+int(obj[1]))
+    final_pred_label.sort(key = lambda obj: int(obj[0]))
     final_pred_label = np.asarray(final_pred_label)
     return final_pred_label
 
@@ -509,7 +510,7 @@ def store_final_result(frames, video_id, output_root):
 
 if __name__ == '__main__':
     checkpoint_name = 'avod_stack_tracking_pretrained'
-    ckpt_indices = '60000'
+    ckpt_indices = '120000'
     data_split = 'val'
 
     stride = 1
@@ -526,8 +527,8 @@ if __name__ == '__main__':
     dataset = build_dataset(dataset_config, data_split)
     video_frames = get_frames(dataset)
 
-    # output_root = output_root + kitti_score_threshold + '/' + ckpt_indices + '/data/'
-    # os.makedirs(output_root, exist_ok=True)
+    output_root = output_root + kitti_score_threshold + '/' + ckpt_indices + '/data/'
+    os.makedirs(output_root, exist_ok=True)
 
     # copy tracking eval script to tracking_output_dir
     video_ids = video_frames.keys()
@@ -537,8 +538,19 @@ if __name__ == '__main__':
         frame_num = int(frames[-1][2:]) + 1
         dets_for_track = generate_dets_for_track(frames, root_dir)
 
+        valid_frames = []
+        for frame in frames:
+            if frame != []:
+                valid_frames.append(frame)
+
+        start = time.time()
+
         tracks_finished = kf_pipeline(dataset, video_id, dets_for_track, stride,
                                       frame_num, sigma_l=0.1, iou_threshold=0.1)
+
+        end = time.time()
+        fps = len(valid_frames) / (end - start)
+        print("FPS: \n", fps)
 
         # convert tracks into kitti format
         track_kitti_format = convert_trajectory_to_kitti_format(tracks_finished)

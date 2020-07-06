@@ -4,6 +4,8 @@ avod/data_tracking
 avod/checkpoints
 avod/logs
 viz/video
+videos
+doc/DODT_final/Pre
 
 # Python
 *.pyc

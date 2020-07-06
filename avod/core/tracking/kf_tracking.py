@@ -476,7 +476,7 @@ def store_final_result(frames, video_id, output_root):
 
 
 if __name__ == '__main__':
-    checkpoint_name = 'pyramid_cars_with_aug_example_trainval'
+    checkpoint_name = 'avod_stack_tracking_pretrained'
     ckpt_indices = '120000'
     data_split = 'val'
 
@@ -525,19 +525,19 @@ if __name__ == '__main__':
         print('store prediction results:', video_result_path)
 
         # store detection result
-        track_new = restyle_track(track_kitti_format, frames)
-        print('\nStoring video id: %s' % video_id)
-        store_final_result(track_new, video_id, output_root)
+        # track_new = restyle_track(track_kitti_format, frames)
+        # print('\nStoring video id: %s' % video_id)
+        # store_final_result(track_new, video_id, output_root)
 
     # run eval script for evaluation
     run_kitti_tracking_script(checkpoint_name, ckpt_indices)
     # Create a separate processes to run the native evaluation
-    native_eval_proc = Process(target=run_kitti_native_script,
-                               args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
-
-    native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
-                                      args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+    # native_eval_proc = Process(target=run_kitti_native_script,
+    #                            args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
+    #
+    # native_eval_proc_05_iou = Process(target=run_kitti_native_script_with_05_iou,
+    #                                   args=(checkpoint_name, kitti_score_threshold, ckpt_indices))
     # Don't call join on this cuz we do not want to block
     # this will cause one zombie process - should be fixed later.
-    native_eval_proc.start()
-    native_eval_proc_05_iou.start()
+    # native_eval_proc.start()
+    # native_eval_proc_05_iou.start()
