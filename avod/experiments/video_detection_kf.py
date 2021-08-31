@@ -364,7 +364,7 @@ def interpolation_detections(track, next_det, stride):
 def kf_pipeline(dataset, video_id, detections, stride, frame_total, sigma_l, iou_threshold):
     '''
        Pipeline function for detection and tracking
-       '''
+    '''
     frame_count = 0
     tracker_list = []
     max_age = 3
